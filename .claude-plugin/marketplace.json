@@ -1,0 +1,14 @@
+{
+  "name": "oh-my-link",
+  "title": "Oh-My-Link",
+  "description": "Multi-agent orchestration for Claude Code. Dual-mode: Start Link (7-phase) and Start Fast (lightweight). Built from Claude Code source code leak.",
+  "version": "0.7.0",
+  "category": "productivity",
+  "plugins": [
+    {
+      "name": "oh-my-link",
+      "version": "0.7.0",
+      "path": "."
+    }
+  ]
+}
