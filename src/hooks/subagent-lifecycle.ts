@@ -185,10 +185,18 @@ async function main(): Promise<void> {
 
 async function handleStart(input: HookInput, cwd: string): Promise<void> {
   const agentId = input.agent_id || (input as any).agentId || (input as any).id || `agent-${process.pid}`;
-  const agentType = input.agent_type || (input as any).agentType || '';
-  const description = input.agent_description || (input as any).description || '';
-  const prompt = input.agent_prompt || (input as any).prompt || '';
+  const agentType = input.agent_type || (input as any).agentType || (input as any).type || '';
+  // Claude Code may send description under various field names
+  const description = input.agent_description || (input as any).agentDescription
+    || (input as any).description || (input as any).task_description || (input as any).taskDescription || '';
+  // Agent prompt: try all known field names
+  const prompt = input.agent_prompt || (input as any).agentPrompt
+    || (input as any).prompt || (input as any).task_prompt || (input as any).taskPrompt || '';
   const quiet = getQuietLevel();
+
+  // Debug: log raw payload fields to help diagnose role detection issues
+  const rawKeys = Object.keys(input).filter(k => (input as any)[k] !== undefined && (input as any)[k] !== '');
+  debugLog(cwd, 'agent-start-raw', `keys=[${rawKeys.join(',')}] agent_type=${JSON.stringify(agentType)} desc=${JSON.stringify(description.slice(0, 120))} prompt_start=${JSON.stringify((prompt || '').slice(0, 120))}`);
 
   // Detect role from agent_type or description + prompt
   const role = detectRole(agentType, description + ' ' + prompt);

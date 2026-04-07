@@ -2,6 +2,20 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.9.2] — Critical Regression Fix + Diagnostic Logging
+
+**Fixes v0.9.1 regression where subagent Edit/Write was blocked by pre-tool-enforcer.**
+
+### Critical Fix
+- **Revert master role inference in pre-tool-enforcer**: The v0.9.1 change to infer `role=master` when OML session is active caused ALL tool calls (including subagent Edit/Write) to be blocked, since PreToolUse hooks cannot distinguish root session from subagent processes. Root session orchestrator behavior is now enforced solely via imperative prompt rewrite.
+
+### Improved Role Detection
+- Expand SubagentStart field extraction: try `type`, `agentDescription`, `taskDescription`, `agentPrompt`, `taskPrompt` in addition to existing field names — defensive against Claude Code payload variations
+- Add raw payload diagnostic logging (`agent-start-raw`) to debug.log: dumps all non-empty keys, agent_type, description snippet, and prompt start so actual SubagentStart payloads can be inspected
+
+### Known Issue
+- `detectRole` still returns `worker` for all `general-purpose` agents when SubagentStart doesn't include description/prompt fields. This causes phase tracking to skip `light_scout` and jump to `light_execution`. Diagnostic logging added to capture real payload structure for next fix.
+
 ## [v0.9.1] — Role Detection, Model Routing & Cancel Cleanup
 
 Fixes critical production issues found in v0.9.0 field testing.

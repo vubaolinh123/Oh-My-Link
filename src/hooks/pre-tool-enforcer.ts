@@ -91,16 +91,16 @@ async function main(): Promise<void> {
   // Get agent role from env var (structured, not text-scanning)
   const rawRole = process.env.OML_AGENT_ROLE || '';
   // Normalize: lowercase, replace _ with - (e.g. FAST_SCOUT -> fast-scout)
-  let role = rawRole.toLowerCase().replace(/_/g, '-');
+  const role = rawRole.toLowerCase().replace(/_/g, '-');
 
-  // Read session once for both role inference and later file locking
+  // Read session for file locking checks later
   const session = readJson<SessionState>(getSessionPath(cwd));
 
-  // If no explicit role but OML session is active, the root session is the orchestrator (master).
-  // This prevents the root session from bypassing role enforcement when always-on triggers.
-  if (!role && session?.active) {
-    role = 'master';
-  }
+  // NOTE: We intentionally do NOT infer role='master' for the root session.
+  // PreToolUse hooks run in the SAME process for both root and subagents,
+  // and we cannot distinguish them. Inferring 'master' would block subagent
+  // Edit/Write operations. Root session orchestrator behavior is enforced
+  // via imperative prompt rewrite (keyword-detector), not via pre-tool-enforcer.
 
   debugLog(cwd, 'pre-tool', `tool=${toolName} role=${role || 'none'}`);
 
