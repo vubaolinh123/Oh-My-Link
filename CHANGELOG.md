@@ -2,6 +2,37 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.9.1] — Role Detection, Model Routing & Cancel Cleanup
+
+Fixes critical production issues found in v0.9.0 field testing.
+
+### Role Detection (3 fixes)
+- Add `[OML:role-name]` tag system: imperative prompts now embed role tags in agent descriptions (e.g. `[OML:fast-scout]`, `[OML:executor]`) for reliable detection regardless of Claude's agent naming
+- Fix `detectRole()`: handle `general-purpose` agent type (was only matching `general`), add prefix-match fallback for suffixed variants
+- Fix `pre-tool-enforcer`: infer `master` role for root session when OML session is active — blocks root from Edit/Write (enforces orchestrator-only behavior)
+
+### Model Routing
+- Add `getModelInstruction()` helper: generates per-role model instructions from config
+- Imperative prompts now include explicit model parameters for each spawned agent (e.g. "Set model to: claude-sonnet-4-6")
+- Fixes issue where all subagents used Opus instead of configured Sonnet/Haiku per role
+
+### Agent Failure Recovery
+- Add "IF EXECUTOR FAILS" section to all imperative prompts
+- Orchestrator is now instructed to re-spawn agents on failure instead of implementing fixes itself
+- After 3 failures, instructs user to try `start link` for complex tasks
+
+### BRIEF.md Path Consistency
+- Unify Fast Scout output path to `.oh-my-link/plans/BRIEF.md` across all sources:
+  - `agents/fast-scout.md`: was `.oh-my-link/context/BRIEF.md` → fixed
+  - `agents/executor.md`: was `.oh-my-link/context/BRIEF.md` → fixed  
+  - `subagent-lifecycle.ts`: was expecting `CONTEXT.md` → fixed to `BRIEF.md`
+  - Imperative prompts and skill files already used correct path
+
+### Cancel Cleanup
+- `cancel oml` now releases expired locks via `cleanExpiredLocks()`
+- `cancel oml` now marks all in-progress/pending tasks as `failed`
+- `cancel oml` now sets `deactivated_reason: 'user_cancelled'` on session
+
 ## [v0.9.0] — Imperative Agent Orchestration
 
 **Breaking change in how the plugin instructs Claude to delegate work.**

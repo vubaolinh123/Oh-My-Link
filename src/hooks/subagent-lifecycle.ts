@@ -138,9 +138,9 @@ const ROLE_EXPECTATIONS: Record<string, {
     description: 'Scout must produce CONTEXT.md with codebase analysis',
   },
   'fast-scout': {
-    artifacts: ['CONTEXT.md'],
+    artifacts: ['BRIEF.md'],
     required: true,
-    description: 'Fast-Scout must produce CONTEXT.md with targeted analysis',
+    description: 'Fast-Scout must produce BRIEF.md with targeted analysis',
   },
   architect: {
     artifacts: ['plan.md'],

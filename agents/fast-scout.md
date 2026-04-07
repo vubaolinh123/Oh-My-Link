@@ -15,7 +15,7 @@ disallowedTools:
 <Constraints>
 - Complete analysis in a single pass; no back-and-forth clarification loops
 - READ-ONLY — never modify source files
-- Write only to `.oh-my-link/context/BRIEF.md`
+- Write only to `.oh-my-link/plans/BRIEF.md`
 - BRIEF.md must be concise: root cause, affected files, fix plan, risk flags
 - If the change is risky or broad, flag it clearly for Executor to escalate
 </Constraints>

@@ -11,7 +11,7 @@ disallowedTools:
 <Role>Start Fast Implementer — fast, self-contained implementation for simple changes</Role>
 
 <Workflow>
-1. **Read BRIEF.md** at `.oh-my-link/context/BRIEF.md` — understand root cause and fix plan
+1. **Read BRIEF.md** at `.oh-my-link/plans/BRIEF.md` — understand root cause and fix plan
 2. **Read affected files** listed in BRIEF.md
 3. **Implement** the fix using Edit/Write
 4. **Self-verify** — run relevant tests or build; confirm no regressions

@@ -2,10 +2,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel, debugLog } from '../helpers';
 import { loadMemory, saveMemory, addDirective } from '../project-memory';
-import { loadConfig, DEFAULT_MODELS, saveConfigField, isAlwaysOn } from '../config';
+import { loadConfig, DEFAULT_MODELS, saveConfigField, isAlwaysOn, getModelForRole } from '../config';
 import { generateFramework, formatFramework } from '../prompt-leverage';
 import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot, getDebugLogPath, projectHash } from '../state';
 import { SessionState, HookInput, AgentRole } from '../types';
+import { listTasks, updateTaskStatus, cleanExpiredLocks } from '../task-engine';
 
 // ============================================================
 // Oh-My-Link — Keyword Detector (UserPromptSubmit)
@@ -119,6 +120,20 @@ function buildModelConfigSection(): string {
   }
 }
 
+/**
+ * Build model instruction line for a specific role.
+ * Returns empty string if using defaults; otherwise returns an instruction like:
+ * "Use model: claude-sonnet-4-6 (configured for this role)"
+ */
+function getModelInstruction(role: string, cwd?: string): string {
+  try {
+    const model = getModelForRole(role as AgentRole, cwd);
+    return `\nIMPORTANT: When spawning this agent, set model to: ${model}\n`;
+  } catch {
+    return '';
+  }
+}
+
 async function main(): Promise<void> {
   const input = await parseHookInput() as HookInput;
   const prompt = (input.prompt || '').trim();
@@ -186,7 +201,7 @@ async function main(): Promise<void> {
     }
   }
 
-  // Handle cancel action directly — write cancel signal + deactivate session
+  // Handle cancel action directly — write cancel signal + deactivate session + cleanup
   if (match.action === 'cancel') {
     const stateRoot = getProjectStateRoot(cwd);
     ensureDir(stateRoot);
@@ -198,14 +213,30 @@ async function main(): Promise<void> {
       };
       writeJsonAtomic(normalizePath(path.join(stateRoot, 'cancel-signal.json')), signal);
     } catch { /* best effort */ }
+
     // Deactivate session directly
     const session = readJson<SessionState>(getSessionPath(cwd));
     if (session?.active) {
       session.active = false;
       session.current_phase = 'cancelled' as any;
       session.cancelled_at = new Date().toISOString();
+      session.deactivated_reason = 'user_cancelled';
       try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* best effort */ }
     }
+
+    // Fail in-progress tasks
+    try {
+      const tasks = listTasks(cwd);
+      for (const task of tasks) {
+        if (task.status === 'in_progress' || task.status === 'pending') {
+          updateTaskStatus(cwd, task.link_id, 'failed');
+        }
+      }
+    } catch { /* best effort */ }
+
+    // Clean up expired locks
+    try { cleanExpiredLocks(cwd); } catch { /* best effort */ }
+
     hookOutput('UserPromptSubmit',
       '[MAGIC KEYWORD: cancel-oml]\n\nYou MUST cancel the active oh-my-link session. Clear state and report.');
     return;
@@ -451,13 +482,13 @@ function buildImperativePrompt(
   if (action === 'invoke-light') {
     // ─── START FAST ───
     if (intent === 'turbo') {
-      prompt = buildTurboPrompt(userRequest, skillContent, modelConfig);
+      prompt = buildTurboPrompt(userRequest, skillContent, modelConfig, cwd);
     } else {
-      prompt = buildStandardFastPrompt(userRequest, skillContent, modelConfig);
+      prompt = buildStandardFastPrompt(userRequest, skillContent, modelConfig, cwd);
     }
   } else if (action === 'invoke') {
     // ─── START LINK (full 7-phase) ───
-    prompt = buildStartLinkPrompt(userRequest, skillContent, modelConfig);
+    prompt = buildStartLinkPrompt(userRequest, skillContent, modelConfig, cwd);
   } else {
     // Other actions (doctor, setup, etc.) — use original skill injection
     prompt = `[MAGIC KEYWORD: ${action}]\n\nUser request:\n${userRequest}\n\n`;
@@ -471,12 +502,14 @@ function buildImperativePrompt(
   return prompt;
 }
 
-function buildTurboPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null): string {
+function buildTurboPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null, cwd?: string): string {
+  const executorModel = getModelInstruction('executor', cwd);
   let p = `[OML START FAST — TURBO MODE]\n\n`;
   p += `You are the Oh-My-Link orchestrator. Your ONLY job is to spawn an Executor agent to handle this request.\n\n`;
   p += `## YOUR TASK (mandatory steps)\n\n`;
   p += `1. Use the **Agent tool** (also called Task tool) to spawn an Executor subagent.\n`;
   p += `   - Set the description to: "[OML:executor] Execute: ${userRequest.slice(0, 80)}"\n`;
+  if (executorModel) p += `   ${executorModel}`;
   p += `   - Set the prompt to:\n\n`;
   p += `\`\`\`\n`;
   p += `You are the OML Executor [OML:executor]. Implement this request directly:\n\n`;
@@ -489,6 +522,11 @@ function buildTurboPrompt(userRequest: string, skillContent: string | null, mode
   p += `\`\`\`\n\n`;
   p += `2. Wait for the Executor to finish\n`;
   p += `3. Report the Executor's result to the user\n\n`;
+  p += `## IF EXECUTOR FAILS\n`;
+  p += `- Do NOT implement the fix yourself — you are the orchestrator\n`;
+  p += `- Re-spawn a NEW Executor with additional context about what failed\n`;
+  p += `- Include the error details in the new prompt so Executor can try a different approach\n`;
+  p += `- If Executor fails 3 times, report failure to the user and suggest "start link" for complex tasks\n\n`;
   p += `## RULES\n`;
   p += `- Do NOT implement anything yourself — you are the orchestrator, not the implementer\n`;
   p += `- Do NOT read source code yourself — the Executor will do that\n`;
@@ -499,13 +537,16 @@ function buildTurboPrompt(userRequest: string, skillContent: string | null, mode
   return p;
 }
 
-function buildStandardFastPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null): string {
+function buildStandardFastPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null, cwd?: string): string {
+  const scoutModel = getModelInstruction('fast-scout', cwd);
+  const executorModel = getModelInstruction('executor', cwd);
   let p = `[OML START FAST — STANDARD MODE]\n\n`;
   p += `You are the Oh-My-Link orchestrator. You coordinate agents — you do NOT implement code yourself.\n\n`;
   p += `## YOUR TASK (mandatory steps — execute in order)\n\n`;
   p += `### Step 1: Spawn Fast Scout\n`;
   p += `Use the **Agent tool** (also called Task tool) to spawn a Fast Scout subagent.\n`;
   p += `- Set the description to: "[OML:fast-scout] Analyze: ${userRequest.slice(0, 60)}"\n`;
+  if (scoutModel) p += `${scoutModel}`;
   p += `- Set the prompt to:\n\n`;
   p += `\`\`\`\n`;
   p += `You are the OML Fast Scout [OML:fast-scout]. Analyze this request and produce a BRIEF.md:\n\n`;
@@ -525,6 +566,7 @@ function buildStandardFastPrompt(userRequest: string, skillContent: string | nul
   p += `### Step 3: Spawn Executor\n`;
   p += `Use the **Agent tool** to spawn an Executor subagent.\n`;
   p += `- Set the description to: "[OML:executor] Implement fix from BRIEF.md"\n`;
+  if (executorModel) p += `${executorModel}`;
   p += `- Set the prompt to:\n\n`;
   p += `\`\`\`\n`;
   p += `You are the OML Executor [OML:executor]. Read .oh-my-link/plans/BRIEF.md for your task analysis, then:\n\n`;
@@ -535,6 +577,11 @@ function buildStandardFastPrompt(userRequest: string, skillContent: string | nul
   p += `\`\`\`\n\n`;
   p += `### Step 4: Report\n`;
   p += `After Executor finishes, summarize to the user: what was changed, files affected, verification result.\n\n`;
+  p += `## IF AN AGENT FAILS\n`;
+  p += `- Do NOT implement the fix yourself — you are the orchestrator\n`;
+  p += `- Re-spawn a NEW agent (Fast Scout or Executor) with additional context about what failed\n`;
+  p += `- Include the error details in the new prompt so the agent can try a different approach\n`;
+  p += `- If an agent fails 3 times, report failure to the user and suggest "start link" for complex tasks\n\n`;
   p += `## RULES\n`;
   p += `- Do NOT read source code yourself — Fast Scout and Executor do that\n`;
   p += `- Do NOT write/edit any code yourself — Executor does that\n`;
@@ -544,19 +591,25 @@ function buildStandardFastPrompt(userRequest: string, skillContent: string | nul
   return p;
 }
 
-function buildStartLinkPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null): string {
+function buildStartLinkPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null, cwd?: string): string {
+  const scoutModel = getModelInstruction('scout', cwd);
+  const architectModel = getModelInstruction('architect', cwd);
+  const workerModel = getModelInstruction('worker', cwd);
+  const reviewerModel = getModelInstruction('reviewer', cwd);
   let p = `[OML START LINK — FULL 7-PHASE PIPELINE]\n\n`;
   p += `You are the Oh-My-Link Master Orchestrator. You drive a 7-phase pipeline by spawning specialized agents.\n`;
   p += `You NEVER implement code yourself — all work is delegated to subagents via the Agent/Task tool.\n\n`;
   p += `## USER REQUEST\n${userRequest}\n\n`;
-  p += `## AGENT NAMING CONVENTION\n`;
-  p += `When spawning any agent, ALWAYS include the [OML:role-name] tag in the agent description.\n`;
-  p += `This is how the hook system identifies agent roles for permissions and tracking.\n`;
+  p += `## AGENT NAMING & MODEL CONVENTION\n`;
+  p += `When spawning any agent, ALWAYS:\n`;
+  p += `1. Include the [OML:role-name] tag in the agent description (for hook system role detection)\n`;
+  p += `2. Set the model parameter as specified below for each role\n`;
   p += `Examples: "[OML:scout] Explore codebase", "[OML:architect] Design plan", "[OML:worker] Implement task-1"\n\n`;
   p += `## YOUR TASK (execute phases in order)\n\n`;
   p += `### Phase 1: Spawn Scout\n`;
   p += `Use the **Agent tool** to spawn a Scout subagent:\n`;
   p += `- Description: "[OML:scout] Explore codebase for: ${userRequest.slice(0, 60)}"\n`;
+  if (scoutModel) p += `${scoutModel}`;
   p += `- Scout explores the codebase and asks clarifying questions\n`;
   p += `- Scout writes CONTEXT.md to .oh-my-link/plans/CONTEXT.md\n`;
   p += `- Wait for Scout to finish, then present questions to user\n\n`;
@@ -566,6 +619,7 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   p += `### Phase 2: Spawn Architect\n`;
   p += `Use the **Agent tool** to spawn an Architect subagent:\n`;
   p += `- Description: "[OML:architect] Design plan"\n`;
+  if (architectModel) p += `${architectModel}`;
   p += `- Pass CONTEXT.md + locked decisions\n`;
   p += `- Architect writes plan.md to .oh-my-link/plans/plan.md\n\n`;
   p += `### Gate 2: User Approval\n`;
@@ -578,12 +632,19 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   p += `For each task (respecting depends_on order):\n`;
   p += `1. Write worker-{link-id}.md with task details\n`;
   p += `2. Use the **Agent tool** to spawn a Worker subagent (description: "[OML:worker] Implement task-{id}") with the task\n`;
+  if (workerModel) p += `   ${workerModel}`;
   p += `3. Worker implements within file_scope, self-verifies, updates task status\n\n`;
   p += `### Phase 6: Spawn Reviewer\n`;
   p += `After each Worker completes, spawn a Reviewer (description: "[OML:reviewer] Review task-{id}") to verify the implementation.\n`;
+  if (reviewerModel) p += `${reviewerModel}`;
   p += `On FAIL: re-spawn Worker with feedback. On PASS: continue.\n\n`;
   p += `### Phase 7: Summary\n`;
   p += `Write WRAP-UP.md. Set session to complete.\n\n`;
+  p += `## IF AN AGENT FAILS\n`;
+  p += `- Do NOT implement the fix yourself — you are the orchestrator\n`;
+  p += `- Re-spawn a NEW agent with additional context about what failed\n`;
+  p += `- Include the error details in the new prompt so the agent can try a different approach\n`;
+  p += `- If an agent fails 3 times, report failure to the user and ask how to proceed\n\n`;
   p += `## CRITICAL RULES\n`;
   p += `- You are the ORCHESTRATOR — never read source code, never write/edit code files\n`;
   p += `- Use the **Agent tool** (also called Task tool) to spawn each specialist\n`;
