@@ -340,6 +340,17 @@ async function handleStop(input: HookInput, cwd: string): Promise<void> {
         sessionDirty = true;
       }
 
+      // Start Fast: fast-scout stops with exit=0 → advance to light_execution
+      // Without this, phase stays at light_scout and all subsequent agents
+      // are inferred as fast-scout instead of worker.
+      if (session.mode === 'mylight' && record.role === 'fast-scout' && exitCode === 0
+          && session.current_phase === 'light_scout') {
+        session.current_phase = 'light_execution';
+        session.last_checked_at = new Date().toISOString();
+        sessionDirty = true;
+        debugLog(cwd, 'agent-stop', 'fast-scout done → phase light_execution');
+      }
+
       // Reviewer stop at phase_6_review → advance to phase_6_5_full_review if applicable
       if ((record.role === 'reviewer' || record.role === 'code-reviewer' || record.role === 'security-reviewer')
           && session.current_phase === 'phase_6_review' && exitCode === 0) {
