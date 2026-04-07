@@ -105,6 +105,71 @@ async function main(): Promise<void> {
     try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* ignore */ }
   }
 
+  // Entity learning from working-memory at session end (must run BEFORE consolidateSession clears it)
+  try {
+    const wmPath = require('../state').getWorkingMemoryPath(cwd);
+    const wmContent = require('fs').existsSync(wmPath)
+      ? require('fs').readFileSync(wmPath, 'utf-8').trim()
+      : '';
+    if (wmContent && wmContent.length > 100) {
+      const { EntityRegistry: ER } = require('../memory/entity-registry') as {
+        EntityRegistry: {
+          load: (path: string) => {
+            learnFromText: (text: string, minConf?: number) => Array<{ name: string; type: string }>;
+            save: () => void;
+          }
+        }
+      };
+      const { getEntityRegistryPath: getERPath } = require('../state') as {
+        getEntityRegistryPath: (cwd: string) => string;
+      };
+      const registry = ER.load(getERPath(cwd));
+      const newEntities = registry.learnFromText(wmContent, 0.7);
+      if (newEntities.length > 0) {
+        debugLog(cwd, 'mem:entity-consolidate', `learned ${newEntities.length} entities at session end`);
+      }
+    }
+  } catch (err) {
+    debugLog(cwd, 'mem:entity-consolidate', `FAILED: ${(err as Error)?.message || err}`);
+  }
+
+  // KG fact consolidation — sync registry entities to KG nodes
+  try {
+    const { KnowledgeGraph: KG } = require('../memory/knowledge-graph') as {
+      KnowledgeGraph: new (dbPath: string) => {
+        addEntity: (name: string, type: string, props?: Record<string, string>) => string;
+        close: () => void;
+      }
+    };
+    const { EntityRegistry: ER } = require('../memory/entity-registry') as {
+      EntityRegistry: {
+        load: (path: string) => {
+          people: Record<string, { relationship?: string }>;
+          projects: string[];
+        }
+      }
+    };
+    const { getEntityRegistryPath: getERPath, getKnowledgeGraphPath: getKGPath } = require('../state') as {
+      getEntityRegistryPath: (cwd: string) => string;
+      getKnowledgeGraphPath: (cwd: string) => string;
+    };
+    const registry = ER.load(getERPath(cwd));
+    const kg = new KG(getKGPath(cwd));
+
+    // Ensure all known entities exist as KG nodes
+    for (const [name, info] of Object.entries(registry.people)) {
+      kg.addEntity(name, 'person', { relationship: info.relationship || '' });
+    }
+    for (const proj of registry.projects) {
+      kg.addEntity(proj, 'project');
+    }
+
+    kg.close();
+    debugLog(cwd, 'mem:kg-consolidate', 'KG entities synced from registry');
+  } catch (err) {
+    debugLog(cwd, 'mem:kg-consolidate', `FAILED: ${(err as Error)?.message || err}`);
+  }
+
   // Consolidate working-memory into vector index before session ends
   try {
     const { consolidateSession } = require('../memory/memory-stack') as { consolidateSession: (cwd: string) => void };

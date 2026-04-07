@@ -101,7 +101,9 @@ export function addDocument(
     return id;
   }
 
-  const tokens = tokenize(text);
+  // Tokenize raw text for BM25 (better recall than compressed AAAK)
+  const rawText = metadata.raw || text;
+  const tokens = tokenize(rawText);
   const doc: VectorDocument = {
     id,
     text,
@@ -170,7 +172,11 @@ export function searchDocuments(
     }
 
     if (score > 0) {
-      scored.push({ doc, score });
+      // Importance weighting: scale BM25 score by importance/3.
+      // importance=3 (default) -> factor=1.0, importance=5 -> factor=1.67, importance=1 -> factor=0.33
+      const importance = doc.metadata.importance ?? 3;
+      const importanceBoost = importance / 3;
+      scored.push({ doc, score: score * importanceBoost });
     }
   }
 
@@ -229,4 +235,52 @@ export function deleteDocument(cwd: string, id: string): boolean {
 export function countDocuments(cwd: string): number {
   const index = loadIndex(cwd);
   return index.documents.length;
+}
+
+/**
+ * Search with entity boosting.
+ * If query mentions known entities, boost documents that also mention those entities.
+ *
+ * Algorithm:
+ * 1. Run normal searchDocuments with 2x candidates for re-ranking
+ * 2. For each result, check if doc.text or doc.metadata.raw mentions any entityName
+ *    - If yes: score *= 1.5 (entity boost factor)
+ * 3. Re-sort by boosted score
+ * 4. Return top n
+ */
+export function searchWithEntityBoost(
+  cwd: string,
+  query: string,
+  entityNames: string[],
+  n: number = 10,
+  filter?: { wing?: string; room?: string },
+): SearchResult[] {
+  // Fetch extra candidates for re-ranking
+  const candidates = searchDocuments(cwd, query, n * 2, filter);
+
+  if (entityNames.length === 0) {
+    return candidates.slice(0, n);
+  }
+
+  // Build lowercase entity name set for matching
+  const entityLower = entityNames.map(e => e.toLowerCase());
+
+  // Apply entity boost
+  const boosted = candidates.map(result => {
+    const textToCheck = `${result.document.text} ${result.document.metadata.raw || ''}`.toLowerCase();
+    const mentionsEntity = entityLower.some(eName => textToCheck.includes(eName));
+    return {
+      ...result,
+      score: mentionsEntity ? result.score * 1.5 : result.score,
+    };
+  });
+
+  // Re-sort by boosted score
+  boosted.sort((a, b) => b.score - a.score);
+
+  // Return top n with corrected ranks
+  return boosted.slice(0, n).map((item, i) => ({
+    ...item,
+    rank: i + 1,
+  }));
 }

@@ -317,6 +317,14 @@ export function getKnowledgeGraphPath(cwd: string): string {
 }
 
 /**
+ * Get entity registry file path (Phase 2).
+ * ~/.oh-my-link/projects/{hash}/entity-registry.json
+ */
+export function getEntityRegistryPath(cwd: string): string {
+  return normalizePath(path.join(getProjectStateRoot(cwd), 'entity-registry.json'));
+}
+
+/**
  * Get palace directory path (reserved for future use).
  * ~/.oh-my-link/projects/{hash}/palace/
  */

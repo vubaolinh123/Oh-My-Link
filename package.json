@@ -1,6 +1,6 @@
 {
   "name": "oh-my-link",
-  "version": "0.10.2",
+  "version": "0.10.3",
   "description": "Multi-agent orchestration for Claude Code — built from Claude Code source code leak",
   "scripts": {
     "build": "tsc",
@@ -10,7 +10,11 @@
     "prebuild": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^25.5.2",
     "typescript": "^5.4.0"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0"
   }
 }

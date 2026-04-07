@@ -93,6 +93,63 @@ async function main(): Promise<void> {
     } else {
       debugLog(cwd, 'mem:wakeup', 'wakeUp returned null — falling back to flat injection');
     }
+
+    // KG-augmented context: query entity facts for task-relevant people
+    if (memoryBlock && taskHint) {
+      try {
+        const { EntityRegistry: ER } = require('../memory/entity-registry') as {
+          EntityRegistry: {
+            load: (path: string) => {
+              extractPeopleFromQuery: (q: string) => string[];
+              toDialectEntities: () => Record<string, string>;
+            }
+          }
+        };
+        const { getEntityRegistryPath: getERPath, getKnowledgeGraphPath: getKGPath } = require('../state') as {
+          getEntityRegistryPath: (cwd: string) => string;
+          getKnowledgeGraphPath: (cwd: string) => string;
+        };
+        const registry = ER.load(getERPath(cwd));
+        const entityMap = registry.toDialectEntities();
+        debugLog(cwd, 'mem:entities', `loaded ${Object.keys(entityMap).length} entity codes from registry`);
+
+        const mentionedPeople = registry.extractPeopleFromQuery(taskHint);
+        if (mentionedPeople.length > 0) {
+          try {
+            const { KnowledgeGraph: KG } = require('../memory/knowledge-graph') as {
+              KnowledgeGraph: new (dbPath: string) => {
+                queryEntity: (name: string, asOf?: string, direction?: string) => Array<{
+                  subject: string; predicate: string; object: string; current: boolean
+                }>;
+                close: () => void;
+              }
+            };
+            const kg = new KG(getKGPath(cwd));
+            const kgLines: string[] = ['## Entity Facts'];
+            for (const person of mentionedPeople.slice(0, 3)) {
+              const facts = kg.queryEntity(person, undefined, 'both')
+                .filter((f: { current: boolean }) => f.current)
+                .slice(0, 5);
+              if (facts.length > 0) {
+                kgLines.push(`\n[${person}]`);
+                for (const f of facts) {
+                  kgLines.push(`  - ${f.subject} ${f.predicate} ${f.object}`);
+                }
+              }
+            }
+            kg.close();
+            if (kgLines.length > 1) {
+              parts.push(kgLines.join('\n'));
+              debugLog(cwd, 'mem:kg', `injected KG facts for ${mentionedPeople.join(', ')}`);
+            }
+          } catch (kgErr) {
+            debugLog(cwd, 'mem:kg', `KG query failed: ${(kgErr as Error)?.message || kgErr}`);
+          }
+        }
+      } catch (entityErr) {
+        debugLog(cwd, 'mem:entities', `registry load failed: ${(entityErr as Error)?.message || entityErr}`);
+      }
+    }
   } catch (err) {
     debugLog(cwd, 'mem:wakeup', `FAILED, falling back to flat injection: ${(err as Error)?.message || err}`);
   }

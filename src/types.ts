@@ -326,3 +326,124 @@ export interface VectorIndex {
   documents: VectorDocument[];
   last_updated: string;   // ISO string
 }
+
+// --- Knowledge Graph (Phase 2) ---
+
+/** Entity node in the knowledge graph */
+export interface KGEntity {
+  id: string;              // Normalized: lowercase, spaces->underscores, no apostrophes
+  name: string;            // Display name (original casing)
+  type: KGEntityType;      // person | project | tool | concept | unknown
+  properties: Record<string, string>;  // Arbitrary k/v (gender, birthday, etc.)
+  created_at: string;      // ISO string
+}
+
+export type KGEntityType = 'person' | 'project' | 'tool' | 'concept' | 'unknown';
+
+/** A single relationship triple in the knowledge graph */
+export interface KGTriple {
+  id: string;              // t_{subject}_{predicate}_{object}_{hash8}
+  subject: string;         // Entity ID (FK)
+  predicate: string;       // Relationship verb: child_of, works_on, loves, uses, etc.
+  object: string;          // Entity ID (FK)
+  valid_from: string | null;  // ISO date when fact became true
+  valid_to: string | null;    // ISO date when fact ceased (null = still true)
+  confidence: number;      // 0.0-1.0 (default 1.0)
+  source_closet: string | null;  // Memory drawer ID that sourced this fact
+  source_file: string | null;    // File path that sourced this fact
+  extracted_at: string;    // ISO string
+}
+
+/** Query result from knowledge graph entity lookup */
+export interface KGQueryResult {
+  direction: 'outgoing' | 'incoming';
+  subject: string;         // Display name
+  predicate: string;
+  object: string;          // Display name
+  valid_from: string | null;
+  valid_to: string | null;
+  confidence: number;
+  source_closet: string | null;
+  current: boolean;        // true if valid_to is null
+}
+
+/** Knowledge graph statistics */
+export interface KGStats {
+  entities: number;
+  triples: number;
+  current_facts: number;
+  expired_facts: number;
+  relationship_types: string[];
+}
+
+// --- Entity Registry (Phase 2) ---
+
+/** A registered person in the entity registry */
+export interface RegisteredPerson {
+  source: 'onboarding' | 'learned' | 'wiki';
+  contexts: string[];           // e.g. ['personal'], ['work'], ['personal', 'work']
+  aliases: string[];            // Alternative names/nicknames
+  relationship: string;         // daughter, partner, colleague, etc.
+  confidence: number;           // 0.0-1.0
+  canonical?: string;           // Points to the main name if this is an alias entry
+  seen_count?: number;          // How many times detected (for learned entities)
+}
+
+/** The full entity registry data structure (stored as JSON) */
+export interface EntityRegistryData {
+  version: 1;
+  mode: 'personal' | 'work' | 'combo';
+  people: Record<string, RegisteredPerson>;
+  projects: string[];
+  ambiguous_flags: string[];
+  wiki_cache: Record<string, WikiCacheEntry>;
+}
+
+/** Cached Wikipedia lookup result */
+export interface WikiCacheEntry {
+  inferred_type: 'person' | 'place' | 'concept' | 'ambiguous' | 'unknown';
+  confidence: number;
+  wiki_summary: string | null;
+  wiki_title: string | null;
+  confirmed: boolean;
+  confirmed_type?: string;
+  word?: string;
+  note?: string;
+}
+
+/** Result of an entity lookup */
+export interface EntityLookupResult {
+  type: 'person' | 'project' | 'concept' | 'unknown';
+  confidence: number;
+  source: 'onboarding' | 'learned' | 'wiki' | 'context_disambiguated' | 'inferred' | 'none';
+  name: string;
+  context?: string[];
+  needs_disambiguation: boolean;
+  disambiguated_by?: string;
+}
+
+// --- Entity Detector (Phase 2) ---
+
+/** Scoring result for a single entity candidate */
+export interface EntityScores {
+  person_score: number;
+  project_score: number;
+  person_signals: string[];
+  project_signals: string[];
+}
+
+/** A classified entity from the detector */
+export interface DetectedEntity {
+  name: string;
+  type: 'person' | 'project' | 'uncertain';
+  confidence: number;
+  frequency: number;
+  signals: string[];
+}
+
+/** Output of detectEntities() */
+export interface DetectionResult {
+  people: DetectedEntity[];
+  projects: DetectedEntity[];
+  uncertain: DetectedEntity[];
+}

@@ -237,7 +237,7 @@ async function main(): Promise<void> {
       && ['Bash', 'Edit', 'Write', 'MultiEdit'].includes(toolName)) {
     try {
       const { extractMemories } = require('../memory/memory-extractor') as { extractMemories: (text: string, minConfidence?: number) => Array<{ content: string; memory_type: string; chunk_index: number; confidence: number }> };
-      const { Dialect } = require('../memory/aaak-dialect') as { Dialect: new () => { compress: (text: string, metadata?: Record<string, string>) => string } };
+      const { Dialect } = require('../memory/aaak-dialect') as { Dialect: new () => { compress: (text: string, metadata?: Record<string, string>) => string; extractTopics: (text: string, maxTopics?: number) => string[]; extractKeySentence: (text: string) => string } };
       const { addDocument } = require('../memory/vector-store') as { addDocument: (cwd: string, text: string, metadata: Record<string, unknown>) => string };
 
       const sanitized = sanitizeExpressions(toolOutput);
@@ -265,6 +265,66 @@ async function main(): Promise<void> {
           debugLog(cwd, 'mem:store', `id=${docId} room=${mem.memory_type} conf=${mem.confidence.toFixed(2)} importance=${mem.confidence >= 0.7 ? 4 : 3} aaak_len=${compressed.length} raw="${mem.content.slice(0, 60).replace(/\n/g, ' ')}"`);
         }
         debugLog(cwd, 'mem:extract', `stored=${Math.min(memories.length, extractionCap)}/${memories.length} cap=${extractionCap}`);
+
+        // Entity learning from extracted memories (best effort)
+        try {
+          const { EntityRegistry: ER } = require('../memory/entity-registry') as {
+            EntityRegistry: {
+              load: (path: string) => {
+                learnFromText: (text: string, minConf?: number) => Array<{ name: string; type: string }>;
+                save: () => void;
+              }
+            }
+          };
+          const { getEntityRegistryPath: getERPath } = require('../state') as {
+            getEntityRegistryPath: (cwd: string) => string;
+          };
+          const registry = ER.load(getERPath(cwd));
+          const combinedText = memories.map(m => m.content).join('\n');
+          const newEntities = registry.learnFromText(combinedText, 0.75);
+          if (newEntities.length > 0) {
+            debugLog(cwd, 'mem:entity-learn', `discovered ${newEntities.length} new entities: ${newEntities.map(e => `${e.name}(${e.type})`).join(', ')}`);
+          }
+        } catch (entityErr) {
+          debugLog(cwd, 'mem:entity-learn', `FAILED: ${(entityErr as Error)?.message || entityErr}`);
+        }
+
+        // KG triple creation for decision memories (best effort)
+        try {
+          const decisionMemories = memories.filter(m => m.memory_type === 'decision' && m.confidence >= 0.5);
+          if (decisionMemories.length > 0) {
+            const { KnowledgeGraph: KG } = require('../memory/knowledge-graph') as {
+              KnowledgeGraph: new (dbPath: string) => {
+                addTriple: (s: string, p: string, o: string, opts?: Record<string, unknown>) => string;
+                close: () => void;
+              }
+            };
+            const { getKnowledgeGraphPath: getKGPath } = require('../state') as {
+              getKnowledgeGraphPath: (cwd: string) => string;
+            };
+            const kg = new KG(getKGPath(cwd));
+            for (const mem of decisionMemories.slice(0, 3)) {
+              const topics = dialect.extractTopics(mem.content);
+              const keySentence = dialect.extractKeySentence(mem.content);
+              if (topics.length > 0 && keySentence) {
+                const tripleId = kg.addTriple(
+                  topics[0],
+                  'decided_on',
+                  keySentence.slice(0, 100),
+                  {
+                    valid_from: new Date().toISOString().slice(0, 10),
+                    confidence: mem.confidence,
+                    source_closet: toolName,
+                  }
+                );
+                debugLog(cwd, 'mem:kg-triple', `id=${tripleId} ${topics[0]} -> decided_on -> ${keySentence.slice(0, 40)}`);
+              }
+            }
+            kg.close();
+          }
+        } catch (kgErr) {
+          debugLog(cwd, 'mem:kg-triple', `FAILED: ${(kgErr as Error)?.message || kgErr}`);
+        }
       }
     } catch (err) { debugLog(cwd, 'mem:extract', `FAILED: ${(err as Error)?.message || err}`); }
   }

@@ -132,17 +132,48 @@ async function main(): Promise<void> {
     }
   }
 
-  // ── PRE-TOOL MEMORY FETCH ──
+  // ── PRE-TOOL MEMORY FETCH with entity boosting ──
   // For Edit/Write tools, fetch relevant memories about the target file
   // to provide context before modifications. Hard cap: 300 chars.
   if (session?.active && isWriteOperation(toolName)) {
     try {
-      const { searchDocuments } = require('../memory/vector-store');
       const filePath = (toolInput.file_path as string) || (toolInput.filePath as string) || '';
       if (filePath) {
         const basename = require('path').basename(filePath);
-        const results = searchDocuments(cwd, basename, 3);
-        debugLog(cwd, 'mem:search', `query="${basename}" results=${results.length} tool=${toolName} file=${filePath}`);
+        let results: Array<{ document: { text: string }; score: number }> | undefined;
+
+        // Try entity-boosted search first
+        try {
+          const { EntityRegistry: ER } = require('../memory/entity-registry') as {
+            EntityRegistry: {
+              load: (path: string) => {
+                extractPeopleFromQuery: (q: string) => string[];
+              }
+            }
+          };
+          const { searchWithEntityBoost } = require('../memory/vector-store') as {
+            searchWithEntityBoost: (cwd: string, query: string, entityNames: string[], n?: number) => Array<{ document: { text: string }; score: number }>
+          };
+          const { getEntityRegistryPath: getERPath } = require('../state') as {
+            getEntityRegistryPath: (cwd: string) => string;
+          };
+          const registry = ER.load(getERPath(cwd));
+          const entityNames = registry.extractPeopleFromQuery(basename);
+          if (entityNames.length > 0) {
+            results = searchWithEntityBoost(cwd, basename, entityNames, 3);
+            debugLog(cwd, 'mem:search', `entity-boosted query="${basename}" entities=[${entityNames.join(',')}] results=${results.length}`);
+          }
+        } catch { /* fall through to normal search */ }
+
+        // Fallback: normal search
+        if (!results) {
+          const { searchDocuments } = require('../memory/vector-store') as {
+            searchDocuments: (cwd: string, query: string, n: number) => Array<{ document: { text: string }; score: number }>
+          };
+          results = searchDocuments(cwd, basename, 3);
+          debugLog(cwd, 'mem:search', `query="${basename}" results=${results.length} tool=${toolName} file=${filePath}`);
+        }
+
         if (results.length > 0) {
           const memBlock = results.map((r: { document: { text: string }; score: number }) => r.document.text).join(' | ').slice(0, 300);
           debugLog(cwd, 'mem:inject', `pre-tool file memory for ${basename}: ${memBlock.length} chars, top_scores=[${results.slice(0, 3).map((r: { score: number }) => r.score.toFixed(2)).join(',')}]`);

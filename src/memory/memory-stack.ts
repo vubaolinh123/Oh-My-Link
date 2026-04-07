@@ -181,7 +181,16 @@ export function consolidateSession(cwd: string): void {
     const { addDocument } = require('./vector-store');
 
     const memories = extractMemories(content, 0.3);
-    const dialect = new Dialect();
+
+    // Load entity registry for entity-aware compression (best effort)
+    let entityMap: Record<string, string> = {};
+    try {
+      const { EntityRegistry } = require('./entity-registry');
+      const { getEntityRegistryPath } = require('../state');
+      const registry = EntityRegistry.load(getEntityRegistryPath(cwd));
+      entityMap = registry.toDialectEntities();
+    } catch { /* best effort — proceed without entity codes */ }
+    const dialect = new Dialect(entityMap);
 
     for (const mem of memories) {
       const compressed = dialect.compress(mem.content, {
