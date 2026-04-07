@@ -197,7 +197,7 @@ suite('keyword-detector — mode conflicts', () => {
       cwd: TEMP_PROJECT, timeout: 10000,
       env: { ...process.env, OML_HOME: process.env.OML_HOME }, shell: true,
     }).toString().trim();
-    return JSON.parse(output);
+    try { return JSON.parse(output); } catch { return { continue: true, plainText: output }; }
   }
 
   test('blocks Start Fast when Start Link is active', () => {
@@ -219,16 +219,16 @@ suite('keyword-detector — mode conflicts', () => {
   test('allows Start Link when no active session', () => {
     cleanSession();
     const parsed = sendPrompt('start link build new feature', 'allow-link');
-    const ctx = parsed.hookSpecificOutput?.additionalContext || '';
-    assert(ctx.includes('MAGIC KEYWORD'), 'should detect start link keyword');
+    const ctx = parsed.hookSpecificOutput?.additionalContext || parsed.plainText || '';
+    assert(ctx.includes('OML START LINK'), 'should detect start link keyword');
   });
 
   test('allows Start Fast when session is inactive', () => {
     cleanSession();
     writeSession({ active: false, mode: 'mylink', current_phase: 'complete' });
     const parsed = sendPrompt('start fast fix the bug', 'allow-fast-inactive');
-    const ctx = parsed.hookSpecificOutput?.additionalContext || '';
-    assert(ctx.includes('MAGIC KEYWORD'), 'should detect start fast keyword');
+    const ctx = parsed.hookSpecificOutput?.additionalContext || parsed.plainText || '';
+    assert(ctx.includes('OML START FAST'), 'should detect start fast keyword');
   });
 });
 
@@ -252,7 +252,7 @@ suite('keyword-detector — intent classification', () => {
       cwd: TEMP_PROJECT, timeout: 10000,
       env: { ...process.env, OML_HOME: process.env.OML_HOME }, shell: true,
     }).toString().trim();
-    return JSON.parse(output);
+    try { return JSON.parse(output); } catch { return { continue: true, plainText: output }; }
   }
 
   test('turbo intent for file:line pattern', () => {
@@ -304,7 +304,7 @@ suite('keyword-detector — awaiting_confirmation', () => {
       cwd: TEMP_PROJECT, timeout: 10000,
       env: { ...process.env, OML_HOME: process.env.OML_HOME }, shell: true,
     }).toString().trim();
-    return JSON.parse(output);
+    try { return JSON.parse(output); } catch { return { continue: true, plainText: output }; }
   }
 
   test('Start Link sets awaiting_confirmation', () => {

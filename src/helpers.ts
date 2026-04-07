@@ -88,6 +88,9 @@ export async function parseHookInput(): Promise<Record<string, unknown>> {
 /**
  * Output standard hook response with hookSpecificOutput format.
  * Used by hooks that need the hookEventName field.
+ * NOTE: additionalContext is injected "discretely" — Claude may ignore it.
+ * For UserPromptSubmit where you need Claude to ACT on the context,
+ * use promptContextOutput() instead which uses plain text stdout.
  */
 export function hookOutput(
   eventName: string,
@@ -105,6 +108,20 @@ export function hookOutput(
     output.systemMessage = systemMessage;
   }
   process.stdout.write(JSON.stringify(output) + '\n');
+}
+
+/**
+ * Output plain text for UserPromptSubmit hooks.
+ * Per Claude Code docs: "Plain stdout is shown as hook output in the transcript.
+ * The additionalContext field is added more discretely."
+ * 
+ * This is the STRONGEST injection mechanism — plain text stdout is added as
+ * visible context that Claude can see and act on, not hidden supplementary info.
+ * Use this for imperative orchestration prompts that Claude MUST follow.
+ */
+export function promptContextOutput(context: string): void {
+  // Plain text stdout — no JSON wrapper — gets added as visible context
+  process.stdout.write(context);
 }
 
 /**

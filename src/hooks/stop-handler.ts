@@ -248,8 +248,17 @@ async function main(): Promise<void> {
   }
 
   // 5. Awaiting confirmation → allow stop (at HITL gate)
+  // At gates, Claude should stop its turn so the user can type their answer.
+  // Provide a clear message so the user knows the system is waiting.
   if (session.awaiting_confirmation) {
-    stopOutput('allow');
+    const gateMessages: Record<string, string> = {
+      gate_1_pending: 'Waiting for your answers to the Scout questions above.',
+      gate_2_pending: 'Waiting for your approval of the implementation plan.',
+      gate_3_pending: 'Waiting for your choice: Sequential or Parallel execution.',
+    };
+    const gateMsg = gateMessages[session.current_phase] || 'Waiting for your input.';
+    debugLog(cwd, 'stop', `ALLOW: awaiting_confirmation at ${session.current_phase}`);
+    stopOutput('allow', gateMsg);
     return;
   }
 

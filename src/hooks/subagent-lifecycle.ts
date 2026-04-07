@@ -199,7 +199,25 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
   debugLog(cwd, 'agent-start-raw', `keys=[${rawKeys.join(',')}] agent_type=${JSON.stringify(agentType)} desc=${JSON.stringify(description.slice(0, 120))} prompt_start=${JSON.stringify((prompt || '').slice(0, 120))}`);
 
   // Detect role from agent_type or description + prompt
-  const role = detectRole(agentType, description + ' ' + prompt);
+  let role = detectRole(agentType, description + ' ' + prompt);
+
+  // ── SESSION-AWARE ROLE INFERENCE ──
+  // Claude Code's SubagentStart payload often lacks description/prompt fields entirely.
+  // When agent_type is "general-purpose" and description is empty, detectRole() blindly
+  // maps to "worker" which causes phase skip (e.g. light_scout → light_execution).
+  // Fix: use session phase + mode to infer the EXPECTED role at this point in the pipeline.
+  const descIsEmpty = !description.trim() && !prompt.trim();
+  if (descIsEmpty && (role === 'worker' || role === 'unknown')) {
+    const sessionPath = getSessionPath(cwd);
+    const sessionForInference = readJson<SessionState>(sessionPath);
+    if (sessionForInference?.active) {
+      const inferred = inferRoleFromSession(sessionForInference);
+      if (inferred) {
+        debugLog(cwd, 'agent-start', `role-inference: ${role} → ${inferred} (phase=${sessionForInference.current_phase}, mode=${sessionForInference.mode})`);
+        role = inferred;
+      }
+    }
+  }
 
   debugLog(cwd, 'agent-start', `id=${agentId} role=${role} type=${agentType}`);
 
@@ -529,6 +547,61 @@ function detectRole(agentType: string, description: string): string {
 
 function isWorkerRole(role: string): boolean {
   return ['worker', 'executor'].includes(role);
+}
+
+/**
+ * Infer the expected agent role from the current session phase.
+ * Used when Claude Code's SubagentStart payload lacks description/prompt,
+ * making tag-based or keyword-based detection impossible.
+ *
+ * Logic: at each phase in the pipeline, there's exactly ONE expected next agent role.
+ * This mapping is deterministic and follows the OML workflow spec.
+ */
+function inferRoleFromSession(session: SessionState): string | null {
+  if (session.mode === 'mylight') {
+    switch (session.current_phase) {
+      case 'light_scout':
+        // First agent in standard Start Fast → fast-scout
+        return session.intent === 'turbo' ? 'executor' : 'fast-scout';
+      case 'light_turbo':
+        // Turbo mode execution
+        return 'executor';
+      case 'light_execution':
+        // Already in execution — could be executor or worker
+        return 'executor';
+      default:
+        return null;
+    }
+  }
+
+  if (session.mode === 'mylink') {
+    switch (session.current_phase) {
+      case 'bootstrap':
+        return 'scout';
+      case 'phase_1_scout':
+        return 'scout'; // still scouting
+      case 'gate_1_pending':
+      case 'phase_2_planning':
+        return 'architect';
+      case 'gate_2_pending':
+      case 'phase_3_decomposition':
+        return 'architect';
+      case 'phase_4_validation':
+        return 'verifier';
+      case 'gate_3_pending':
+      case 'phase_5_execution':
+        return 'worker';
+      case 'phase_6_review':
+      case 'phase_6_5_full_review':
+        return 'reviewer';
+      case 'phase_7_summary':
+        return 'master';
+      default:
+        return null;
+    }
+  }
+
+  return null;
 }
 
 function findAssignedTask(cwd: string, agentId: string, description: string): TaskAssignment | null {

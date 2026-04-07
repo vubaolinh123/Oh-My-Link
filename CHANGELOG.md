@@ -2,6 +2,86 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.9.5] — HITL Gate UX: Seamless User Interaction at Gates
+
+**Fixes the UX issue where Claude presents gate questions then freezes for minutes instead of stopping cleanly for user input.**
+
+### Problem
+At HITL gates (Gate 1/2/3), Claude would:
+1. Present questions as text
+2. "Cogitate" for 4+ minutes deciding what to do
+3. Eventually stop with no indication it's waiting for user input
+4. User's typed answer on next turn had no pipeline context
+
+### Fixes
+
+#### Gate Instructions (keyword-detector)
+- Gate 1: Now explicitly says "END YOUR RESPONSE IMMEDIATELY after presenting questions" + shows `⏳ Vui lòng trả lời...` prompt
+- Gate 2: Same pattern — end response immediately, show waiting prompt
+- Gate 3: Same pattern for execution mode choice
+
+#### Gate Continuation (keyword-detector)
+- **New feature**: When user types during an active gate phase (`gate_1_pending`, `gate_2_pending`, `gate_3_pending`), keyword-detector now:
+  1. Detects the session is at a gate via `isGatePhase()`
+  2. Builds rich continuation context via `buildGateContinuationContext()` containing:
+     - User's raw answer
+     - Explicit next steps (which agent to spawn, what to update)
+     - Orchestrator rules reminder
+  3. Clears `awaiting_confirmation` flag
+  4. Injects as plain stdout so Claude continues the pipeline seamlessly
+- Works both with always-on mode AND without keyword match
+
+#### Stop Handler
+- At gate phases with `awaiting_confirmation`, stop handler now outputs descriptive message (e.g., "Waiting for your answers to the Scout questions above") instead of silent allow
+
+### Tests
+- 394 tests passing (19/20 files green)
+
+## [v0.9.4] — Session-Aware Role Inference (Fixes Phase Skip Bug)
+
+**Fixes critical bug where SubagentStart lacks description/prompt → role misdetected → phase skip.**
+
+### Root Cause (from production debug logs)
+Claude Code's `SubagentStart` hook payload only contains 6 fields: `session_id`, `transcript_path`, `cwd`, `agent_id`, `agent_type`, `hook_event_name`. The `description` and `prompt` fields that OML relies on for role detection are **not included** — both are empty strings. This means the `[OML:role-name]` tags embedded in agent descriptions never reach the hook.
+
+With `agent_type="general-purpose"` and no description, `detectRole()` blindly mapped to `worker`, causing:
+- Start Fast: phase jumped `light_scout` → `light_execution` (skipping fast-scout entirely)
+- Start Link: similar phase skips for scout/architect roles
+
+### Fix: Session-Aware Role Inference
+When `agent_type` is `general-purpose` (or any builtin) AND description is empty, `handleStart()` now uses the **session's current phase + mode** to infer the expected agent role:
+- `mylight` + `light_scout` + `standard` intent → `fast-scout`
+- `mylight` + `light_scout` + `turbo` intent → `executor`
+- `mylink` + `bootstrap` → `scout`
+- `mylink` + `gate_1_pending` → `architect`
+- etc.
+
+This is deterministic: at each phase, exactly one role is expected next.
+
+### Performance Analysis (from same debug session)
+- OML hook overhead: **<100ms per tool call** (pre-tool + post-tool)
+- 14-minute total time was 100% Claude API latency (1.5–3 min "thinking" between tool calls)
+- OML contributed <2s of the 14-minute total
+
+### Tests
+- 4 new tests for session-aware role inference (all passing)
+- Total: 394 tests passing
+
+## [v0.9.3] — Plain Stdout Injection for Imperative Orchestration
+
+**Switches keyword-detector from soft `additionalContext` to plain text stdout — the strongest prompt injection mechanism in Claude Code's hook system.**
+
+### Critical Change: Prompt Injection Strategy
+- **keyword-detector now uses `promptContextOutput()`** (plain text stdout) instead of `hookOutput()` (JSON `additionalContext`) for imperative orchestration prompts. Per Claude Code docs, plain text stdout is shown as visible context in the transcript, making it far more likely that Claude follows the orchestration instructions and spawns subagents.
+- This applies to all three modes: Turbo, Standard Fast, and Start Link.
+
+### Improved Agent Spawning Instructions
+- All three prompt builders (`buildTurboPrompt`, `buildStandardFastPrompt`, `buildStartLinkPrompt`) now include a **"HOW TO SPAWN AN AGENT"** section with explicit Task tool parameters (`subagent_type`, `description`, `prompt`), making it unambiguous how Claude should call the Agent/Task tool.
+
+### Test Suite Updates
+- Updated 9 tests across `run-tests.mjs`, `integration-hooks.mjs`, and `new-tests-1.mjs` to handle plain text output from keyword-detector instead of JSON parsing.
+- All 390 tests passing (1 pre-existing statusline timeout unrelated to this change).
+
 ## [v0.9.2] — Critical Regression Fix + Diagnostic Logging
 
 **Fixes v0.9.1 regression where subagent Edit/Write was blocked by pre-tool-enforcer.**

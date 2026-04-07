@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel, debugLog } from '../helpers';
+import { parseHookInput, hookOutput, promptContextOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel, debugLog } from '../helpers';
 import { loadMemory, saveMemory, addDirective } from '../project-memory';
 import { loadConfig, DEFAULT_MODELS, saveConfigField, isAlwaysOn, getModelForRole } from '../config';
 import { generateFramework, formatFramework } from '../prompt-leverage';
@@ -167,9 +167,19 @@ async function main(): Promise<void> {
   // Always-On: if no keyword matched but always_on is enabled,
   // auto-classify task complexity and trigger the appropriate mode
   if (!match && isAlwaysOn(cwd)) {
-    // Check if there's already an active session — if so, let it continue naturally
+    // Check if there's already an active session — if so, check for gate continuation
     const existingSession = readJson<SessionState>(getSessionPath(cwd));
     if (existingSession?.active) {
+      // Check if we're at a HITL gate — inject continuation context
+      if (existingSession.awaiting_confirmation && isGatePhase(existingSession.current_phase)) {
+        const gateContext = buildGateContinuationContext(existingSession, prompt);
+        debugLog(cwd, 'keyword', `gate-continuation: phase=${existingSession.current_phase}`);
+        // Clear awaiting_confirmation so the orchestrator proceeds
+        existingSession.awaiting_confirmation = false;
+        try { writeJsonAtomic(getSessionPath(cwd), existingSession); } catch { /* best effort */ }
+        promptContextOutput(gateContext);
+        return;
+      }
       // Session already running — don't re-trigger, just pass through
       hookOutput('UserPromptSubmit');
       return;
@@ -188,6 +198,16 @@ async function main(): Promise<void> {
   }
   
   if (!match) {
+    // Check if there's an active session at a HITL gate — user input is the gate answer
+    const activeSession = readJson<SessionState>(getSessionPath(cwd));
+    if (activeSession?.active && activeSession.awaiting_confirmation && isGatePhase(activeSession.current_phase)) {
+      const gateContext = buildGateContinuationContext(activeSession, prompt);
+      debugLog(cwd, 'keyword', `gate-continuation (no-match): phase=${activeSession.current_phase}`);
+      activeSession.awaiting_confirmation = false;
+      try { writeJsonAtomic(getSessionPath(cwd), activeSession); } catch { /* best effort */ }
+      promptContextOutput(gateContext);
+      return;
+    }
     hookOutput('UserPromptSubmit');
     return;
   }
@@ -378,7 +398,7 @@ async function main(): Promise<void> {
   // step-by-step orchestration instructions that Claude treats as its PRIMARY task.
   const imperativePrompt = buildImperativePrompt(match.action, augmentedPrompt, effectiveSkill, modelConfig, cwd);
 
-  hookOutput('UserPromptSubmit', imperativePrompt);
+  promptContextOutput(imperativePrompt);
 }
 
 function findKeywordMatch(promptLower: string): KeywordRule | null {
@@ -413,6 +433,60 @@ function isInformational(text: string, keyword?: string): boolean {
   // Global check: test against all OML keywords
   const omlKeywords = ['oml', 'oh-my-link', 'start link', 'start fast', 'startlink', 'startfast'];
   return omlKeywords.some(kw => isInformational(text, kw));
+}
+
+/** Check if the current phase is a HITL gate that requires user input */
+function isGatePhase(phase: string): boolean {
+  return ['gate_1_pending', 'gate_2_pending', 'gate_3_pending'].includes(phase);
+}
+
+/**
+ * Build continuation context when user answers a HITL gate question.
+ * This is injected as plain stdout so Claude knows to continue the pipeline.
+ */
+function buildGateContinuationContext(session: SessionState, userAnswer: string): string {
+  const phase = session.current_phase;
+  const mode = session.mode === 'mylink' ? 'Start Link' : 'Start Fast';
+
+  let ctx = `[OML ${mode.toUpperCase()} — GATE RESPONSE]\n\n`;
+  ctx += `The user has answered the gate questions. Here is their response:\n\n`;
+  ctx += `---\n${userAnswer}\n---\n\n`;
+
+  if (phase === 'gate_1_pending') {
+    ctx += `## NEXT STEPS\n`;
+    ctx += `1. Lock the user's answers as D1, D2, D3, etc.\n`;
+    ctx += `2. Update session.json: set current_phase to "phase_2_planning" and awaiting_confirmation to false\n`;
+    ctx += `3. Spawn the Architect agent to design the implementation plan:\n`;
+    ctx += `   - Use the Task tool with description: "[OML:architect] Design plan based on Scout findings + user decisions"\n`;
+    ctx += `   - Pass the CONTEXT.md content and the locked decisions in the prompt\n`;
+    ctx += `4. After Architect finishes, present the plan summary and ask for approval (Gate 2)\n\n`;
+  } else if (phase === 'gate_2_pending') {
+    ctx += `## NEXT STEPS\n`;
+    const isApproved = /\b(?:yes|approve|ok|lgtm|đồng ý|duyệt|được|oke)\b/i.test(userAnswer);
+    if (isApproved) {
+      ctx += `User APPROVED the plan. Proceed to Phase 3-4:\n`;
+      ctx += `1. Update session.json: set current_phase to "phase_3_decomposition"\n`;
+      ctx += `2. Spawn Architect again to decompose the plan into task JSONs\n`;
+      ctx += `3. After decomposition, present task list to user (Gate 3)\n\n`;
+    } else {
+      ctx += `User provided FEEDBACK on the plan. Incorporate their feedback:\n`;
+      ctx += `1. Spawn Architect again with the feedback to revise the plan\n`;
+      ctx += `2. Present the revised plan to user for approval\n\n`;
+    }
+  } else if (phase === 'gate_3_pending') {
+    ctx += `## NEXT STEPS\n`;
+    const isParallel = /\b(?:parallel|song song)\b/i.test(userAnswer);
+    ctx += `User chose: ${isParallel ? 'PARALLEL' : 'SEQUENTIAL'} execution.\n`;
+    ctx += `1. Update session.json: set current_phase to "phase_5_execution"\n`;
+    ctx += `2. Start spawning Worker agents for tasks (${isParallel ? 'respecting depends_on but running independent tasks in parallel' : 'one task at a time, in order'})\n\n`;
+  }
+
+  ctx += `## REMINDER: You are the ORCHESTRATOR\n`;
+  ctx += `- Do NOT implement code yourself\n`;
+  ctx += `- Use the Task tool to spawn agents for each phase\n`;
+  ctx += `- Include [OML:role-name] in agent descriptions\n`;
+
+  return ctx;
 }
 
 function classifyMylightIntent(prompt: string): 'turbo' | 'standard' | 'complex' {
@@ -506,6 +580,11 @@ function buildTurboPrompt(userRequest: string, skillContent: string | null, mode
   const executorModel = getModelInstruction('executor', cwd);
   let p = `[OML START FAST — TURBO MODE]\n\n`;
   p += `You are the Oh-My-Link orchestrator. Your ONLY job is to spawn an Executor agent to handle this request.\n\n`;
+  p += `## HOW TO SPAWN AN AGENT\n`;
+  p += `Use the Task tool with these exact parameters:\n`;
+  p += `- subagent_type: "general" (for scout/architect/reviewer) or "fixer" (for executor/worker)\n`;
+  p += `- description: "[OML:role-name] Brief description of the task"\n`;
+  p += `- prompt: "Full instructions for the agent"\n\n`;
   p += `## YOUR TASK (mandatory steps)\n\n`;
   p += `1. Use the **Agent tool** (also called Task tool) to spawn an Executor subagent.\n`;
   p += `   - Set the description to: "[OML:executor] Execute: ${userRequest.slice(0, 80)}"\n`;
@@ -542,6 +621,11 @@ function buildStandardFastPrompt(userRequest: string, skillContent: string | nul
   const executorModel = getModelInstruction('executor', cwd);
   let p = `[OML START FAST — STANDARD MODE]\n\n`;
   p += `You are the Oh-My-Link orchestrator. You coordinate agents — you do NOT implement code yourself.\n\n`;
+  p += `## HOW TO SPAWN AN AGENT\n`;
+  p += `Use the Task tool with these exact parameters:\n`;
+  p += `- subagent_type: "general" (for scout/architect/reviewer) or "fixer" (for executor/worker)\n`;
+  p += `- description: "[OML:role-name] Brief description of the task"\n`;
+  p += `- prompt: "Full instructions for the agent"\n\n`;
   p += `## YOUR TASK (mandatory steps — execute in order)\n\n`;
   p += `### Step 1: Spawn Fast Scout\n`;
   p += `Use the **Agent tool** (also called Task tool) to spawn a Fast Scout subagent.\n`;
@@ -605,6 +689,11 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   p += `1. Include the [OML:role-name] tag in the agent description (for hook system role detection)\n`;
   p += `2. Set the model parameter as specified below for each role\n`;
   p += `Examples: "[OML:scout] Explore codebase", "[OML:architect] Design plan", "[OML:worker] Implement task-1"\n\n`;
+  p += `## HOW TO SPAWN AN AGENT\n`;
+  p += `Use the Task tool with these exact parameters:\n`;
+  p += `- subagent_type: "general" (for scout/architect/reviewer) or "fixer" (for executor/worker)\n`;
+  p += `- description: "[OML:role-name] Brief description of the task"\n`;
+  p += `- prompt: "Full instructions for the agent"\n\n`;
   p += `## YOUR TASK (execute phases in order)\n\n`;
   p += `### Phase 1: Spawn Scout\n`;
   p += `Use the **Agent tool** to spawn a Scout subagent:\n`;
@@ -614,8 +703,12 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   p += `- Scout writes CONTEXT.md to .oh-my-link/plans/CONTEXT.md\n`;
   p += `- Wait for Scout to finish, then present questions to user\n\n`;
   p += `### Gate 1: User Approval\n`;
-  p += `Present Scout's questions/options to the user. BLOCK until user answers.\n`;
-  p += `Lock decisions as D1, D2, ... Dn.\n\n`;
+  p += `After Scout finishes, present Scout's questions/options to the user as numbered choices (Q1, Q2, etc.).\n`;
+  p += `**IMPORTANT: After presenting the questions, END YOUR RESPONSE IMMEDIATELY.**\n`;
+  p += `Do NOT cogitate or think further — just stop your turn.\n`;
+  p += `The user will type their answers (e.g., "Q1: B, Q2: A, Q3: C").\n`;
+  p += `On your next turn, read their answers, lock as D1, D2, ... Dn, then proceed to Phase 2.\n`;
+  p += `End your Gate 1 message with: "⏳ Vui lòng trả lời các câu hỏi trên để tiếp tục. (Type your choices, e.g., Q1: B, Q2: A...)"\n\n`;
   p += `### Phase 2: Spawn Architect\n`;
   p += `Use the **Agent tool** to spawn an Architect subagent:\n`;
   p += `- Description: "[OML:architect] Design plan"\n`;
@@ -623,11 +716,15 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   p += `- Pass CONTEXT.md + locked decisions\n`;
   p += `- Architect writes plan.md to .oh-my-link/plans/plan.md\n\n`;
   p += `### Gate 2: User Approval\n`;
-  p += `Present plan summary to user. BLOCK until approved. Loop if feedback given.\n\n`;
+  p += `Present plan summary to user. **END YOUR RESPONSE IMMEDIATELY after presenting.**\n`;
+  p += `The user will type approval or feedback. On next turn, if approved proceed to Phase 3; if feedback, loop.\n`;
+  p += `End your Gate 2 message with: "⏳ Approve this plan? (yes/approve, or provide feedback)"\n\n`;
   p += `### Phase 3-4: Decomposition & Validation\n`;
   p += `Spawn Architect again (description: "[OML:architect] Decompose plan into tasks") to decompose plan into task JSONs in .oh-my-link/tasks/.\n\n`;
   p += `### Gate 3: Execution Approval\n`;
-  p += `Show task list and dependencies. Ask user: Sequential or Parallel? BLOCK until approved.\n\n`;
+  p += `Show task list and dependencies. **END YOUR RESPONSE IMMEDIATELY after presenting.**\n`;
+  p += `The user will choose Sequential or Parallel and approve. On next turn, proceed with their choice.\n`;
+  p += `End your Gate 3 message with: "⏳ Choose execution mode: Sequential or Parallel? (Type your choice)"\n\n`;
   p += `### Phase 5: Spawn Worker(s)\n`;
   p += `For each task (respecting depends_on order):\n`;
   p += `1. Write worker-{link-id}.md with task details\n`;

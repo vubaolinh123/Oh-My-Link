@@ -465,6 +465,107 @@ test("OML_AGENT_ROLE env overrides all detection", () => {
   assert(record.role === "architect", `expected role 'architect' from env, got '${record.role}'`);
 });
 
+// ── Session-Aware Role Inference ─────────────────────
+// When Claude Code sends agent_type="general-purpose" with no description/prompt,
+// OML should infer the correct role from session phase + mode.
+console.log("\n--- session-aware role inference — empty description ---");
+
+test("general-purpose in light_scout inferred as fast-scout (standard intent)", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylight", current_phase: "light_scout",
+    intent: "standard",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+  writeTracking(stateRoot, []);
+
+  // Simulate what Claude Code actually sends: general-purpose, no description, no prompt
+  runSubagentLifecycle("start", {
+    cwd, agent_id: "infer-1", agent_type: "general-purpose",
+  }, { OML_HOME: omlHome });
+
+  const tracking = readTracking(stateRoot);
+  const record = tracking.find(a => a.agent_id === "infer-1");
+  assert(record, "expected tracking record");
+  assert(record.role === "fast-scout", `expected role 'fast-scout', got '${record.role}'`);
+
+  // Phase should NOT advance past light_scout (fast-scout stays there)
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "light_scout",
+    `expected light_scout, got ${session.current_phase}`);
+});
+
+test("general-purpose in light_scout inferred as executor (turbo intent)", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylight", current_phase: "light_scout",
+    intent: "turbo",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+  writeTracking(stateRoot, []);
+
+  runSubagentLifecycle("start", {
+    cwd, agent_id: "infer-2", agent_type: "general-purpose",
+  }, { OML_HOME: omlHome });
+
+  const tracking = readTracking(stateRoot);
+  const record = tracking.find(a => a.agent_id === "infer-2");
+  assert(record, "expected tracking record");
+  assert(record.role === "executor", `expected role 'executor', got '${record.role}'`);
+
+  // Phase should advance to light_turbo for turbo intent
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "light_turbo",
+    `expected light_turbo, got ${session.current_phase}`);
+});
+
+test("general-purpose in bootstrap inferred as scout (Start Link)", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "bootstrap",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+  writeTracking(stateRoot, []);
+
+  runSubagentLifecycle("start", {
+    cwd, agent_id: "infer-3", agent_type: "general-purpose",
+  }, { OML_HOME: omlHome });
+
+  const tracking = readTracking(stateRoot);
+  const record = tracking.find(a => a.agent_id === "infer-3");
+  assert(record, "expected tracking record");
+  assert(record.role === "scout", `expected role 'scout', got '${record.role}'`);
+
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "phase_1_scout",
+    `expected phase_1_scout, got ${session.current_phase}`);
+});
+
+test("general-purpose with explicit description still uses description detection", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylight", current_phase: "light_scout",
+    intent: "standard",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+  writeTracking(stateRoot, []);
+
+  // When description is present, normal detection should work (not session inference)
+  runSubagentLifecycle("start", {
+    cwd, agent_id: "infer-4", agent_type: "general-purpose",
+    description: "[OML:executor] Implement fix from BRIEF.md",
+  }, { OML_HOME: omlHome });
+
+  const tracking = readTracking(stateRoot);
+  const record = tracking.find(a => a.agent_id === "infer-4");
+  assert(record, "expected tracking record");
+  assert(record.role === "executor", `expected role 'executor' from OML tag, got '${record.role}'`);
+});
+
 // ═══════════════════════════════════════════════════════
 console.log(`\n========================================`);
 console.log(`  Results: ${passed} passed, ${failed} failed, 0 skipped`);

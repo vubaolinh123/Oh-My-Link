@@ -603,9 +603,9 @@ suite('hooks — smoke tests', () => {
       shell: true,
     }).toString().trim();
 
-    const parsed = JSON.parse(output);
+    // Output is now plain text (not JSON) — promptContextOutput writes plain stdout
     assert(
-      parsed.hookSpecificOutput?.additionalContext?.includes('OML START LINK'),
+      output.includes('OML START LINK'),
       'should detect start link keyword'
     );
   });
@@ -627,9 +627,9 @@ suite('hooks — smoke tests', () => {
       shell: true,
     }).toString().trim();
 
-    const parsed = JSON.parse(output);
+    // Output is now plain text (not JSON) — promptContextOutput writes plain stdout
     assert(
-      parsed.hookSpecificOutput?.additionalContext?.includes('OML START FAST'),
+      output.includes('OML START FAST'),
       'should detect start fast keyword'
     );
   });
@@ -894,11 +894,10 @@ suite('keyword-detector — sanitization and augmentation', () => {
       cwd: TEMP_PROJECT, timeout: 10000,
       env: { ...process.env, OML_HOME: process.env.OML_HOME }, shell: true,
     }).toString().trim();
-    const parsed = JSON.parse(output);
-    const ctx = parsed.hookSpecificOutput?.additionalContext || '';
-    assert(ctx.includes('OML START LINK'), 'keyword detected');
+    // Output is now plain text (not JSON) — promptContextOutput writes plain stdout
+    assert(output.includes('OML START LINK'), 'keyword detected');
     assert(
-      ctx.includes('Scout') || ctx.includes('Agent tool') || ctx.includes('orchestrator'),
+      output.includes('Scout') || output.includes('Agent tool') || output.includes('orchestrator'),
       'should include orchestration instructions'
     );
   });

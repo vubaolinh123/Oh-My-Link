@@ -90,7 +90,12 @@ function runHook(hookName, input, extraEnv = {}) {
     env: { ...process.env, OML_HOME, OML_QUIET: '3', ...extraEnv },
     shell: true,
   }).toString().trim();
-  return JSON.parse(output);
+  try {
+    return JSON.parse(output);
+  } catch {
+    // keyword-detector now outputs plain text for invoke/invoke-light
+    return { continue: true, plainText: output };
+  }
 }
 
 function ensureCleanSession() {
