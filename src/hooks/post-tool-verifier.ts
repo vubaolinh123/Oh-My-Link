@@ -1,0 +1,299 @@
+import * as fs from 'fs';
+import * as path from 'path';
+import { parseHookInput, hookOutput, getCwd, getQuietLevel, readJson, writeJsonAtomic } from '../helpers';
+import { loadMemory, saveMemory, recordHotPath } from '../project-memory';
+import { getSessionPath, getProjectStateRoot, getWorkingMemoryPath,
+         getPriorityContextPath, ensureDir, normalizePath } from '../state';
+import { SessionState, HookInput } from '../types';
+
+const FAILURE_PATTERNS = [
+  /\berror TS\d+\b/i,           // TypeScript errors
+  /\bSyntaxError\b/,            // JS/TS syntax errors
+  /\bFAIL\b/,                   // Test failures (jest, etc.)
+  /\bnpm ERR!/,                 // npm errors
+  /\bBuild failed\b/i,          // Build failures
+  /\bCannot find module\b/i,    // Module resolution errors
+  /\bENOENT\b/,                 // File not found (system)
+  /\bSegmentation fault\b/i,    // Crash
+  /\bexit code [1-9]\b/i,       // Non-zero exit codes
+  /\bcommand failed\b/i,        // Command failures
+  /\bpermission denied\b/i,     // Permission errors
+  /\bEACCES\b/,                 // Access errors
+];
+
+const OUTPUT_CLIP_LIMIT = 12000;
+
+const HOT_PATH_TOOLS = new Set(['Read', 'Edit', 'Write', 'MultiEdit', 'Bash']);
+
+function extractFilePath(toolInput: Record<string, unknown>): string | null {
+  return (toolInput.file_path as string)
+    ?? (toolInput.filePath as string)
+    ?? null;
+}
+
+function extractFilePaths(toolName: string, toolInput: Record<string, unknown>): string[] {
+  if (['Edit', 'Write'].includes(toolName)) {
+    const fp = extractFilePath(toolInput);
+    return fp ? [fp] : [];
+  }
+  if (toolName === 'MultiEdit') {
+    const edits = toolInput.edits as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(edits)) {
+      return edits.map(e => (e.file_path as string) ?? (e.filePath as string)).filter(Boolean) as string[];
+    }
+  }
+  return [];
+}
+
+async function main(): Promise<void> {
+  const input = await parseHookInput() as HookInput;
+  const cwd = getCwd(input as Record<string, unknown>);
+  const session = readJson<SessionState>(getSessionPath(cwd));
+
+  if (!session?.active) { hookOutput('PostToolUse'); return; }
+
+  const toolName = input.tool_name || '';
+  const toolOutput = (input.tool_output || '') as string;
+  const toolInput = (input.tool_input || {}) as Record<string, unknown>;
+
+  // Clip overly long outputs to prevent oversized analysis
+  const clippedOutput = toolOutput && toolOutput.length > OUTPUT_CLIP_LIMIT
+    ? toolOutput.slice(0, OUTPUT_CLIP_LIMIT) + `\n\n[... clipped ${toolOutput.length - OUTPUT_CLIP_LIMIT} chars]`
+    : toolOutput;
+  const quiet = getQuietLevel();
+  const parts: string[] = [];
+
+  // Failure detection — only for Bash output (reading files with error strings is not a failure)
+  if (toolName === 'Bash' && clippedOutput && FAILURE_PATTERNS.some(p => p.test(clippedOutput))) {
+    if (quiet < 2) {
+      parts.push(`[oh-my-link] Possible failure detected in ${toolName} output.`);
+    }
+
+    // Update session failure counter
+    try {
+      if (session) {
+        // Capture which pattern matched for the error field
+        const matchedPattern = FAILURE_PATTERNS.find(p => p.test(clippedOutput));
+        const matchedError = matchedPattern ? (clippedOutput.match(matchedPattern)?.[0] || 'unknown') : 'unknown';
+
+        session.failure_count = (session.failure_count || 0) + 1;
+        session.last_failure = {
+          tool: toolName,
+          error: matchedError,
+          timestamp: new Date().toISOString(),
+          snippet: clippedOutput.slice(0, 500),
+        };
+        session.last_checked_at = new Date().toISOString();
+        writeJsonAtomic(getSessionPath(cwd), session);
+      }
+    } catch { /* best effort */ }
+
+    // Also add to tracking.failures for checkpoint use (pre-compact reads this)
+    try {
+      const trackPath = normalizePath(path.join(getProjectStateRoot(cwd), 'tool-tracking.json'));
+      const tracking = readJson<Record<string, unknown>>(trackPath) || {};
+      const failures = (tracking.failures as Array<Record<string, string>>) || [];
+      // Capture which pattern matched for the error field (short keyword)
+      const trackMatchedPattern = FAILURE_PATTERNS.find(p => p.test(clippedOutput));
+      const trackMatchedError = trackMatchedPattern ? (clippedOutput.match(trackMatchedPattern)?.[0] || 'unknown') : 'unknown';
+
+      failures.push({
+        tool: toolName,
+        error: trackMatchedError,
+        timestamp: new Date().toISOString(),
+        snippet: clippedOutput.slice(0, 500),
+      });
+      tracking.failures = failures;
+      writeJsonAtomic(trackPath, tracking);
+    } catch { /* best effort */ }
+  }
+
+  // Output clipping warning
+  if (toolOutput && toolOutput.length > OUTPUT_CLIP_LIMIT) {
+    if (quiet < 1) {
+      parts.push(`[oh-my-link] Output clipped (${toolOutput.length} chars > ${OUTPUT_CLIP_LIMIT}).`);
+    }
+  }
+
+  // File tracking for Edit/Write/MultiEdit
+  if (['Edit', 'Write', 'MultiEdit'].includes(toolName)) {
+    if (['Edit', 'Write'].includes(toolName)) {
+      const filePath = extractFilePath(toolInput);
+      if (filePath) trackFile(filePath, cwd);
+    } else if (toolName === 'MultiEdit') {
+      const edits = toolInput.edits as Array<Record<string, unknown>> | undefined;
+      if (Array.isArray(edits)) {
+        for (const edit of edits) {
+          const fp = (edit.file_path as string) ?? (edit.filePath as string);
+          if (fp) trackFile(fp, cwd);
+        }
+      }
+    }
+  }
+
+  // Tool tracking metadata (tool count, last tool)
+  try {
+    const trackPath = normalizePath(path.join(getProjectStateRoot(cwd), 'tool-tracking.json'));
+    const tracking = readJson<Record<string, unknown>>(trackPath) || {};
+    tracking.tool_count = ((tracking.tool_count as number) || 0) + 1;
+    tracking.last_tool = toolName;
+    tracking.last_tool_at = new Date().toISOString();
+    if (['Edit', 'Write', 'MultiEdit'].includes(toolName)) {
+      const files = tracking.files_modified as string[] || [];
+      const targetPaths = extractFilePaths(toolName, toolInput);
+      for (const fp of targetPaths) {
+        if (!files.includes(fp)) files.push(fp);
+      }
+      tracking.files_modified = files;
+    }
+    writeJsonAtomic(trackPath, tracking);
+  } catch { /* best effort */ }
+
+  // Hot path tracking for project memory
+  try {
+    if (HOT_PATH_TOOLS.has(toolName)) {
+      let filePath: string | null = null;
+
+      if (['Read', 'Edit', 'Write'].includes(toolName)) {
+        filePath = extractFilePath(toolInput);
+      } else if (toolName === 'MultiEdit') {
+        // Track each file in MultiEdit
+        const edits = toolInput.edits as Array<Record<string, unknown>> | undefined;
+        if (Array.isArray(edits)) {
+          const memory = loadMemory(cwd);
+          let dirty = false;
+          for (const edit of edits) {
+            const fp = (edit.file_path as string) ?? (edit.filePath as string);
+            if (fp) {
+              recordHotPath(memory, fp);
+              dirty = true;
+            }
+          }
+          if (dirty) saveMemory(cwd, memory);
+        }
+      } else if (toolName === 'Bash') {
+        // Extract file paths from Bash commands
+        const command = (toolInput.command as string) || '';
+        const filePathPattern = /(?:^|\s)((?:\.\/|\.\.\/|\/)?(?:[\w./-]+\/)*[\w.-]+\.(?:ts|js|mjs|cjs|py|go|rs|md|json|yaml|yml|tsx|jsx|css|scss|html|vue|svelte|rb|java|kt|swift|c|cpp|h|hpp))\b/g;
+        let fpMatch: RegExpExecArray | null = filePathPattern.exec(command);
+        const memory = loadMemory(cwd);
+        let dirty = false;
+        while (fpMatch !== null) {
+          const fp = fpMatch[1];
+          if (!fp.includes('node_modules') && !fp.startsWith('/tmp') && !fp.startsWith('/dev/') && !fp.startsWith('/proc/') && !fp.startsWith('/sys/')) {
+            recordHotPath(memory, fp);
+            dirty = true;
+          }
+          fpMatch = filePathPattern.exec(command);
+        }
+        if (dirty) saveMemory(cwd, memory);
+      }
+
+      // Single-file tools (Read, Edit, Write)
+      if (filePath && toolName !== 'MultiEdit' && toolName !== 'Bash') {
+        const memory = loadMemory(cwd);
+        recordHotPath(memory, filePath);
+        saveMemory(cwd, memory);
+      }
+    }
+  } catch { /* best effort — don't block tool use */ }
+
+  // Process <remember> tags
+  if (toolOutput) {
+    processRememberTags(toolOutput, cwd);
+  }
+
+  // Process <skill-feedback> tags
+  if (toolOutput) {
+    processSkillFeedback(toolOutput, cwd);
+  }
+
+  hookOutput('PostToolUse', parts.length > 0 ? parts.join('\n') : undefined);
+}
+
+function trackFile(filePath: string, cwd: string): void {
+  const trackPath = normalizePath(path.join(getProjectStateRoot(cwd), 'file-tracking.json'));
+  const tracked = readJson<string[]>(trackPath) || [];
+  if (!tracked.includes(filePath)) {
+    tracked.push(filePath);
+    try { writeJsonAtomic(trackPath, tracked); } catch { /* ignore */ }
+  }
+}
+
+function processRememberTags(output: string, cwd: string): void {
+  // <remember>content</remember> → append to working-memory.md with timestamp and --- separator
+  const rememberMatches = output.match(/<remember>(?![\s]*priority)([\s\S]*?)<\/remember>/g);
+  if (rememberMatches) {
+    const memPath = getWorkingMemoryPath(cwd);
+    ensureDir(path.dirname(memPath));
+    for (const match of rememberMatches) {
+      const content = match.replace(/<\/?remember>/g, '').trim();
+      if (content) {
+        const timestamp = new Date().toISOString();
+        const entry = `\n---\n**${timestamp}**\n${content}\n`;
+        try {
+          const existing = fs.existsSync(memPath) ? fs.readFileSync(memPath, 'utf-8') : '';
+          fs.writeFileSync(memPath, existing + entry, 'utf-8');
+        } catch { /* ignore */ }
+      }
+    }
+  }
+
+  // <remember priority>content</remember> → write to priority-context.md with dedup
+  const priorityMatches = output.match(/<remember\s+priority>([\s\S]*?)<\/remember>/g);
+  if (priorityMatches) {
+    const priPath = getPriorityContextPath(cwd);
+    ensureDir(path.dirname(priPath));
+    for (const match of priorityMatches) {
+      const newContent = match.replace(/<\/?remember(?: priority)?>/g, '').trim();
+      if (newContent.length > 0) {
+        try {
+          const existing = fs.existsSync(priPath) ? fs.readFileSync(priPath, 'utf-8').trim() : '';
+          const existingEntries = existing ? existing.split('\n').filter((l: string) => l.trim()) : [];
+          // Deduplicate: check if newContent already exists
+          const isDuplicate = existingEntries.some((entry: string) => {
+            const contentPart = entry.replace(/^\[[^\]]*\]\s*/, '');
+            return contentPart === newContent;
+          });
+          if (!isDuplicate) {
+            const ts = new Date().toISOString().substring(0, 16);
+            const newEntry = `[${ts}] ${newContent}`;
+            let entries = [...existingEntries, newEntry];
+            // Enforce 500 char budget
+            while (entries.join('\n').length > 500 && entries.length > 1) {
+              entries.shift();
+            }
+            let final = entries.join('\n');
+            if (final.length > 500) final = final.substring(0, 500);
+            fs.writeFileSync(priPath, final, 'utf-8');
+          }
+        } catch { /* ignore */ }
+      }
+    }
+  }
+}
+
+function processSkillFeedback(output: string, cwd: string): void {
+  try {
+    const feedbackRegex = /<skill-feedback\s+name="([^"]+)"\s+useful="false">([\s\S]*?)<\/skill-feedback>/g;
+    let match: RegExpExecArray | null = feedbackRegex.exec(output);
+    while (match !== null) {
+      const slug = match[1].trim();
+      const reason = match[2].trim();
+      if (slug.length > 0) {
+        const feedbackPath = normalizePath(path.join(getProjectStateRoot(cwd), 'skill-feedback.json'));
+        const feedback = readJson<Record<string, { negativeCount: number; lastNegative: string | null; reason: string }>>(feedbackPath) || {};
+        if (!feedback[slug]) {
+          feedback[slug] = { negativeCount: 0, lastNegative: null, reason: '' };
+        }
+        feedback[slug].negativeCount = (feedback[slug].negativeCount || 0) + 1;
+        feedback[slug].lastNegative = new Date().toISOString();
+        feedback[slug].reason = reason || feedback[slug].reason;
+        try { writeJsonAtomic(feedbackPath, feedback); } catch { /* ignore */ }
+      }
+      match = feedbackRegex.exec(output);
+    }
+  } catch { /* best effort */ }
+}
+
+main().catch(() => hookOutput('PostToolUse'));
