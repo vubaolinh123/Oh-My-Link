@@ -9,6 +9,45 @@ import { ProjectEntry, ProjectRegistry, SessionState } from './types';
 // ============================================================
 
 /**
+ * Resolve the Oh-My-Link plugin root directory.
+ * Tries (in order):
+ *   1. CLAUDE_PLUGIN_ROOT env var (if set and directory exists)
+ *   2. ~/.oh-my-link/setup.json → pluginRoot (if file exists and path is valid)
+ *   3. Infer from module location: __dirname/.. (for compiled dist/) or __dirname/../.. (if in dist/hooks/)
+ * Returns the resolved path (forward slashes) or null if nothing found.
+ */
+export function resolvePluginRoot(): string | null {
+  // Strategy 1: Environment variable
+  const envRoot = process.env.CLAUDE_PLUGIN_ROOT;
+  if (envRoot && fs.existsSync(envRoot)) {
+    return normalizePath(envRoot);
+  }
+
+  // Strategy 2: setup.json
+  try {
+    const setupPath = path.join(os.homedir(), '.oh-my-link', 'setup.json');
+    if (fs.existsSync(setupPath)) {
+      const setup = JSON.parse(fs.readFileSync(setupPath, 'utf-8'));
+      if (setup?.pluginRoot && typeof setup.pluginRoot === 'string' && fs.existsSync(setup.pluginRoot)) {
+        return normalizePath(setup.pluginRoot);
+      }
+    }
+  } catch { /* ignore */ }
+
+  // Strategy 3: Infer from __dirname
+  // At runtime __dirname is dist/ or dist/hooks/ — walk up to find package.json
+  let candidate = path.resolve(__dirname, '..');
+  for (let i = 0; i < 3; i++) {
+    if (fs.existsSync(path.join(candidate, 'package.json'))) {
+      return normalizePath(candidate);
+    }
+    candidate = path.resolve(candidate, '..');
+  }
+
+  return null;
+}
+
+/**
  * Get the system-level root directory for Oh-My-Link state.
  * Uses OML_HOME env var if set, otherwise ~/.oh-my-link/
  */

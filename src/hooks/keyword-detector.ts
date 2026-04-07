@@ -4,7 +4,7 @@ import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, getQuiet
 import { loadMemory, saveMemory, addDirective } from '../project-memory';
 import { loadConfig, DEFAULT_MODELS } from '../config';
 import { generateFramework, formatFramework } from '../prompt-leverage';
-import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath } from '../state';
+import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot } from '../state';
 import { SessionState, HookInput, AgentRole } from '../types';
 
 // ============================================================
@@ -349,8 +349,12 @@ function loadSkillContent(skillRef: string): string | null {
   const parts = skillRef.split(':');
   const skillName = parts.length > 1 ? parts[1] : parts[0];
 
-  // __dirname at runtime is dist/hooks/, so skills/ is at ../../skills/
-  const skillPath = path.join(__dirname, '..', '..', 'skills', skillName, 'SKILL.md');
+  // Resolve plugin root via centralized logic (env → setup.json → __dirname)
+  const pluginRoot = resolvePluginRoot();
+  const skillPath = pluginRoot
+    ? path.join(pluginRoot, 'skills', skillName, 'SKILL.md')
+    : path.join(__dirname, '..', '..', 'skills', skillName, 'SKILL.md');
+
   try {
     if (fs.existsSync(skillPath)) {
       return fs.readFileSync(skillPath, 'utf-8').trim();

@@ -173,6 +173,8 @@ Each agent has a default model assignment optimized for its role. You can overri
 
 ### Custom Model Configuration
 
+**Global config** — applies to all projects:
+
 Create or edit `~/.oh-my-link/config.json`:
 
 ```json
@@ -196,6 +198,20 @@ Create or edit `~/.oh-my-link/config.json`:
 ```
 
 **You only need to include the roles you want to change.** Omitted roles use the defaults above.
+
+**Per-project config** — overrides global for a specific workspace:
+
+Create `{project}/.oh-my-link/config.json` with the same format. Project values override global values, which override defaults.
+
+```json
+// .oh-my-link/config.json (per-project)
+{
+  "models": {
+    "worker": "claude-opus-4-6"
+  },
+  "quiet_level": 1
+}
+```
 
 #### Examples
 
@@ -234,7 +250,9 @@ Create or edit `~/.oh-my-link/config.json`:
 | `models` | `object` | See table above | Model ID per agent role |
 | `quiet_level` | `number` | `0` | `0` = verbose, `1` = less output, `2` = minimal |
 
-Config location: `~/.oh-my-link/config.json` (global) or `$OML_HOME/config.json` if `OML_HOME` is set.
+Config locations (merged in order, later overrides earlier):
+1. `~/.oh-my-link/config.json` (global) or `$OML_HOME/config.json`
+2. `{project}/.oh-my-link/config.json` (per-project override)
 
 ---
 
@@ -290,6 +308,7 @@ Config location: `~/.oh-my-link/config.json` (global) or `$OML_HOME/config.json`
 | **File Locking** | `mkdir`-based atomic mutex with 30s TTL. Workers must acquire locks before editing. |
 | **Messaging** | JSON message files in `.oh-my-link/messages/` with thread-based routing |
 | **Session State** | `session.json` at `~/.oh-my-link/projects/{hash}/` tracks phase, counters, failures |
+| **Plugin Root Resolution** | 3-strategy resolution: `CLAUDE_PLUGIN_ROOT` → `~/.oh-my-link/setup.json` → `__dirname` inference |
 | **Auto Phase Tracking** | Subagent lifecycle hooks automatically advance session phase (forward-only) |
 | **Prompt Leverage** | Every invocation auto-augments your prompt with guardrails, constraints, and success criteria |
 | **Learnings** | Patterns extracted from sessions are saved and loaded in future sessions (compounding flywheel) |
@@ -299,7 +318,7 @@ Config location: `~/.oh-my-link/config.json` (global) or `$OML_HOME/config.json`
 The plugin includes a HUD that shows real-time progress:
 
 ```
-╭─ OML v0.7.0 ✧ Start.Link ✧ Phase 5: Execution
+╭─ OML v0.8.1 ✧ Start.Link ✧ Phase 5: Execution
 ╰─ Ctx: [♥♥♥♥♡♡♡♡♡♡] 42% ┊ Session: 9m ┊ Agents: SAW ┊ R:0 F:0
 ```
 
@@ -324,7 +343,7 @@ Oh-My-Link/
 ├── skills/               # Skill definitions (20+ skills)
 ├── hooks/
 │   └── hooks.json        # Hook wiring configuration
-├── test/                 # 128+ tests across 3 suites
+├── test/                 # 138+ tests across 4 suites
 ├── .claude-plugin/       # Marketplace manifest
 └── .oh-my-link/          # Runtime artifacts (per-project, not committed)
     ├── plans/            # CONTEXT.md, plan.md, review.md
@@ -384,9 +403,10 @@ npm run build
 node test/run-tests.mjs           # 106 core tests
 node test/test-run-cjs.mjs        # 6 hook runner tests
 node test/test-phase-tracking.mjs # 16 phase tracking tests
+node test/test-new-features.mjs   # 11 resolution & config tests
 ```
 
-128 tests across 3 suites covering keyword detection, tool enforcement, state management, task engine, file locking, prompt leverage, session lifecycle, phase tracking, and hook runner resolution.
+139 tests across 4 suites covering keyword detection, tool enforcement, state management, task engine, file locking, prompt leverage, session lifecycle, phase tracking, hook runner resolution, plugin root resolution, and per-project config merge.
 
 ---
 

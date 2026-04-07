@@ -12,9 +12,13 @@
  *   1. If target exists on disk → run it directly.
  *   2. If target does NOT exist AND CLAUDE_PLUGIN_ROOT is set:
  *      a. Walk up from CLAUDE_PLUGIN_ROOT to the cache parent directory.
- *      b. Scan sibling version directories (newest first) for the same
- *         relative path inside the plugin.
+ *      b. Scan sibling version directories (semver-sorted, newest first) for
+ *         the same relative path inside the plugin.
  *      c. If found → run the first match.
+ *   2.5. If CLAUDE_PLUGIN_ROOT is unset/stale, read ~/.oh-my-link/setup.json:
+ *      a. Extract pluginRoot from setup.json.
+ *      b. Try the target under that pluginRoot directly.
+ *      c. Scan sibling version directories (semver-sorted, newest first).
  *   3. If CLAUDE_PLUGIN_ROOT is NOT set (local dev):
  *      a. Resolve plugin root as the directory containing this script's parent
  *         (i.e., __dirname/..).
@@ -24,8 +28,41 @@
  */
 
 const { execFileSync } = require("child_process");
-const { existsSync, readdirSync } = require("fs");
+const { existsSync, readdirSync, readFileSync } = require("fs");
+const os = require("os");
 const { join, dirname, resolve, relative, isAbsolute } = require("path");
+
+/**
+ * Compare two directory names by embedded semver (descending).
+ * Extracts the first version-like segment (e.g. "1.2.3" from "oh-my-link-1.2.3")
+ * and compares numerically. Falls back to 0 for missing parts.
+ */
+function semverCompare(a, b) {
+  const extractVersion = (s) => {
+    const match = s.match(/(\d+(?:\.\d+)*)/);
+    return match ? match[1].split(".").map(Number) : [];
+  };
+  const va = extractVersion(a);
+  const vb = extractVersion(b);
+  for (let i = 0; i < Math.max(va.length, vb.length); i++) {
+    const diff = (vb[i] || 0) - (va[i] || 0); // descending
+    if (diff !== 0) return diff;
+  }
+  return 0;
+}
+
+/**
+ * Read ~/.oh-my-link/setup.json and return parsed object, or null on any failure.
+ */
+function readSetupJson() {
+  try {
+    const setupPath = join(os.homedir(), ".oh-my-link", "setup.json");
+    if (!existsSync(setupPath)) return null;
+    return JSON.parse(readFileSync(setupPath, "utf-8"));
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Attempt to find a working path for the target script.
@@ -55,7 +92,7 @@ function resolveTarget(target) {
       const cacheParent = dirname(normalRoot);
       if (existsSync(cacheParent)) {
         try {
-          const versions = readdirSync(cacheParent).sort().reverse();
+          const versions = readdirSync(cacheParent).sort(semverCompare);
           for (const ver of versions) {
             const candidate = join(cacheParent, ver, rel);
             if (existsSync(candidate)) return candidate;
@@ -68,6 +105,43 @@ function resolveTarget(target) {
       // Also try directly under the declared root (maybe just not built yet)
       const direct = join(normalRoot, rel);
       if (existsSync(direct)) return direct;
+    }
+  }
+
+  // --- Strategy A.5: Read setup.json for pluginRoot fallback ---
+  const setup = readSetupJson();
+  if (setup && typeof setup.pluginRoot === "string") {
+    const setupRoot = resolve(setup.pluginRoot);
+
+    // Compute relative portion of the target inside the setup pluginRoot
+    let rel = "";
+    const normalTarget = resolve(target);
+
+    if (normalTarget.startsWith(setupRoot)) {
+      rel = relative(setupRoot, normalTarget);
+    } else {
+      // Target may already be relative
+      rel = target;
+    }
+
+    if (rel) {
+      // Try directly under the setup pluginRoot
+      const direct = join(setupRoot, rel);
+      if (existsSync(direct)) return direct;
+
+      // Scan sibling version directories (same cache layout as Strategy A)
+      const cacheParent = dirname(setupRoot);
+      if (existsSync(cacheParent)) {
+        try {
+          const versions = readdirSync(cacheParent).sort(semverCompare);
+          for (const ver of versions) {
+            const candidate = join(cacheParent, ver, rel);
+            if (existsSync(candidate)) return candidate;
+          }
+        } catch {
+          // Fall through
+        }
+      }
     }
   }
 

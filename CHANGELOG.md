@@ -2,6 +2,18 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.8.1] — Resilient Resolution & Per-Project Config
+
+- Add `resolvePluginRoot()` to `state.ts` — 3-strategy plugin root resolution (env var → setup.json → __dirname)
+- Refactor `keyword-detector.ts` and `statusline.ts` to use `resolvePluginRoot()` instead of fragile `__dirname`
+- Add setup.json fallback to `run.cjs` — reads `~/.oh-my-link/setup.json` pluginRoot when `CLAUDE_PLUGIN_ROOT` is unset/stale
+- Add semver-aware sorting to `run.cjs` version directory scanning (replaces naive lexicographic sort)
+- Add per-project config support — `{project}/.oh-my-link/config.json` overrides global `~/.oh-my-link/config.json`
+- Update `loadConfig()` and `getModelForRole()` to accept optional `cwd` for project-level merge
+- Add `loadProjectConfig()` export to `config.ts`
+- Add 11 new tests (`test/test-new-features.mjs`): semver sort, setup.json fallback, resolvePluginRoot, config merge
+- Total test count: 139 across 4 suites
+
 ## [v0.8.0] — Install Once, Use Everywhere
 
 - Add global project registry (`~/.oh-my-link/projects/registry.json`) — auto-tracks all workspaces

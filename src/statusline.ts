@@ -16,7 +16,7 @@
 
 import * as path from 'path';
 import { readJson } from './helpers';
-import { getSessionPath, getProjectStateRoot, normalizePath } from './state';
+import { getSessionPath, getProjectStateRoot, normalizePath, resolvePluginRoot } from './state';
 import { SessionState, SubagentRecord } from './types';
 import { getTaskSummary } from './task-engine';
 
@@ -32,9 +32,12 @@ const MAGENTA = '\x1b[35m';
 // ── Version ──────────────────────────────────────────────────
 const VERSION = (() => {
   try {
-    const pkg = readJson<{ version: string }>(
-      path.resolve(__dirname, '..', 'package.json')
-    );
+    // Use centralized plugin root resolution (env → setup.json → __dirname)
+    const pluginRoot = resolvePluginRoot();
+    const pkgPath = pluginRoot
+      ? path.join(pluginRoot, 'package.json')
+      : path.resolve(__dirname, '..', 'package.json');
+    const pkg = readJson<{ version: string }>(pkgPath);
     return pkg?.version || '0.1.0';
   } catch {
     return '0.1.0';

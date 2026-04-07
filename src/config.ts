@@ -1,5 +1,6 @@
+import * as path from 'path';
 import { AgentRole, OmlConfig } from './types';
-import { getConfigPath } from './state';
+import { getConfigPath, normalizePath } from './state';
 import { readJson } from './helpers';
 
 // ============================================================
@@ -29,24 +30,40 @@ const DEFAULT_CONFIG: OmlConfig = {
 };
 
 /**
- * Load user config from ~/.oh-my-link/config.json.
- * Merges with defaults — user values override.
+ * Load project-level config from {cwd}/.oh-my-link/config.json.
+ * Returns partial config or null if not found.
  */
-export function loadConfig(): OmlConfig {
-  const userConfig = readJson<Partial<OmlConfig>>(getConfigPath());
-  if (!userConfig) return { ...DEFAULT_CONFIG };
+export function loadProjectConfig(cwd?: string): Partial<OmlConfig> | null {
+  const projectCwd = cwd || process.env.CLAUDE_PROJECT_DIR || process.cwd();
+  const projectConfigPath = normalizePath(path.join(projectCwd, '.oh-my-link', 'config.json'));
+  return readJson<Partial<OmlConfig>>(projectConfigPath) || null;
+}
 
-  return {
-    models: { ...DEFAULT_CONFIG.models, ...(userConfig.models || {}) },
-    quiet_level: userConfig.quiet_level ?? DEFAULT_CONFIG.quiet_level,
+/**
+ * Load merged config: global (~/.oh-my-link/config.json) + project ({cwd}/.oh-my-link/config.json).
+ * Project-level values override global values.
+ */
+export function loadConfig(cwd?: string): OmlConfig {
+  const globalConfig = readJson<Partial<OmlConfig>>(getConfigPath());
+  const projectConfig = loadProjectConfig(cwd);
+
+  const merged: OmlConfig = {
+    models: {
+      ...(DEFAULT_CONFIG.models),
+      ...(globalConfig?.models || {}),
+      ...(projectConfig?.models || {}),
+    },
+    quiet_level: projectConfig?.quiet_level ?? globalConfig?.quiet_level ?? DEFAULT_CONFIG.quiet_level,
   };
+
+  return merged;
 }
 
 /**
  * Get the configured model for a given agent role.
- * User overrides take priority, then defaults.
+ * Project overrides > global overrides > defaults.
  */
-export function getModelForRole(role: AgentRole): string {
-  const config = loadConfig();
+export function getModelForRole(role: AgentRole, cwd?: string): string {
+  const config = loadConfig(cwd);
   return config.models[role] || DEFAULT_MODELS[role] || DEFAULT_MODELS.worker;
 }
