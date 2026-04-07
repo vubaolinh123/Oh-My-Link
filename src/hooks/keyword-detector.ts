@@ -4,7 +4,7 @@ import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, getQuiet
 import { loadMemory, saveMemory, addDirective } from '../project-memory';
 import { loadConfig, DEFAULT_MODELS, saveConfigField, isAlwaysOn } from '../config';
 import { generateFramework, formatFramework } from '../prompt-leverage';
-import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot } from '../state';
+import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot, getDebugLogPath, projectHash } from '../state';
 import { SessionState, HookInput, AgentRole } from '../types';
 
 // ============================================================
@@ -233,18 +233,24 @@ async function main(): Promise<void> {
   // Handle debug mode toggle
   if (match.action === 'debug-on') {
     saveConfigField('debug_mode', true);
+    const debugPath = getDebugLogPath(cwd);
+    const hash = projectHash(cwd);
     hookOutput('UserPromptSubmit',
-      '[oh-my-link] Debug mode ENABLED.\n' +
-      'Hook traces will be logged to ~/.oh-my-link/projects/{hash}/debug.log\n' +
+      '[oh-my-link] Debug mode ENABLED.\n\n' +
+      `Project: ${cwd}\n` +
+      `Hash: ${hash}\n` +
+      `Debug log: ${debugPath}\n\n` +
+      'All hook traces will be appended to the log file above.\n' +
       'Say "oml debug off" to disable.');
     return;
   }
 
   if (match.action === 'debug-off') {
     saveConfigField('debug_mode', false);
+    const debugPath = getDebugLogPath(cwd);
     hookOutput('UserPromptSubmit',
       '[oh-my-link] Debug mode DISABLED.\n' +
-      'Debug logging stopped.');
+      `Last debug log: ${debugPath}`);
     return;
   }
 
