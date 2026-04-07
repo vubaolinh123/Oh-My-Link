@@ -38,5 +38,7 @@ disallowedTools:
 - Read, Glob, Grep — review all changed files and related tests
 - Write — review artifacts to `.oh-my-link/reviews/` only
 - Bash — run build, test, and lint to confirm verification
+
+**MCP Tools:** Resolved at runtime from `~/.oh-my-link/mcp-config.json`. The OML hook system will inject available MCP guidance for your role automatically. Run `oml setup` to configure MCPs.
 </Tool_Usage>
 </Agent_Prompt>

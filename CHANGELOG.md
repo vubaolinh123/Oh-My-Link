@@ -2,6 +2,82 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.9.8] — Session Audit, Locked-Field Hardening & Debug Diagnostics
+
+**Instrumentation to track session.json corruption + raw hook payload capture for diagnosing tool_output=0.**
+
+### New: Session-Write Audit
+
+- Every write to `session.json` is now logged to `~/.oh-my-link/session-write-audit.log`
+- Audit entries include: timestamp, PID, argv, phase/active/mode, and a 3-frame stack trace
+- Auto-rotates at 200KB to prevent unbounded growth
+- New exported helper: `sessionWriteAudit(sessionPath, message)`
+
+### New: locked_* Field Hardening
+
+- `writeJsonAtomic` now preserves `locked_mode` and `locked_phase` from existing `session.json`
+- If incoming data tries to overwrite locked fields → old values restored + `LOCKED_FIELD_CORRECTED` audit entry
+- If incoming data omits locked fields → old values carried forward automatically
+- Prevents LLM or buggy hooks from corrupting session role inference
+
+### New: Raw Hook Payload Capture
+
+- `parseHookInput()` now writes raw stdin payloads to `~/.oh-my-link/debug/payloads/` when `debug_mode` is on
+- Each payload saved as `{timestamp}-{hookname}-{pid}.json` (capped at 200KB)
+- Directory auto-cleaned to max 50 files
+- Enables diagnosing what Claude Code actually sends in hook payloads
+
+### New: Raw Key Diagnostics
+
+- `post-tool-verifier` logs `post-tool-raw` with all keys Claude Code sends + `has_tool_output` flag
+- `pre-tool-enforcer` logs `pre-tool-raw` with all incoming keys
+- Purpose: confirm Claude Code's actual hook payload schema (suspected `tool_output` is never sent)
+
+### Changed: Extracted `isDebugMode()` Helper
+
+- Replaces duplicated config-reading logic in `debugLog` and payload capture
+- Checks both global and project-level config
+- Exported for use in tests and other modules
+
+### Tests
+
+- New test file: `test/test-session-audit.mjs` — 12 tests (3 skipped) covering session audit, locked_* hardening, and isDebugMode
+- Total test count: 421 passed (up from 409), 1 pre-existing flaky failure in test-statusline
+
+## [v0.9.7] — Open MCP Registry
+
+**MCP management system: users can register any MCP server and control agent→MCP priority.**
+
+### New: Open MCP Registry (`src/mcp-config.ts`)
+
+- **Open, not hardcoded**: Users register ANY MCP server (not just built-in suggestions) via `oml setup` or by editing `~/.oh-my-link/mcp-config.json`
+- **Per-role mapping**: Configure which agents use which MCPs, in priority order, with custom guidance text per role
+- **3-layer config merge**: defaults ← global (`~/.oh-my-link/mcp-config.json`) ← per-project (`{cwd}/.oh-my-link/mcp-config.json`)
+- **Full CRUD API**: `registerProvider`, `removeProvider`, `setProviderInstalled`, `addMcpToRole`, `removeMcpFromRole`, `setRoleMcps`
+- **5 suggested providers ship as defaults** (context7, grep_app, playwright, augment-context-engine, browser-use) — users can add/remove freely
+
+### New: Dynamic MCP Injection
+
+- `subagent-lifecycle.ts` now calls `getMcpGuidanceForRole()` on every `SubagentStart` event
+- MCP guidance is appended to the hook's `additionalContext` — agents see which MCPs are available and how to use them
+- Only **installed** MCPs appear in guidance; uninstalled ones are silently omitted
+
+### Changed: Agent Skill Files
+
+- All 10 agent .md files (scout, fast-scout, explorer, architect, worker, executor, reviewer, code-reviewer, security-reviewer, test-engineer) now use a short dynamic reference instead of hardcoded MCP blocks
+- MCP guidance is resolved at runtime from `mcp-config.json` via the hook system
+
+### Changed: Setup Skill
+
+- Added Phase D (MCP Configuration) to the setup wizard
+- Users can mark installed MCPs, add custom MCPs, and configure role mappings during `oml setup`
+- MCP config is global (one-time setup) with optional per-project overrides
+
+### Tests
+
+- New test file: `test/test-mcp-config.mjs` — 29 tests across 7 suites covering the full MCP config module
+- Total test count: 409 passed (up from 380)
+
 ## [v0.9.6] — Fix Role Inference & Remove Dead Hook Enforcement
 
 **Root-cause fixes for three interconnected bugs discovered from real workflow debug logs.**

@@ -40,5 +40,7 @@ disallowedTools:
 <Tool_Usage>
 - Read, Glob, Grep — examine implementation, configs, and dependency files
 - Bash — read-only audit commands (npm audit, git log for sensitive file changes)
+
+**MCP Tools:** Resolved at runtime from `~/.oh-my-link/mcp-config.json`. The OML hook system will inject available MCP guidance for your role automatically. Run `oml setup` to configure MCPs.
 </Tool_Usage>
 </Agent_Prompt>

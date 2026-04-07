@@ -3,6 +3,7 @@ import { getSessionPath } from '../state';
 import { readJson } from '../helpers';
 import { SessionState, HookInput } from '../types';
 import { acquireLock, releaseLock } from '../task-engine';
+import { detectMcpTool } from '../mcp-config';
 
 // ============================================================
 // Oh-My-Link — Pre-Tool Enforcer (PreToolUse)
@@ -33,6 +34,32 @@ const BASH_WARN = [
   /npm\s+publish/i,
 ];
 
+function summarizeToolInput(toolName: string, toolInput: Record<string, unknown>): string {
+  if (toolName === 'Bash') {
+    const cmd = (toolInput.command as string) || '';
+    return `cmd="${cmd.slice(0, 100)}"`;
+  }
+  if (['Edit', 'Write'].includes(toolName)) {
+    const fp = (toolInput.file_path as string) ?? (toolInput.filePath as string) ?? '';
+    return `file="${fp}"`;
+  }
+  if (toolName === 'MultiEdit') {
+    const edits = toolInput.edits as Array<Record<string, unknown>> | undefined;
+    return `files=${edits?.length || 0}`;
+  }
+  if (toolName === 'Read') {
+    const fp = (toolInput.file_path as string) ?? (toolInput.filePath as string) ?? '';
+    return `file="${fp}"`;
+  }
+  if (toolName === 'Glob') {
+    return `pattern="${(toolInput.pattern as string) || ''}"`;
+  }
+  if (toolName === 'Grep') {
+    return `pattern="${(toolInput.pattern as string) || ''}"`;
+  }
+  return `keys=[${Object.keys(toolInput).join(',')}]`;
+}
+
 async function main(): Promise<void> {
   const input = await parseHookInput() as HookInput;
   const toolName = input.tool_name || '';
@@ -42,7 +69,17 @@ async function main(): Promise<void> {
   // Read session for file locking checks
   const session = readJson<SessionState>(getSessionPath(cwd));
 
-  debugLog(cwd, 'pre-tool', `tool=${toolName}`);
+  debugLog(cwd, 'pre-tool', `tool=${toolName} input=${summarizeToolInput(toolName, toolInput)}`);
+
+  // Raw key diagnostic — log ALL keys Claude Code sends
+  const rawKeys = Object.keys(input).sort().join(',');
+  debugLog(cwd, 'pre-tool-raw', `keys=[${rawKeys}]`);
+
+  // MCP detection
+  const mcpInfo = detectMcpTool(toolName, cwd);
+  if (mcpInfo) {
+    debugLog(cwd, 'mcp-use', `provider=${mcpInfo.providerId} tool=${toolName} method=${mcpInfo.method}`);
+  }
 
   // SAFETY: Check Bash commands regardless of session state.
   // Prevents destructive commands from being run by ANY user.
@@ -77,9 +114,11 @@ async function main(): Promise<void> {
           for (const acq of acquired) {
             releaseLock(cwd, acq, agentId);
           }
+          debugLog(cwd, 'pre-tool', `lock-blocked: ${targetPath} held by ${result.holder}`);
           toolDenyOutput(`[oh-my-link] File "${targetPath}" is locked by ${result.holder}. Wait for release.`);
           return;
         }
+        debugLog(cwd, 'pre-tool', `lock-acquired: ${targetPath} by ${agentId}`);
         acquired.push(targetPath);
       } catch {
         // Lock acquisition error — fail closed

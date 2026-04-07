@@ -5,6 +5,7 @@ import { loadMemory, saveMemory, recordHotPath } from '../project-memory';
 import { getSessionPath, getProjectStateRoot, getWorkingMemoryPath,
          getPriorityContextPath, ensureDir, normalizePath } from '../state';
 import { SessionState, HookInput } from '../types';
+import { detectMcpTool } from '../mcp-config';
 
 const FAILURE_PATTERNS = [
   /\berror TS\d+\b/i,           // TypeScript errors
@@ -67,7 +68,21 @@ async function main(): Promise<void> {
   const toolOutput = (input.tool_output || '') as string;
   const toolInput = (input.tool_input || {}) as Record<string, unknown>;
 
+  // Raw key diagnostic — log ALL keys Claude Code sends so we know the actual schema
+  const rawKeys = Object.keys(input).sort().join(',');
+  debugLog(cwd, 'post-tool-raw', `keys=[${rawKeys}] tool=${toolName} output_len=${toolOutput?.length || 0} has_tool_output=${'tool_output' in input}`);
+
   debugLog(cwd, 'post-tool', `tool=${toolName} output_len=${toolOutput?.length || 0}`);
+
+  // MCP detection with result status
+  const mcpInfo = detectMcpTool(toolName, cwd);
+  if (mcpInfo) {
+    const clippedForMcp = toolOutput && toolOutput.length > OUTPUT_CLIP_LIMIT
+      ? toolOutput.slice(0, OUTPUT_CLIP_LIMIT)
+      : toolOutput;
+    const success = !FAILURE_PATTERNS.some(p => p.test(clippedForMcp || ''));
+    debugLog(cwd, 'mcp-result', `provider=${mcpInfo.providerId} tool=${toolName} success=${success} output_len=${toolOutput?.length || 0}`);
+  }
 
   // Clip overly long outputs to prevent oversized analysis
   const clippedOutput = toolOutput && toolOutput.length > OUTPUT_CLIP_LIMIT
@@ -218,7 +233,10 @@ async function main(): Promise<void> {
 
   // Process <remember> tags (sanitize expressions to prevent CC evaluator crashes)
   if (toolOutput) {
-    processRememberTags(sanitizeExpressions(toolOutput), cwd);
+    const rememberResult = processRememberTags(sanitizeExpressions(toolOutput), cwd);
+    if (rememberResult) {
+      debugLog(cwd, 'post-tool', `remember-tag processed: ${rememberResult.slice(0, 80)}`);
+    }
   }
 
   // Process <skill-feedback> tags (sanitize expressions to prevent CC evaluator crashes)
@@ -234,11 +252,13 @@ function trackFile(filePath: string, cwd: string): void {
   const tracked = readJson<string[]>(trackPath) || [];
   if (!tracked.includes(filePath)) {
     tracked.push(filePath);
+    debugLog(cwd, 'post-tool', `file-tracked: ${filePath}`);
     try { writeJsonAtomic(trackPath, tracked); } catch { /* ignore */ }
   }
 }
 
-function processRememberTags(output: string, cwd: string): void {
+function processRememberTags(output: string, cwd: string): string | null {
+  let firstContent: string | null = null;
   // <remember>content</remember> → append to working-memory.md with timestamp and --- separator
   const rememberMatches = output.match(/<remember>(?![\s]*priority)([\s\S]*?)<\/remember>/g);
   if (rememberMatches) {
@@ -247,6 +267,7 @@ function processRememberTags(output: string, cwd: string): void {
     for (const match of rememberMatches) {
       const content = match.replace(/<\/?remember>/g, '').trim();
       if (content) {
+        if (!firstContent) firstContent = content;
         const timestamp = new Date().toISOString();
         const entry = `\n---\n**${timestamp}**\n${content}\n`;
         try {
@@ -265,6 +286,7 @@ function processRememberTags(output: string, cwd: string): void {
     for (const match of priorityMatches) {
       const newContent = match.replace(/<\/?remember(?: priority)?>/g, '').trim();
       if (newContent.length > 0) {
+        if (!firstContent) firstContent = newContent;
         try {
           const existing = fs.existsSync(priPath) ? fs.readFileSync(priPath, 'utf-8').trim() : '';
           const existingEntries = existing ? existing.split('\n').filter((l: string) => l.trim()) : [];
@@ -289,6 +311,7 @@ function processRememberTags(output: string, cwd: string): void {
       }
     }
   }
+  return firstContent;
 }
 
 function processSkillFeedback(output: string, cwd: string): void {

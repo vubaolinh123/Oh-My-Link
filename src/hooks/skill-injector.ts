@@ -189,6 +189,10 @@ async function main(): Promise<void> {
   // Cap at MAX_SKILLS
   const toInject = unsuppressed.slice(0, MAX_SKILLS);
 
+  if (toInject.length > 0) {
+    debugLog(cwd, 'skill-inject', `injecting=${toInject.length}: ${toInject.map(s => s.name).join(', ')} (${unsuppressed.length} unsuppressed, ${newSkills.length} new)`);
+  }
+
   // Track injected skills with session_started_at
   const updatedInjected = [...injected, ...toInject.map(s => s.name)];
   try {

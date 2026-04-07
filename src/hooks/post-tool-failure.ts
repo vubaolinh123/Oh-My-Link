@@ -4,6 +4,7 @@ import * as path from 'path';
 import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, logError, debugLog } from '../helpers';
 import { getProjectStateRoot, getSessionPath, normalizePath } from '../state';
 import { HookInput, SessionState } from '../types';
+import { detectMcpTool } from '../mcp-config';
 
 interface ToolFailureTracker {
   tool_name: string;
@@ -62,8 +63,16 @@ async function main(): Promise<void> {
 
   debugLog(cwd, 'tool-fail', `tool=${toolName} attempt=${tracker?.count || 1}/${maxRetries}`);
 
+  // Log error snippet preview
   // Capture error snippet (first 500 chars)
   const errorSnippet = toolError ? toolError.slice(0, 500) : undefined;
+  if (errorSnippet) debugLog(cwd, 'tool-fail', `error: ${errorSnippet.slice(0, 150)}`);
+
+  // MCP detection for failed MCP tools
+  const mcpInfo = detectMcpTool(toolName, cwd);
+  if (mcpInfo) {
+    debugLog(cwd, 'mcp-fail', `provider=${mcpInfo.providerId} tool=${toolName} attempt=${tracker?.count || 1}/${maxRetries}`);
+  }
 
   if (tracker && tracker.tool_name === toolName) {
     const elapsed = Date.now() - new Date(tracker.last_failure).getTime();
@@ -76,6 +85,8 @@ async function main(): Promise<void> {
       if (tracker.count >= maxRetries) {
         tracker.escalated = true;
         try { writeJsonAtomic(trackPath, tracker); } catch { /* ignore */ }
+
+        debugLog(cwd, 'tool-fail', `ESCALATED: ${toolName} reached ${maxRetries} retries`);
 
         // Set session flag for task engine errors
         if (isTaskEngineTool(toolName)) {

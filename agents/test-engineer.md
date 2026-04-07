@@ -39,5 +39,7 @@ and fix the test — or flag if implementation needs fixing.
 - Read, Glob, Grep — understand existing test patterns and source code
 - Write, Edit — create or update test files
 - Bash — run test suite to verify results
+
+**MCP Tools:** Resolved at runtime from `~/.oh-my-link/mcp-config.json`. The OML hook system will inject available MCP guidance for your role automatically. Run `oml setup` to configure MCPs.
 </Tool_Usage>
 </Agent_Prompt>

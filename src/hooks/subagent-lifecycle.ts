@@ -3,8 +3,9 @@ import * as path from 'path';
 import { parseHookInput, readJson, writeJsonAtomic, hookOutput, simpleOutput,
          getCwd, logError, getQuietLevel, debugLog } from '../helpers';
 import { getProjectStateRoot, getSubagentTrackingPath, getSessionPath, normalizePath } from '../state';
-import { HookInput, SubagentRecord, TaskAssignment, SessionState, Phase } from '../types';
+import { HookInput, SubagentRecord, TaskAssignment, SessionState, Phase, AgentRole } from '../types';
 import { readTask, updateTaskStatus, releaseAllLocks, listTasks } from '../task-engine';
+import { getMcpGuidanceForRole } from '../mcp-config';
 
 // ============================================================
 // Oh-My-Link — Subagent Lifecycle (SubagentStart + SubagentStop)
@@ -169,6 +170,28 @@ const ROLE_EXPECTATIONS: Record<string, {
   },
 };
 
+/**
+ * Get MCP guidance for an agent by its detected role string.
+ * Wraps getMcpGuidanceForRole with safe casting and error handling.
+ */
+function getMcpGuidanceForAgent(role: string, cwd: string): string {
+  try {
+    const knownRoles: string[] = [
+      'master', 'scout', 'fast-scout', 'architect', 'worker', 'reviewer',
+      'explorer', 'executor', 'verifier', 'code-reviewer', 'security-reviewer', 'test-engineer',
+    ];
+    if (!knownRoles.includes(role)) return '';
+    const guidance = getMcpGuidanceForRole(role as AgentRole, cwd);
+    if (guidance) {
+      debugLog(cwd, 'mcp-inject', `role=${role} guidance_len=${guidance.length}`);
+    }
+    return guidance;
+  } catch {
+    // MCP config read failure should never block agent start
+    return '';
+  }
+}
+
 async function main(): Promise<void> {
   const mode = process.argv[2]; // 'start' or 'stop'
   const input = await parseHookInput() as HookInput;
@@ -268,6 +291,9 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
       if (quiet < 2) {
         let context = `[oh-my-link] Auto-claimed task "${task.title}" (${task.link_id}).`;
         if (phaseAdvanced) context += ` Phase → ${session!.current_phase}`;
+        // Append MCP guidance for this role
+        const mcpGuidance = getMcpGuidanceForAgent(role, cwd);
+        if (mcpGuidance) context += '\n' + mcpGuidance;
         // Dedup: remove existing entry with same ID (handles retries)
         const dedupedTracking = tracking.filter(a => a.agent_id !== agentId);
         dedupedTracking.push(record);
@@ -286,6 +312,9 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
   if (quiet < 2) {
     let context = `[oh-my-link] ${role} agent started (${agentId}).`;
     if (phaseAdvanced) context += ` Phase → ${session!.current_phase}`;
+    // Append MCP guidance for this role
+    const mcpGuidance = getMcpGuidanceForAgent(role, cwd);
+    if (mcpGuidance) context += '\n' + mcpGuidance;
     hookOutput('SubagentStart', context);
   } else {
     hookOutput('SubagentStart');
@@ -387,6 +416,7 @@ async function handleStop(input: HookInput, cwd: string): Promise<void> {
       }
 
       if (sessionDirty) {
+        debugLog(cwd, 'agent-stop', `phase-change → ${session.current_phase} reason=${session.deactivated_reason || 'advance'}`);
         try { writeJsonAtomic(sessionPath, session); } catch { /* best effort */ }
       }
     }

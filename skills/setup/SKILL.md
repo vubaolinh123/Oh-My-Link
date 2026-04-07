@@ -457,6 +457,110 @@ Note: Restart Claude Code to activate hook changes.
 
 </Steps>
 
+<MCP_Configuration>
+
+## Phase D: MCP Configuration (Optional, after Phase C)
+
+Oh-My-Link supports an **open MCP registry** — users can register ANY MCP server
+(not just the built-in suggestions) and configure which agents use which MCPs.
+
+The MCP config is stored at `~/.oh-my-link/mcp-config.json` (global) with optional
+per-project overrides at `{cwd}/.oh-my-link/mcp-config.json`.
+
+### D1. Show Current MCP Status
+
+Read `~/.oh-my-link/mcp-config.json` (if exists).
+
+Present the current status:
+
+```
+=== MCP Configuration ===
+
+Registered MCPs:
+| #  | MCP ID                  | Name                    | Installed | Tags           |
+|----|-------------------------|-------------------------|-----------|----------------|
+| 1  | context7                | Context7                | No        | docs, api-ref  |
+| 2  | grep_app                | grep.app                | No        | search, example|
+| 3  | playwright              | Playwright MCP          | No        | browser, test  |
+| 4  | augment-context-engine  | Augment Context Engine  | No        | search, code   |
+| 5  | browser-use             | Browser Use             | No        | browser, auto  |
+
+These are the built-in suggestions. You can:
+1. Mark MCPs you have installed as "installed" (so agents will use them)
+2. Add your own custom MCP servers
+3. Configure which agent roles use which MCPs
+4. Skip MCP configuration for now
+```
+
+### D2. Mark Installed MCPs
+
+Ask user which MCPs they already have available in their Claude Code environment.
+
+> "Which of these MCPs do you have installed? (comma-separated numbers, or 'all', or 'none')"
+
+For each selected MCP, update the config to mark `installed: true`.
+
+### D3. Add Custom MCPs (Optional)
+
+> "Do you want to register any additional MCP servers? (yes/no)"
+
+If yes, collect for each:
+- **id**: Short identifier (e.g., "my-rag-server")
+- **name**: Display name
+- **description**: What it does (1 sentence)
+- **usage_hint**: When should agents use it? (e.g., "Use for internal knowledge base queries")
+- **tags**: Optional comma-separated tags
+
+Write the new provider entry to `~/.oh-my-link/mcp-config.json`.
+
+### D4. Configure Role Mappings (Optional, Advanced)
+
+> "Do you want to customize which agents use which MCPs? (yes/skip)"
+
+If yes, show the current agent→MCP mapping table and let user modify.
+If skip, use the sensible defaults (scout gets search MCPs, worker gets docs MCPs, etc.).
+
+### D5. Save MCP Config
+
+Write `~/.oh-my-link/mcp-config.json` with version 2 schema:
+
+```json
+{
+  "version": 2,
+  "providers": {
+    "context7": {
+      "id": "context7",
+      "name": "Context7",
+      "description": "Library documentation lookup",
+      "installed": true,
+      "usage_hint": "Look up library docs BEFORE using unfamiliar APIs.",
+      "tags": ["docs", "api-reference"]
+    },
+    "my-custom-mcp": {
+      "id": "my-custom-mcp",
+      "name": "My RAG Server",
+      "description": "Internal knowledge base search",
+      "installed": true,
+      "usage_hint": "Search internal docs before using external sources.",
+      "tags": ["search", "internal"]
+    }
+  },
+  "agent_map": {
+    "scout": {
+      "mcps": ["my-custom-mcp", "augment-context-engine", "grep_app"],
+      "guidance": {
+        "my-custom-mcp": "Check internal docs first before external sources."
+      }
+    }
+  },
+  "updated_at": "2026-04-08T..."
+}
+```
+
+Report: FIXED MCP config ... N providers registered, M marked installed
+
+</MCP_Configuration>
+
 <Tool_Usage>
 - Read: Check existing files (settings.json, CLAUDE.md, hooks.json, setup.json, plugin.json)
 - Write: Create/update files when confirmed by user

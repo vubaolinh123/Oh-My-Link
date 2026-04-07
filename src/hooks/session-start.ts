@@ -41,7 +41,7 @@ async function main(): Promise<void> {
   ensureRuntimeDirs(cwd, sessionId);
   ensureArtifactDirs(cwd);
 
-  debugLog(cwd, 'session-start', 'session initialized');
+  debugLog(cwd, 'session-start', `source=${source} session_id=${sessionId || 'none'}`);
 
   // 1b. Register this workspace in the global project registry
   try { registerProject(cwd); } catch { /* best effort */ }
@@ -90,6 +90,7 @@ async function main(): Promise<void> {
     const memorySummary = formatSummary(memory, 650);
     if (memorySummary) {
       projectMemoryPart = `[Project Memory]\n${memorySummary}`;
+      debugLog(cwd, 'session-start', `injected: project-memory (${memorySummary.length} chars)`);
     }
   } catch { /* best effort */ }
 
@@ -101,6 +102,7 @@ async function main(): Promise<void> {
       if (content) {
         const capped = content.length > 500 ? content.substring(0, 500) : content;
         priorityContextPart = `[Priority Context]\n${capped}`;
+        debugLog(cwd, 'session-start', `injected: priority-context`);
       }
     } catch { /* ignore */ }
   }
@@ -115,6 +117,7 @@ async function main(): Promise<void> {
         const recent = entries.slice(-5).join('\n---\n');
         const capped = recent.length > 800 ? recent.substring(recent.length - 800) : recent;
         workingMemoryPart = `[Working Memory (Recent)]\n${capped}`;
+        debugLog(cwd, 'session-start', `injected: working-memory (${entries.length} entries)`);
       }
     } catch { /* ignore */ }
   }
@@ -130,6 +133,8 @@ async function main(): Promise<void> {
     const mode = session.mode === 'mylink' ? 'Start Link' : 'Start Fast';
     const phase = session.current_phase;
     const elapsed = getElapsed(session.started_at);
+
+    debugLog(cwd, 'session-start', `active-session: mode=${session.mode} phase=${phase} elapsed=${elapsed}`);
 
     parts.push(`oh-my-link v${VERSION} loaded. Active: ${mode} [${phase}] (${elapsed} elapsed)`);
     parts.push(`Modes: Start Link ('start link') | Start Fast ('start fast') | Cancel: 'cancel oml'`);

@@ -18,13 +18,14 @@ async function main(): Promise<void> {
   const input = await parseHookInput() as HookInput;
   const cwd = getCwd(input as Record<string, unknown>);
 
-  debugLog(cwd, 'session-end', 'session cleanup');
+  // Read session early for debug logging
+  const session = readJson<SessionState>(getSessionPath(cwd));
+  debugLog(cwd, 'session-end', `phase=${session?.current_phase || 'none'} active=${session?.active} critical=${session?.active ? CRITICAL_PHASES.includes(session.current_phase) : false}`);
 
   // Clean expired locks
   try { cleanExpiredLocks(cwd); } catch { /* ignore */ }
 
   // Deactivate session — but NOT if in a critical phase (allow resume)
-  const session = readJson<SessionState>(getSessionPath(cwd));
   if (session?.active) {
     const now = new Date().toISOString();
     if (!CRITICAL_PHASES.includes(session.current_phase)) {

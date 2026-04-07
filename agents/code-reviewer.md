@@ -41,5 +41,7 @@ Cite file path and line number for every finding.
 <Tool_Usage>
 - Read, Glob, Grep — full examination of changed and related files
 - Bash — static analysis tools if available (eslint, tsc --noEmit, etc.)
+
+**MCP Tools:** Resolved at runtime from `~/.oh-my-link/mcp-config.json`. The OML hook system will inject available MCP guidance for your role automatically. Run `oml setup` to configure MCPs.
 </Tool_Usage>
 </Agent_Prompt>

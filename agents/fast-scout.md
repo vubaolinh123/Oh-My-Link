@@ -34,5 +34,7 @@ disallowedTools:
 - Glob, Grep, Read — targeted search, no full tree scans unless necessary
 - Write — BRIEF.md output only
 - Bash — read-only inspection commands
+
+**MCP Tools:** Resolved at runtime from `~/.oh-my-link/mcp-config.json`. The OML hook system will inject available MCP guidance for your role automatically. Run `oml setup` to configure MCPs.
 </Tool_Usage>
 </Agent_Prompt>

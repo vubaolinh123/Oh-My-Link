@@ -1,7 +1,7 @@
 import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getErrorLogPath, getDebugLogPath, ensureDir, normalizePath } from './state';
+import { getErrorLogPath, getDebugLogPath, getSystemRoot, ensureDir, normalizePath } from './state';
 
 // ============================================================
 // Oh-My-Link — Helper Utilities
@@ -23,11 +23,51 @@ export function readJson<T>(filePath: string): T | null {
  * Write JSON to a file atomically (tmp + rename).
  * Creates parent directories if needed.
  * LOGS errors to ~/.oh-my-link/error.log instead of silently swallowing.
- * (Fix: writeJsonAtomic now logs errors instead of silently swallowing them)
+ *
+ * Special handling for session.json:
+ *   1. AUDIT — every write is appended to session-write-audit.log with caller info.
+ *   2. HARDENING — locked_mode and locked_phase are preserved from existing file;
+ *      if the caller's data tries to overwrite them, the old values are restored
+ *      and an audit warning is logged.
  */
 export function writeJsonAtomic(filePath: string, data: unknown): void {
   const normalized = normalizePath(filePath);
   const dir = path.dirname(normalized);
+
+  const isSessionFile = normalized.endsWith('/session.json') || normalized.endsWith('\\session.json');
+
+  // --- Session hardening: preserve locked_* fields ---
+  if (isSessionFile && data && typeof data === 'object' && !Array.isArray(data)) {
+    try {
+      if (fs.existsSync(normalized)) {
+        const existingRaw = fs.readFileSync(normalized, 'utf-8');
+        const existing = JSON.parse(existingRaw) as Record<string, unknown>;
+        const incoming = data as Record<string, unknown>;
+        const LOCKED_KEYS = ['locked_mode', 'locked_phase'] as const;
+        const corrected: string[] = [];
+
+        for (const key of LOCKED_KEYS) {
+          if (existing[key] !== undefined) {
+            // If incoming tries to change a locked field, restore the old value
+            if (incoming[key] !== undefined && incoming[key] !== existing[key]) {
+              corrected.push(`${key}: ${JSON.stringify(incoming[key])} → ${JSON.stringify(existing[key])}`);
+              incoming[key] = existing[key];
+            }
+            // If incoming omits a locked field, carry it forward
+            if (incoming[key] === undefined) {
+              incoming[key] = existing[key];
+            }
+          }
+        }
+
+        if (corrected.length > 0) {
+          sessionWriteAudit(normalized, `LOCKED_FIELD_CORRECTED: ${corrected.join('; ')}`);
+        }
+      }
+    } catch {
+      // Best-effort hardening — don't block the write
+    }
+  }
 
   try {
     ensureDir(dir);
@@ -37,6 +77,20 @@ export function writeJsonAtomic(filePath: string, data: unknown): void {
 
     fs.writeFileSync(tmpPath, content, 'utf-8');
     fs.renameSync(tmpPath, normalized);
+
+    // --- Session audit: log every write ---
+    if (isSessionFile) {
+      try {
+        const dataObj = data as Record<string, unknown>;
+        const phase = dataObj.current_phase ?? '?';
+        const active = dataObj.active ?? '?';
+        const mode = dataObj.mode ?? '?';
+        sessionWriteAudit(
+          normalized,
+          `WRITE phase=${phase} active=${active} mode=${mode}`
+        );
+      } catch { /* audit must never block */ }
+    }
   } catch (err) {
     // Log error instead of silently swallowing
     logError('writeJsonAtomic', `Failed to write ${normalized}: ${err}`);
@@ -51,6 +105,43 @@ export function writeJsonAtomic(filePath: string, data: unknown): void {
 
     // Re-throw so callers know the write failed
     throw err;
+  }
+}
+
+/**
+ * Write an audit entry for session.json writes.
+ * Appended to ~/.oh-my-link/session-write-audit.log.
+ * Contains timestamp, PID, argv, short stack trace, and the caller's message.
+ * NEVER throws — audit failures are silently ignored.
+ */
+export function sessionWriteAudit(sessionPath: string, message: string): void {
+  try {
+    const auditDir = getSystemRoot();
+    ensureDir(auditDir);
+    const auditPath = normalizePath(path.join(auditDir, 'session-write-audit.log'));
+
+    const ts = new Date().toISOString();
+    const pid = process.pid;
+    const argv = JSON.stringify(process.argv.slice(0, 4)); // first 4 args to keep it concise
+    // Grab a short stack trace (3 call frames after this function)
+    const stack = new Error().stack || '';
+    const stackLines = stack.split('\n').slice(2, 5).map(l => l.trim()).join(' | ');
+
+    const entry = `[${ts}] pid=${pid} argv=${argv} session=${sessionPath} ${message} stack=[${stackLines}]\n`;
+    fs.appendFileSync(auditPath, entry, 'utf-8');
+
+    // Rotate: cap at 200KB
+    try {
+      const stats = fs.statSync(auditPath);
+      if (stats.size > 200_000) {
+        const content = fs.readFileSync(auditPath, 'utf-8');
+        const truncated = content.slice(content.length - 100_000);
+        const firstNl = truncated.indexOf('\n');
+        fs.writeFileSync(auditPath, firstNl >= 0 ? truncated.slice(firstNl + 1) : truncated, 'utf-8');
+      }
+    } catch { /* rotation is best effort */ }
+  } catch {
+    // Audit logging must never throw
   }
 }
 
@@ -74,14 +165,65 @@ export function readStdin(): Promise<string> {
 /**
  * Parse hook input from stdin JSON.
  * Returns empty object if parsing fails.
+ *
+ * When debug_mode is enabled, writes the raw stdin payload to a rotating
+ * debug file: ~/.oh-my-link/debug/payloads/{timestamp}-{hookname}-{pid}.json
+ * Capped at 200KB per payload; directory auto-cleaned to max 50 files.
  */
 export async function parseHookInput(): Promise<Record<string, unknown>> {
   try {
     const raw = await readStdin();
     if (!raw.trim()) return {};
+
+    // Debug: capture raw payload if debug_mode is on
+    captureRawPayload(raw);
+
     return JSON.parse(raw);
   } catch {
     return {};
+  }
+}
+
+/**
+ * Capture raw hook payload for debugging.
+ * Writes to ~/.oh-my-link/debug/payloads/ when debug_mode is enabled.
+ * NEVER throws.
+ */
+function captureRawPayload(raw: string): void {
+  try {
+    if (!isDebugMode()) return;
+
+    const debugDir = normalizePath(path.join(getSystemRoot(), 'debug', 'payloads'));
+    ensureDir(debugDir);
+
+    // Derive hook name from process.argv (hooks are invoked as: node dist/hooks/<name>.js)
+    let hookName = 'unknown';
+    const scriptArg = process.argv[1] || '';
+    const match = scriptArg.match(/[\\/]([^\\/]+?)(?:\.js)?$/);
+    if (match) hookName = match[1];
+
+    const ts = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `${ts}-${hookName}-${process.pid}.json`;
+    const payloadPath = normalizePath(path.join(debugDir, fileName));
+
+    // Cap payload at 200KB
+    const capped = raw.length > 200_000 ? raw.slice(0, 200_000) + '\n[... truncated]' : raw;
+    fs.writeFileSync(payloadPath, capped, 'utf-8');
+
+    // Cleanup: keep max 50 files (delete oldest)
+    try {
+      const files = fs.readdirSync(debugDir)
+        .filter(f => f.endsWith('.json'))
+        .sort();
+      if (files.length > 50) {
+        const toDelete = files.slice(0, files.length - 50);
+        for (const f of toDelete) {
+          try { fs.unlinkSync(path.join(debugDir, f)); } catch { /* best effort */ }
+        }
+      }
+    } catch { /* cleanup is best effort */ }
+  } catch {
+    // Payload capture must never throw
   }
 }
 
@@ -224,29 +366,7 @@ export function logError(source: string, message: string): void {
  */
 export function debugLog(cwd: string, source: string, message: string): void {
   try {
-    // Check debug_mode without importing config.ts (circular dep prevention)
-    const configPath = normalizePath(path.join(
-      process.env.OML_HOME || path.join(os.homedir(), '.oh-my-link'),
-      'config.json'
-    ));
-    let debugEnabled = false;
-    try {
-      const raw = fs.readFileSync(configPath, 'utf-8');
-      const config = JSON.parse(raw);
-      debugEnabled = config.debug_mode === true;
-    } catch { /* config unreadable = debug off */ }
-
-    // Also check project-level config
-    if (!debugEnabled) {
-      try {
-        const projectConfigPath = normalizePath(path.join(cwd, '.oh-my-link', 'config.json'));
-        const raw = fs.readFileSync(projectConfigPath, 'utf-8');
-        const config = JSON.parse(raw);
-        debugEnabled = config.debug_mode === true;
-      } catch { /* no project config */ }
-    }
-
-    if (!debugEnabled) return;
+    if (!isDebugMode(cwd)) return;
 
     const logPath = getDebugLogPath(cwd);
     ensureDir(path.dirname(logPath));
@@ -271,6 +391,32 @@ export function debugLog(cwd: string, source: string, message: string): void {
   } catch {
     // Debug logging must never throw
   }
+}
+
+/**
+ * Check if debug mode is enabled (global or project-level).
+ * Extracted to avoid duplicating the config-read logic.
+ */
+export function isDebugMode(cwd?: string): boolean {
+  try {
+    const configPath = normalizePath(path.join(
+      process.env.OML_HOME || path.join(os.homedir(), '.oh-my-link'),
+      'config.json'
+    ));
+    try {
+      const raw = fs.readFileSync(configPath, 'utf-8');
+      if (JSON.parse(raw).debug_mode === true) return true;
+    } catch { /* config unreadable */ }
+
+    if (cwd) {
+      try {
+        const projectConfigPath = normalizePath(path.join(cwd, '.oh-my-link', 'config.json'));
+        const raw = fs.readFileSync(projectConfigPath, 'utf-8');
+        if (JSON.parse(raw).debug_mode === true) return true;
+      } catch { /* no project config */ }
+    }
+  } catch { /* safety net */ }
+  return false;
 }
 
 /**

@@ -32,5 +32,7 @@ disallowedTools:
 - Grep — content search across the codebase
 - Read — inspect specific files when detail is needed
 - Bash — read-only commands (ls, git log --oneline) for structure overview
+
+**MCP Tools:** Resolved at runtime from `~/.oh-my-link/mcp-config.json`. The OML hook system will inject available MCP guidance for your role automatically. Run `oml setup` to configure MCPs.
 </Tool_Usage>
 </Agent_Prompt>

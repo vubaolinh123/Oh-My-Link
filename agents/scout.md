@@ -32,5 +32,7 @@ questions with options for the user. Write findings to `.oh-my-link/context/EXPL
 - Glob, Grep, Read — deep codebase exploration
 - Write — Synthesis Mode only, for CONTEXT.md
 - Bash — read-only commands (ls, cat, git log) for additional context
+
+**MCP Tools:** Resolved at runtime from `~/.oh-my-link/mcp-config.json`. The OML hook system will inject available MCP guidance for your role automatically. Run `oml setup` to configure MCPs.
 </Tool_Usage>
 </Agent_Prompt>
