@@ -1,11 +1,12 @@
 {
   "name": "oh-my-link",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Multi-agent orchestration for Claude Code — built from Claude Code source code leak",
   "scripts": {
     "build": "tsc",
     "build:watch": "tsc --watch",
     "test": "node test/run-tests.mjs",
+    "test:all": "node test/run-all.mjs",
     "prebuild": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\""
   },
   "devDependencies": {

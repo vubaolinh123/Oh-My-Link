@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as os from 'os';
+import { ProjectEntry, ProjectRegistry, SessionState } from './types';
 
 // ============================================================
 // Oh-My-Link — State Management
@@ -240,4 +241,82 @@ export function getWorkingMemoryPath(cwd: string): string {
  */
 export function getPriorityContextPath(cwd: string): string {
   return normalizePath(path.join(getArtifactsDir(cwd), 'priority-context.md'));
+}
+
+// --- Project Registry ---
+
+/**
+ * Get the registry file path.
+ * ~/.oh-my-link/projects/registry.json
+ */
+export function getRegistryPath(): string {
+  return normalizePath(path.join(getSystemRoot(), 'projects', 'registry.json'));
+}
+
+/**
+ * Register a project in the global registry.
+ * Called by session-start to track all workspaces.
+ */
+export function registerProject(cwd: string): void {
+  const registryPath = getRegistryPath();
+  ensureDir(path.dirname(registryPath));
+
+  let registry: ProjectRegistry = { version: 1, projects: {} };
+  try {
+    if (fs.existsSync(registryPath)) {
+      registry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
+    }
+  } catch { /* start fresh if corrupted */ }
+
+  const hash = projectHash(cwd);
+  const normalized = normalizePath(path.resolve(cwd));
+
+  // Check if there's an active session
+  let hasActiveSession = false;
+  try {
+    const sessionPath = getSessionPath(cwd);
+    if (fs.existsSync(sessionPath)) {
+      const session: SessionState = JSON.parse(fs.readFileSync(sessionPath, 'utf-8'));
+      hasActiveSession = session.active === true;
+    }
+  } catch { /* ignore */ }
+
+  registry.projects[hash] = {
+    hash,
+    path: normalized,
+    name: path.basename(normalized),
+    last_used: new Date().toISOString(),
+    has_active_session: hasActiveSession,
+  };
+
+  fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2), 'utf-8');
+}
+
+/**
+ * List all registered projects.
+ */
+export function listProjects(): ProjectEntry[] {
+  const registryPath = getRegistryPath();
+  try {
+    if (!fs.existsSync(registryPath)) return [];
+    const registry: ProjectRegistry = JSON.parse(fs.readFileSync(registryPath, 'utf-8'));
+
+    // Refresh active session status
+    return Object.values(registry.projects).map(entry => {
+      try {
+        const sessionPath = normalizePath(
+          path.join(getSystemRoot(), 'projects', entry.hash, 'session.json')
+        );
+        if (fs.existsSync(sessionPath)) {
+          const session: SessionState = JSON.parse(fs.readFileSync(sessionPath, 'utf-8'));
+          entry.has_active_session = session.active === true;
+        } else {
+          entry.has_active_session = false;
+        }
+      } catch {
+        entry.has_active_session = false;
+      }
+      return entry;
+    }).sort((a, b) => b.last_used.localeCompare(a.last_used));
+  } catch { return []; }
 }

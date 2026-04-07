@@ -2,6 +2,18 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.8.0] — Install Once, Use Everywhere
+
+- Add global project registry (`~/.oh-my-link/projects/registry.json`) — auto-tracks all workspaces
+- Add `registerProject()` and `listProjects()` to state engine
+- Add `ProjectEntry` and `ProjectRegistry` types
+- Session-start hook now auto-registers workspace on every session
+- Add `oml list` command — view all registered workspaces with status
+- Add `list-projects` skill (`skills/list-projects/SKILL.md`)
+- Add fast-path to setup wizard (A-FAST) — skip setup if already configured globally
+- Add `test/run-all.mjs` — aggregate test runner for all 19 test files (375+ tests)
+- Add `npm run test:all` script
+
 ## [v0.7.0] — Marketplace-Ready Release
 
 - Rewrite README.md with full agent roster, model configuration guide, and marketplace instructions

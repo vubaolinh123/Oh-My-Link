@@ -240,3 +240,18 @@ export interface PromptFramework {
   success_criteria: string[];
   intensity: TaskIntensity;
 }
+
+// --- Project Registry ---
+
+export interface ProjectEntry {
+  hash: string;
+  path: string;
+  name: string;
+  last_used: string;
+  has_active_session: boolean;
+}
+
+export interface ProjectRegistry {
+  version: 1;
+  projects: Record<string, ProjectEntry>;
+}

@@ -4,7 +4,8 @@ import { parseHookInput, hookOutput, readJson, getCwd, getQuietLevel, getElapsed
 import {
   ensureRuntimeDirs, ensureArtifactDirs, getSessionPath,
   getProjectMemoryPath, getPriorityContextPath, getWorkingMemoryPath,
-  getCheckpointPath, getProjectStateRoot, getHandoffsDir, normalizePath
+  getCheckpointPath, getProjectStateRoot, getHandoffsDir, normalizePath,
+  registerProject
 } from '../state';
 import { SessionState, ProjectMemory, HookInput, Checkpoint } from '../types';
 import { loadMemory, needsRescan, detectProjectEnv, saveMemory, formatSummary } from '../project-memory';
@@ -39,6 +40,9 @@ async function main(): Promise<void> {
   // 1. Ensure all directories exist
   ensureRuntimeDirs(cwd, sessionId);
   ensureArtifactDirs(cwd);
+
+  // 1b. Register this workspace in the global project registry
+  try { registerProject(cwd); } catch { /* best effort */ }
 
   // Session-scoped dedup: only clear injected-skills.json if session has changed
   const injectedSkillsPath = normalizePath(path.join(getProjectStateRoot(cwd), 'injected-skills.json'));

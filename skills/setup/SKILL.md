@@ -84,6 +84,28 @@ Multiple detection methods (try in order):
 
 Run all checks and collect results before making any changes.
 
+### A-FAST. Global "Install Once" Fast-Path
+
+**Before running the full wizard, check if OML is already globally configured.**
+
+1. Check `~/.oh-my-link/setup.json` — does it exist and is `setupCompleted` true?
+2. Check `~/.claude/settings.json` — are OML hooks present (search for `oh-my-link` in hook commands)?
+3. Check `~/.claude/CLAUDE.md` — does it contain `<!-- OML:START -->` marker?
+
+**If ALL three pass:**
+
+> "OML is already configured globally (installed {date}, v{version})."
+> "This workspace is ready to use — no setup needed."
+> "Artifact directories will be auto-created on first `start link` / `start fast`."
+> 
+> Use `start link` or `start fast` to begin a task.
+> Use `oml list` to see all registered workspaces.
+> Use `oml doctor` to diagnose any issues.
+
+**STOP HERE. Do not continue to A0 or any other phase.**
+
+**If any check fails:** Continue with full wizard below.
+
 ### A0. Setup Completion Gate
 
 Check `~/.oh-my-link/setup.json`:
