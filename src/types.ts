@@ -168,6 +168,7 @@ export type AgentRole =
 export interface OmlConfig {
   models: Partial<Record<AgentRole, string>>;
   quiet_level: 0 | 1 | 2;
+  always_on: boolean;
 }
 
 // --- Keyword Detection ---

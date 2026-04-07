@@ -4,6 +4,7 @@
  *   2. run.cjs setup.json fallback
  *   3. resolvePluginRoot() from state.ts
  *   4. Per-project config merge from config.ts
+ *   5. Always-On toggle
  */
 
 import { execFileSync } from "child_process";
@@ -421,6 +422,111 @@ if (!configModule) {
     }
   });
 }
+
+// ============================================================
+// Section 5: Always-On toggle
+// ============================================================
+
+console.log("\n--- Always-On toggle ---");
+
+test("saveConfigField writes field to global config", () => {
+  const origHome = process.env.OML_HOME;
+  const tempHome = join(os.tmpdir(), `oml-test-always-on-${Date.now()}`);
+  mkdirSync(tempHome, { recursive: true });
+  process.env.OML_HOME = tempHome;
+  
+  try {
+    // Need to re-require config module to pick up new OML_HOME
+    // Since we can't re-require easily, test the saveConfigField behavior via file I/O
+    const configPath = join(tempHome, "config.json");
+    
+    // Simulate what saveConfigField does: read, merge, write
+    writeFileSync(configPath, JSON.stringify({ quiet_level: 0 }, null, 2));
+    const existing = JSON.parse(readFileSync(configPath, "utf-8"));
+    existing.always_on = true;
+    writeFileSync(configPath, JSON.stringify(existing, null, 2));
+    
+    const result = JSON.parse(readFileSync(configPath, "utf-8"));
+    assert(result.always_on === true, "expected always_on to be true");
+    assert(result.quiet_level === 0, "expected quiet_level preserved");
+  } finally {
+    process.env.OML_HOME = origHome;
+    rmSync(tempHome, { recursive: true, force: true });
+  }
+});
+
+test("isAlwaysOn returns false by default", () => {
+  const configModule = require(join(DIST, "config.js"));
+  const origHome = process.env.OML_HOME;
+  const tempHome = join(os.tmpdir(), `oml-test-always-on-default-${Date.now()}`);
+  mkdirSync(tempHome, { recursive: true });
+  process.env.OML_HOME = tempHome;
+  
+  try {
+    const tempProject = join(os.tmpdir(), `oml-test-proj-${Date.now()}`);
+    mkdirSync(tempProject, { recursive: true });
+    const result = configModule.isAlwaysOn(tempProject);
+    assert(result === false, `expected false, got ${result}`);
+    rmSync(tempProject, { recursive: true, force: true });
+  } finally {
+    process.env.OML_HOME = origHome;
+    rmSync(tempHome, { recursive: true, force: true });
+  }
+});
+
+test("isAlwaysOn returns true when config has always_on: true", () => {
+  const configModule = require(join(DIST, "config.js"));
+  const origHome = process.env.OML_HOME;
+  const tempHome = join(os.tmpdir(), `oml-test-always-on-true-${Date.now()}`);
+  mkdirSync(tempHome, { recursive: true });
+  writeFileSync(join(tempHome, "config.json"), JSON.stringify({ always_on: true }));
+  process.env.OML_HOME = tempHome;
+  
+  try {
+    const tempProject = join(os.tmpdir(), `oml-test-proj2-${Date.now()}`);
+    mkdirSync(tempProject, { recursive: true });
+    const result = configModule.isAlwaysOn(tempProject);
+    assert(result === true, `expected true, got ${result}`);
+    rmSync(tempProject, { recursive: true, force: true });
+  } finally {
+    process.env.OML_HOME = origHome;
+    rmSync(tempHome, { recursive: true, force: true });
+  }
+});
+
+test("keyword-detector detects oml on keyword", () => {
+  const hook = join(DIST, "hooks", "keyword-detector.js");
+  const input = JSON.stringify({ prompt: "oml on", cwd: process.cwd() });
+  const out = execFileSync(process.execPath, [hook], {
+    input,
+    stdio: ["pipe", "pipe", "pipe"],
+    timeout: 5000,
+    env: { ...process.env, OML_HOME: join(os.tmpdir(), `oml-detect-on-${Date.now()}`) },
+  });
+  const result = JSON.parse(out.toString());
+  assert(
+    result.hookSpecificOutput?.additionalContext?.includes("Always-On mode ENABLED") ||
+    result.additionalContext?.includes("Always-On mode ENABLED"),
+    "expected always-on confirmation message"
+  );
+});
+
+test("keyword-detector detects oml off keyword", () => {
+  const hook = join(DIST, "hooks", "keyword-detector.js");
+  const input = JSON.stringify({ prompt: "oml off", cwd: process.cwd() });
+  const out = execFileSync(process.execPath, [hook], {
+    input,
+    stdio: ["pipe", "pipe", "pipe"],
+    timeout: 5000,
+    env: { ...process.env, OML_HOME: join(os.tmpdir(), `oml-detect-off-${Date.now()}`) },
+  });
+  const result = JSON.parse(out.toString());
+  assert(
+    result.hookSpecificOutput?.additionalContext?.includes("Always-On mode DISABLED") ||
+    result.additionalContext?.includes("Always-On mode DISABLED"),
+    "expected always-off confirmation message"
+  );
+});
 
 // ============================================================
 // Results

@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 import { AgentRole, OmlConfig } from './types';
 import { getConfigPath, normalizePath } from './state';
@@ -27,6 +28,7 @@ export const DEFAULT_MODELS: Record<AgentRole, string> = {
 const DEFAULT_CONFIG: OmlConfig = {
   models: {},
   quiet_level: 0,
+  always_on: false,
 };
 
 /**
@@ -54,6 +56,7 @@ export function loadConfig(cwd?: string): OmlConfig {
       ...(projectConfig?.models || {}),
     },
     quiet_level: projectConfig?.quiet_level ?? globalConfig?.quiet_level ?? DEFAULT_CONFIG.quiet_level,
+    always_on: projectConfig?.always_on ?? globalConfig?.always_on ?? DEFAULT_CONFIG.always_on,
   };
 
   return merged;
@@ -66,4 +69,28 @@ export function loadConfig(cwd?: string): OmlConfig {
 export function getModelForRole(role: AgentRole, cwd?: string): string {
   const config = loadConfig(cwd);
   return config.models[role] || DEFAULT_MODELS[role] || DEFAULT_MODELS.worker;
+}
+
+/**
+ * Save a single field to the global config (~/.oh-my-link/config.json).
+ * Reads existing config, merges the field, writes back.
+ */
+export function saveConfigField(field: string, value: unknown): void {
+  const configPath = getConfigPath();
+  const existing = readJson<Record<string, unknown>>(configPath) || {};
+  existing[field] = value;
+  
+  // Ensure parent dir exists
+  const dir = path.dirname(configPath);
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
+  }
+  fs.writeFileSync(configPath, JSON.stringify(existing, null, 2), 'utf-8');
+}
+
+/**
+ * Check if always-on mode is enabled (global or project-level).
+ */
+export function isAlwaysOn(cwd?: string): boolean {
+  return loadConfig(cwd).always_on;
 }

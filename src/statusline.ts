@@ -19,6 +19,7 @@ import { readJson } from './helpers';
 import { getSessionPath, getProjectStateRoot, normalizePath, resolvePluginRoot } from './state';
 import { SessionState, SubagentRecord } from './types';
 import { getTaskSummary } from './task-engine';
+import { isAlwaysOn } from './config';
 
 // ── ANSI Colors ──────────────────────────────────────────────
 const RESET   = '\x1b[0m';
@@ -277,8 +278,15 @@ function buildStatus(session: SessionState | null, stdin: StdinData | null, cwd:
   line1Parts.push(`\uD83C\uDF38 OML v${VERSION}`);
 
   if (!session || !session.active) {
-    // Idle state
-    const line1 = `\u256D\u2500${line1Parts.join('')} \u2727 ${DIM}idle${RESET}`;
+    // Idle state — show always-on indicator if enabled
+    let alwaysOnTag = '';
+    try {
+      if (isAlwaysOn(cwd)) {
+        alwaysOnTag = ` ${DIM}\u2727${RESET} ${GREEN}AUTO${RESET}`;
+      }
+    } catch { /* ignore config read errors */ }
+    
+    const line1 = `\u256D\u2500${line1Parts.join('')} \u2727 ${DIM}idle${RESET}${alwaysOnTag}`;
 
     // Line 2: context only (if available)
     const ctx = renderContextCompact(stdin?.context_window?.used_percentage);

@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel } from '../helpers';
 import { loadMemory, saveMemory, addDirective } from '../project-memory';
-import { loadConfig, DEFAULT_MODELS } from '../config';
+import { loadConfig, DEFAULT_MODELS, saveConfigField, isAlwaysOn } from '../config';
 import { generateFramework, formatFramework } from '../prompt-leverage';
 import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot } from '../state';
 import { SessionState, HookInput, AgentRole } from '../types';
@@ -25,6 +25,8 @@ const KEYWORDS: KeywordRule[] = [
   { patterns: ['setup oml', 'oml setup', 'setup oh-my-link', 'oh-my-link setup', 'install oh-my-link', 'install oml', 'cai dat oh-my-link', 'cai dat oml'], action: 'setup', skill: 'oh-my-link:setup' },
   { patterns: ['doctor oml', 'oml doctor', 'doctor oh-my-link'], action: 'doctor', skill: 'oh-my-link:doctor' },
   { patterns: ['oml list', 'list oml', 'oml projects', 'list projects oml'], action: 'list-projects', skill: 'oh-my-link:list-projects' },
+  { patterns: ['oml on', 'always on oml', 'bat oml', 'bật oml'], action: 'always-on', skill: undefined },
+  { patterns: ['oml off', 'always off oml', 'tat oml', 'tắt oml'], action: 'always-off', skill: undefined },
   { patterns: ['update oml', 'oml update', 'upgrade oml', 'oml upgrade'], action: 'update', skill: 'oh-my-link:update-plugin' },
   { patterns: ['fetch docs', 'find docs', 'external context'], action: 'external-context', skill: 'oh-my-link:external-context' },
   { patterns: ['learn this', 'save this', 'remember this pattern'], action: 'learn', skill: 'oh-my-link:learner' },
@@ -139,7 +141,22 @@ async function main(): Promise<void> {
   detectAndSaveDirectives(prompt, cwd);
 
   // Find matching keyword
-  const match = findKeywordMatch(cleanPrompt);
+  let match = findKeywordMatch(cleanPrompt);
+  
+  // Always-On: if no keyword matched but always_on is enabled,
+  // auto-trigger Start Link for every prompt
+  if (!match && isAlwaysOn(cwd)) {
+    // Check if there's already an active session — if so, let it continue naturally
+    const existingSession = readJson<SessionState>(getSessionPath(cwd));
+    if (existingSession?.active) {
+      // Session already running — don't re-trigger, just pass through
+      hookOutput('UserPromptSubmit');
+      return;
+    }
+    // Auto-trigger Start Link
+    match = { patterns: ['always-on'], action: 'invoke', skill: 'oh-my-link:master' };
+  }
+  
   if (!match) {
     hookOutput('UserPromptSubmit');
     return;
@@ -176,6 +193,25 @@ async function main(): Promise<void> {
     }
     hookOutput('UserPromptSubmit',
       '[MAGIC KEYWORD: cancel-oml]\n\nYou MUST cancel the active oh-my-link session. Clear state and report.');
+    return;
+  }
+
+  // Handle always-on toggle
+  if (match.action === 'always-on') {
+    saveConfigField('always_on', true);
+    hookOutput('UserPromptSubmit',
+      '[oh-my-link] Always-On mode ENABLED.\n' +
+      'From now on, every prompt will automatically use the OML workflow.\n' +
+      'Say "oml off" to disable.');
+    return;
+  }
+
+  if (match.action === 'always-off') {
+    saveConfigField('always_on', false);
+    hookOutput('UserPromptSubmit',
+      '[oh-my-link] Always-On mode DISABLED.\n' +
+      'OML will only activate when you say "start link" or "start fast".\n' +
+      'Say "oml on" to re-enable.');
     return;
   }
 
