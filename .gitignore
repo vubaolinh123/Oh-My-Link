@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.oh-my-link/
+*.log
+
+
+# Local dev settings (contains absolute paths)
+.claude/settings.local.json
