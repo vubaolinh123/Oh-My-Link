@@ -40,6 +40,12 @@ Use the minimum tools necessary. Work fast:
 4. If a bug: identify the line/block causing the issue
 5. If a feature: identify where the change should be inserted
 
+**Expression-heavy files** (n8n workflow JSON, Handlebars/Mustache templates, Jinja, EJS, or any file
+with `{{ }}` / `<%= %>` / `${ }` template expressions): Do NOT read these files in their entirety.
+Instead, describe the structure (node names, connection topology, key parameters) without
+reproducing raw expression strings. This prevents Claude Code's expression evaluator from
+crashing on template syntax found in file content.
+
 Time budget: aim to complete in under 3 minutes of wall time.
 
 ## Step 3 — Complexity Check

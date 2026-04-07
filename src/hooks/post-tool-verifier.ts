@@ -23,6 +23,17 @@ const FAILURE_PATTERNS = [
 
 const OUTPUT_CLIP_LIMIT = 12000;
 
+/**
+ * Sanitize template expressions ({{ ... }}) from text to prevent Claude Code's
+ * internal expression evaluator from accidentally evaluating them.
+ * This protects against crashes when n8n workflow files or similar template-heavy
+ * content flows through Claude Code's pipeline (e.g. `={{ $.speed }}`).
+ */
+const TEMPLATE_EXPRESSION_RE = /\{\{[\s\S]*?\}\}/g;
+function sanitizeExpressions(text: string): string {
+  return text.replace(TEMPLATE_EXPRESSION_RE, '{{/* expr */}}');
+}
+
 const HOT_PATH_TOOLS = new Set(['Read', 'Edit', 'Write', 'MultiEdit', 'Bash']);
 
 function extractFilePath(toolInput: Record<string, unknown>): string | null {
@@ -198,17 +209,17 @@ async function main(): Promise<void> {
     }
   } catch { /* best effort — don't block tool use */ }
 
-  // Process <remember> tags
+  // Process <remember> tags (sanitize expressions to prevent CC evaluator crashes)
   if (toolOutput) {
-    processRememberTags(toolOutput, cwd);
+    processRememberTags(sanitizeExpressions(toolOutput), cwd);
   }
 
-  // Process <skill-feedback> tags
+  // Process <skill-feedback> tags (sanitize expressions to prevent CC evaluator crashes)
   if (toolOutput) {
-    processSkillFeedback(toolOutput, cwd);
+    processSkillFeedback(sanitizeExpressions(toolOutput), cwd);
   }
 
-  hookOutput('PostToolUse', parts.length > 0 ? parts.join('\n') : undefined);
+  hookOutput('PostToolUse', parts.length > 0 ? sanitizeExpressions(parts.join('\n')) : undefined);
 }
 
 function trackFile(filePath: string, cwd: string): void {

@@ -40,6 +40,11 @@ Grep: main exports, router definitions, key class/function names from the reques
 Read: package.json, tsconfig.json, relevant index files (max 3)
 ```
 
+**Expression-heavy files** (n8n workflow JSON, Handlebars/Mustache templates, Jinja, EJS, or any file
+with `{{ }}` / `<%= %>` / `${ }` template expressions): Do NOT read these in their entirety.
+Summarize structure (node names, connections, key config) without reproducing raw expression strings.
+This prevents Claude Code's internal expression evaluator from crashing on template syntax.
+
 Identify:
 - Domain: what does this codebase do?
 - Architecture pattern: MVC, layered, flat, monorepo?
