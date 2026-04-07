@@ -143,8 +143,10 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Block ALL subagents from triggering keywords (prevents infinite re-trigger loops)
-  if (process.env.OML_AGENT_ROLE || process.env.OML_TEAM_WORKER) {
+  // Block subagents from triggering keywords (prevents infinite re-trigger loops)
+  // Note: OML_AGENT_ROLE is never set in CC's hook model (separate processes),
+  // so we check OML_TEAM_WORKER only as a safety net for future use
+  if (process.env.OML_TEAM_WORKER) {
     hookOutput('UserPromptSubmit');
     return;
   }
@@ -346,6 +348,8 @@ async function main(): Promise<void> {
           revision_count: 0,
           intent,
           awaiting_confirmation: true,
+          locked_mode: mode,
+          locked_phase: intent === 'turbo' ? 'light_turbo' : 'light_scout',
         };
         ensureDir(getProjectStateRoot(cwd));
         writeJsonAtomic(getSessionPath(cwd), newSession);
@@ -359,6 +363,8 @@ async function main(): Promise<void> {
           failure_count: 0,
           revision_count: 0,
           awaiting_confirmation: true,
+          locked_mode: mode,
+          locked_phase: 'bootstrap' as any,
         };
         ensureDir(getProjectStateRoot(cwd));
         writeJsonAtomic(getSessionPath(cwd), newSession);
@@ -747,7 +753,7 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   p += `- Use the **Agent tool** (also called Task tool) to spawn each specialist\n`;
   p += `- ALWAYS include [OML:role-name] in agent descriptions (e.g. [OML:scout], [OML:worker], [OML:executor])\n`;
   p += `- Each agent does ONE job: Scout explores, Architect plans, Worker implements, Reviewer reviews\n`;
-  p += `- Update session.json phase at every transition\n`;
+  p += `- DO NOT write to session.json — the OML hook system manages phase transitions automatically\n`;
   p += `- Respect all 3 HITL gates — never proceed without user approval\n\n`;
   if (modelConfig) p += modelConfig + '\n\n';
   if (skillContent) {

@@ -166,97 +166,35 @@ console.log('Oh-My-Link — New Test Suites (Set 2)');
 console.log(`TEMP_ROOT: ${TEMP_ROOT}`);
 
 // ============================================================
-// Suite 1: pre-tool-enforcer — role restriction matrix
+// Suite 1: pre-tool-enforcer — role enforcement removed (prompt-based)
 // ============================================================
 
-suite('pre-tool-enforcer — role restriction matrix', () => {
-  // Before each: write an active session
+suite('pre-tool-enforcer — role enforcement removed (prompt-based)', () => {
+  // Role enforcement via OML_AGENT_ROLE env var was removed because CC's hook model
+  // never sets this env var (hooks are separate processes). Enforcement is now prompt-based.
   function beforeEach() {
     writeSession({ active: true, mode: 'mylink', current_phase: 'phase_5_execution' });
   }
 
-  test('blocks Write for reviewer', () => {
+  test('allows Write without role restriction', () => {
     beforeEach();
-    const parsed = runEnforcerHook('Write', 'reviewer');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'reviewer should be denied Write');
-  });
-
-  test('blocks Edit for master', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Edit', 'master');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'master should be denied Edit');
-  });
-
-  test('allows Read for reviewer', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Read', 'reviewer');
+    const parsed = runEnforcerHook('Write', 'reviewer', { file_path: 'src/app.ts' });
     assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
-      'reviewer should be allowed Read');
+      'Write should be allowed (role enforcement removed)');
   });
 
-  test('blocks Agent for worker', () => {
+  test('allows Edit without role restriction', () => {
+    beforeEach();
+    const parsed = runEnforcerHook('Edit', 'scout');
+    assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
+      'Edit should be allowed (role enforcement removed)');
+  });
+
+  test('allows Agent without role restriction', () => {
     beforeEach();
     const parsed = runEnforcerHook('Agent', 'worker');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'worker should be denied Agent');
-  });
-
-  test('blocks Write for explorer', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Write', 'explorer');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'explorer should be denied Write');
-  });
-
-  test('blocks Edit for verifier', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Edit', 'verifier');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'verifier should be denied Edit');
-  });
-
-  test('blocks Write for code-reviewer', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Write', 'code-reviewer');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'code-reviewer should be denied Write');
-  });
-
-  test('blocks Write for security-reviewer', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Write', 'security-reviewer');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'security-reviewer should be denied Write');
-  });
-
-  test('allows Agent for architect', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Agent', 'architect');
     assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
-      'architect should be allowed Agent');
-  });
-
-  test('allows Write for executor', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Write', 'executor', { file_path: 'src/app.ts' });
-    assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
-      'executor should be allowed Write');
-  });
-
-  test('blocks Agent for executor', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Agent', 'executor');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'executor should be denied Agent');
-  });
-
-  test('allows Agent for scout (Explorer delegation)', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Agent', 'scout');
-    assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
-      'scout should be allowed Agent (Explorer delegation)');
+      'Agent should be allowed (role enforcement removed)');
   });
 });
 
@@ -322,22 +260,22 @@ suite('pre-tool-enforcer — dangerous Bash', () => {
 });
 
 // ============================================================
-// Suite 3: pre-tool-enforcer — role enforcement without session
+// Suite 3: pre-tool-enforcer — no session behavior
 // ============================================================
 
-suite('pre-tool-enforcer — role enforcement without session', () => {
-  test('enforces role restrictions even without active session', () => {
-    deleteSession();
-    const parsed = runEnforcerHook('Edit', 'reviewer');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'reviewer should be denied Edit even without session');
-  });
-
-  test('allows tool when no role set and no session', () => {
+suite('pre-tool-enforcer — no session behavior', () => {
+  test('allows tool when no session exists', () => {
     deleteSession();
     const parsed = runEnforcerHook('Edit', null);
     assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
-      'Edit should be allowed when no role is set and no session exists');
+      'Edit should be allowed when no session exists');
+  });
+
+  test('allows tool with any role when no session exists', () => {
+    deleteSession();
+    const parsed = runEnforcerHook('Edit', 'reviewer');
+    assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
+      'Edit should be allowed (role enforcement removed)');
   });
 });
 
@@ -451,58 +389,32 @@ suite('post-tool-verifier — remember tags', () => {
 // Suite 6: pre-tool-enforcer — file path restrictions
 // ============================================================
 
-suite('pre-tool-enforcer — file path restrictions', () => {
+suite('pre-tool-enforcer — file path restrictions removed (prompt-based)', () => {
+  // File path restrictions via OML_AGENT_ROLE were removed because CC's hook model
+  // never sets env vars. All file path restrictions are now prompt-based.
   function beforeEach() {
     writeSession({ active: true, mode: 'mylink', current_phase: 'phase_5_execution' });
   }
 
-  test('test-engineer can Write to test file', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Write', 'test-engineer', { file_path: 'src/auth.test.ts' });
-    assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
-      'test-engineer should be allowed to write test files');
-  });
-
-  test('test-engineer blocked from writing non-test file', () => {
+  test('any role can Write to any file (role enforcement removed)', () => {
     beforeEach();
     const parsed = runEnforcerHook('Write', 'test-engineer', { file_path: 'src/auth.ts' });
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'test-engineer should be blocked from writing non-test files');
-  });
-
-  test('test-engineer can Write to tests/ directory', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Write', 'test-engineer', { file_path: 'tests/auth.test.ts' });
     assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
-      'test-engineer should be allowed to write to tests/ directory');
+      'Write should be allowed (role enforcement removed)');
   });
 
-  test('master can Write to .oh-my-link/ state', () => {
+  test('any role can Write to test files', () => {
+    beforeEach();
+    const parsed = runEnforcerHook('Write', 'scout', { file_path: 'src/auth.test.ts' });
+    assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
+      'Write should be allowed (role enforcement removed)');
+  });
+
+  test('any role can Write to .oh-my-link/', () => {
     beforeEach();
     const parsed = runEnforcerHook('Write', 'master', { file_path: '.oh-my-link/plans/plan.md' });
     assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
-      'master should be allowed to write to .oh-my-link/');
-  });
-
-  test('master blocked from writing source code', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Write', 'master', { file_path: 'src/app.ts' });
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'master should be blocked from writing source code');
-  });
-
-  test('scout can Write CONTEXT.md', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Write', 'scout', { file_path: 'CONTEXT.md' });
-    assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
-      'scout should be allowed to write CONTEXT.md');
-  });
-
-  test('scout blocked from writing other files', () => {
-    beforeEach();
-    const parsed = runEnforcerHook('Write', 'scout', { file_path: 'src/app.ts' });
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'scout should be blocked from writing source files');
+      'Write should be allowed (role enforcement removed)');
   });
 });
 

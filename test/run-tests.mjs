@@ -929,9 +929,11 @@ suite('keyword-detector — sanitization and augmentation', () => {
       prompt: 'start link build the auth system'
     }));
     const cmd = `node "${hookPath}" < "${inputFile}"`;
+    // OML_TEAM_WORKER is the env var that actually blocks keyword re-triggers
+    // (OML_AGENT_ROLE was removed — it was never set by CC's hook model)
     const output = execSync(cmd, {
       cwd: TEMP_PROJECT, timeout: 10000,
-      env: { ...process.env, OML_HOME: process.env.OML_HOME, OML_AGENT_ROLE: 'worker' }, shell: true,
+      env: { ...process.env, OML_HOME: process.env.OML_HOME, OML_TEAM_WORKER: '1' }, shell: true,
     }).toString().trim();
     const parsed = JSON.parse(output);
     const ctx = parsed.hookSpecificOutput?.additionalContext || '';
@@ -1043,37 +1045,33 @@ suite('pre-tool-enforcer — camelCase path support', () => {
       tool_input: { filePath: '/test/src/app.ts', old_string: 'a', new_string: 'b' },
     }));
     const cmd = `node "${hookPath}" < "${inputFile}"`;
+    // Role enforcement removed — pre-tool-enforcer no longer checks OML_AGENT_ROLE
+    // (env var was never set by CC's hook model). Enforcement is via prompt restrictions.
     const output = execSync(cmd, {
       cwd: TEMP_PROJECT, timeout: 10000,
-      env: { ...process.env, OML_HOME: process.env.OML_HOME, OML_AGENT_ROLE: 'worker' }, shell: true,
+      env: { ...process.env, OML_HOME: process.env.OML_HOME }, shell: true,
     }).toString().trim();
     const parsed = JSON.parse(output);
     const denied = parsed.hookSpecificOutput?.permissionDecision === 'deny';
-    assert(!denied, 'worker should be allowed to Edit with camelCase filePath');
+    assert(!denied, 'Edit should be allowed (role enforcement is prompt-based, not hook-based)');
   });
 
-  test('pre-tool-enforcer blocks scout from Edit', () => {
-    const sessionPath = state.getSessionPath(TEMP_PROJECT);
-    helpers.writeJsonAtomic(sessionPath, {
-      active: true, mode: 'mylink', current_phase: 'phase_1_scout',
-      started_at: new Date().toISOString(), reinforcement_count: 0,
-      failure_count: 0, revision_count: 0,
-    });
+  test('pre-tool-enforcer blocks dangerous Bash commands', () => {
     const hookPath = path.join(DIST, 'hooks', 'pre-tool-enforcer.js');
-    const inputFile = path.join(TEMP_ROOT, 'pre-tool-scout.json');
+    const inputFile = path.join(TEMP_ROOT, 'pre-tool-bash-danger.json');
     fs.writeFileSync(inputFile, JSON.stringify({
       session_id: 'test', cwd: TEMP_PROJECT,
-      tool_name: 'Edit',
-      tool_input: { filePath: '/test/src/app.ts' },
+      tool_name: 'Bash',
+      tool_input: { command: 'rm -rf /' },
     }));
     const cmd = `node "${hookPath}" < "${inputFile}"`;
     const output = execSync(cmd, {
       cwd: TEMP_PROJECT, timeout: 10000,
-      env: { ...process.env, OML_HOME: process.env.OML_HOME, OML_AGENT_ROLE: 'scout' }, shell: true,
+      env: { ...process.env, OML_HOME: process.env.OML_HOME }, shell: true,
     }).toString().trim();
     const parsed = JSON.parse(output);
     const denied = parsed.hookSpecificOutput?.permissionDecision === 'deny';
-    assert(denied, 'scout should be blocked from Edit');
+    assert(denied, 'dangerous Bash commands should be blocked regardless of role');
   });
 });
 

@@ -2,6 +2,49 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.9.6] — Fix Role Inference & Remove Dead Hook Enforcement
+
+**Root-cause fixes for three interconnected bugs discovered from real workflow debug logs.**
+
+### Problem
+From a real `start fast` workflow run, debug logs revealed:
+1. `role=none` on every `pre-tool` call — role enforcement completely bypassed
+2. First agent always inferred as `worker`, causing phase to jump to `phase_5_execution`
+3. All subsequent agents also inferred as `worker` — no scouts, architects, or reviewers
+
+### Root Cause
+Claude Code hooks are **separate Node.js processes** per invocation. The `OML_AGENT_ROLE` env var was never set by CC's runtime — it appeared in SubagentStart payloads but not as a process env var. This meant:
+- `pre-tool-enforcer` role restrictions: 100% dead code
+- `keyword-detector` subagent guard: unreachable
+- File locking `OML_AGENT_ID`: always fell through to `agent-${process.pid}` (different PID per hook)
+
+Additionally, the imperative prompt instructed Claude to "Update session.json phase at every transition" — Claude would overwrite `current_phase` with invented values, corrupting `inferRoleFromSession()`.
+
+### Fixes
+
+#### P0: Immutable session fields (`locked_mode`, `locked_phase`)
+- Added `locked_mode` and `locked_phase` to `SessionState` — set once at session creation
+- `inferRoleFromSession()` reads locked fields first (immune to LLM overwriting)
+- `locked_phase` cleared after first successful inference so subsequent agents use `current_phase` (managed by hooks)
+
+#### P1: Removed session management from imperative prompts
+- `buildStartLinkPrompt`: "Update session.json phase at every transition" → "DO NOT write to session.json — the OML hook system manages phase transitions automatically"
+- This eliminates the root cause of phase corruption
+
+#### P2: Gutted dead role enforcement from pre-tool-enforcer
+- Removed `ROLE_RESTRICTIONS` constant and all role-based tool/file blocking
+- Removed `OML_AGENT_ROLE` env var reading (never set by CC)
+- Pre-tool-enforcer now does only: Bash hard-block patterns + file locking
+- Role enforcement is prompt-based (via `[OML:role]` tags in agent descriptions)
+
+#### P3: Fixed file locking identity
+- Uses `agent_id` from hook input payload instead of `process.env.OML_AGENT_ID`
+- Falls back to `hook-${process.pid}` (honest about the identity)
+
+### Test Results
+- 379 tests passing across 20 files (18/20 green, 1 pre-existing statusline timeout, 1 skipped)
+- Updated 15+ tests to reflect removed role enforcement (dead code → passing correctly)
+
 ## [v0.9.5] — HITL Gate UX: Seamless User Interaction at Gates
 
 **Fixes the UX issue where Claude presents gate questions then freezes for minutes instead of stopping cleanly for user input.**

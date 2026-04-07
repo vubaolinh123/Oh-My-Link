@@ -85,6 +85,10 @@ export interface SessionState {
   session_ended_at?: string;
   deactivated_reason?: string;
   task_engine_error?: boolean;
+  // Immutable fields set at session creation — immune to LLM overwriting session.json
+  // Used by inferRoleFromSession() for reliable role detection
+  locked_mode?: Mode;
+  locked_phase?: Phase;
 }
 
 // --- Task Engine ---

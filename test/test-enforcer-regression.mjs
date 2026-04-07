@@ -247,13 +247,13 @@ suite('enforcer — Path Restriction Variants', () => {
       'architect should be allowed to write to .oh-my-link/plans/plan.md');
   });
 
-  test('architect blocked from writing to src/app.ts', () => {
+  test('architect allowed to write to src/app.ts (role enforcement removed)', () => {
     beforeEach();
     const parsed = runEnforcer('Write', {
       file_path: 'src/app.ts',
     }, 'architect');
-    assert(parsed.hookSpecificOutput?.permissionDecision === 'deny',
-      'architect should be blocked from writing to src/app.ts');
+    assert(parsed.hookSpecificOutput?.permissionDecision !== 'deny',
+      'architect should be allowed (role enforcement removed — now prompt-based)');
   });
 
   test('test-engineer can write to __tests__/foo.test.ts', () => {

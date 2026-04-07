@@ -8,55 +8,6 @@ import { acquireLock, releaseLock } from '../task-engine';
 // Oh-My-Link — Pre-Tool Enforcer (PreToolUse)
 // ============================================================
 
-// Role-based tool restrictions
-// Key = role, Value = { deny: tools to block, fileRestrict?: path patterns allowed for Write }
-const ROLE_RESTRICTIONS: Record<string, {
-  deny: string[];
-  fileRestrict?: RegExp[];
-}> = {
-  master: {
-    deny: ['Edit', 'MultiEdit'],
-    fileRestrict: [/(?:^|[/\\])\.oh-my-link[/\\]/],
-  },
-  scout: {
-    deny: ['Edit', 'MultiEdit'],
-    fileRestrict: [/CONTEXT\.md$/, /EXPLORATION\.md$/],
-  },
-  'fast-scout': {
-    deny: ['Edit', 'MultiEdit', 'Agent'],
-    fileRestrict: [/BRIEF\.md$/],
-  },
-  architect: {
-    deny: ['Edit', 'MultiEdit'],
-    fileRestrict: [/\.oh-my-link\/plans\//, /\.oh-my-link\/tasks\//],
-  },
-  worker: {
-    deny: ['Agent', 'AskUserQuestion'],
-  },
-  reviewer: {
-    deny: ['Edit', 'MultiEdit', 'Write', 'Agent'],
-  },
-  executor: {
-    deny: ['Agent', 'AskUserQuestion'],
-  },
-  explorer: {
-    deny: ['Write', 'Edit', 'MultiEdit', 'Agent'],
-  },
-  verifier: {
-    deny: ['Edit', 'MultiEdit', 'Write', 'Agent'],
-  },
-  'code-reviewer': {
-    deny: ['Edit', 'MultiEdit', 'Write', 'Agent'],
-  },
-  'security-reviewer': {
-    deny: ['Edit', 'MultiEdit', 'Write', 'Agent'],
-  },
-  'test-engineer': {
-    deny: ['Agent'],
-    fileRestrict: [/\.(test|spec)\.[^/]+$/, /\/__tests__\//, /\/tests?\//, /(?:^|[/\\])tests?[/\\]/],
-  },
-};
-
 // Truly destructive Bash commands — hard block
 const BASH_HARD_BLOCK = [
   /rm\s+(-rf?|--recursive)\s+[\/\\]/i,
@@ -88,25 +39,13 @@ async function main(): Promise<void> {
   const toolInput = (input.tool_input || {}) as Record<string, unknown>;
   const cwd = getCwd(input as Record<string, unknown>);
 
-  // Get agent role from env var (structured, not text-scanning)
-  const rawRole = process.env.OML_AGENT_ROLE || '';
-  // Normalize: lowercase, replace _ with - (e.g. FAST_SCOUT -> fast-scout)
-  const role = rawRole.toLowerCase().replace(/_/g, '-');
-
-  // Read session for file locking checks later
+  // Read session for file locking checks
   const session = readJson<SessionState>(getSessionPath(cwd));
 
-  // NOTE: We intentionally do NOT infer role='master' for the root session.
-  // PreToolUse hooks run in the SAME process for both root and subagents,
-  // and we cannot distinguish them. Inferring 'master' would block subagent
-  // Edit/Write operations. Root session orchestrator behavior is enforced
-  // via imperative prompt rewrite (keyword-detector), not via pre-tool-enforcer.
+  debugLog(cwd, 'pre-tool', `tool=${toolName}`);
 
-  debugLog(cwd, 'pre-tool', `tool=${toolName} role=${role || 'none'}`);
-
-  // SAFETY FIRST: Check Bash commands regardless of role/session.
-  // This prevents destructive commands from being run by ANY user,
-  // even outside an OML session.
+  // SAFETY: Check Bash commands regardless of session state.
+  // Prevents destructive commands from being run by ANY user.
   if (toolName === 'Bash') {
     const command = (toolInput.command as string) || '';
     const blocked = BASH_HARD_BLOCK.find(pattern => pattern.test(command));
@@ -115,60 +54,19 @@ async function main(): Promise<void> {
       toolDenyOutput(`[oh-my-link] Dangerous Bash command blocked for safety.`);
       return;
     }
-    // Role-specific warn happens later if role is set
-  }
-
-  // If no role set, allow tool (Bash safety already checked above)
-  if (!role) {
-    hookOutput('PreToolUse');
-    return;
-  }
-
-  const restrictions = ROLE_RESTRICTIONS[role];
-  if (!restrictions) {
-    hookOutput('PreToolUse');
-    return;
-  }
-
-  // Session check — reuse cached session from role inference above
-  // (session was already read at the top of main())
-
-  // Check tool denial
-  if (restrictions.deny.includes(toolName)) {
-    debugLog(cwd, 'pre-tool', `DENIED: ${toolName} for role ${role}`);
-    toolDenyOutput(`[oh-my-link] Role "${role}" cannot use tool "${toolName}".`);
-    return;
-  }
-
-  // Check file path restrictions for write operations
-  if (['Write', 'Edit', 'MultiEdit'].includes(toolName) && restrictions.fileRestrict) {
-    const targetPaths = extractTargetPaths(toolName, toolInput);
-    for (const targetPath of targetPaths) {
-      const normalizedPath = targetPath.replace(/\\/g, '/');
-      const allowed = restrictions.fileRestrict.some(r => r.test(normalizedPath));
-      if (!allowed) {
-        toolDenyOutput(`[oh-my-link] Role "${role}" can only write to restricted paths. Attempted: ${normalizedPath}`);
-        return;
-      }
-    }
-  }
-
-  // Check Bash warnings (hard block already done above)
-  if (toolName === 'Bash') {
-    const command = (toolInput.command as string) || '';
     const warned = BASH_WARN.find(pattern => pattern.test(command));
     if (warned) {
-      // Warn but allow — add context
       hookOutput('PreToolUse', `[oh-my-link] WARNING: Risky command detected. Proceed with caution.`);
       return;
     }
   }
 
   // AUTO FILE LOCKING
-  // When a Worker/Executor edits a file, auto-acquire a lock
-  if (session?.active && isWriteOperation(toolName) && isWorkerRole(role)) {
+  // When an agent edits a file during an active session, auto-acquire a lock.
+  // Use agent_id from hook input (not env var — env vars don't persist in CC's hook model).
+  if (session?.active && isWriteOperation(toolName)) {
+    const agentId = (input as any).agent_id || (input as any).agentId || `hook-${process.pid}`;
     const targetPaths = extractTargetPaths(toolName, toolInput);
-    const agentId = process.env.OML_AGENT_ID || `agent-${process.pid}`;
     const acquired: string[] = [];
 
     for (const targetPath of targetPaths) {
@@ -199,10 +97,6 @@ async function main(): Promise<void> {
 
 function isWriteOperation(toolName: string): boolean {
   return ['Edit', 'MultiEdit', 'Write'].includes(toolName);
-}
-
-function isWorkerRole(role: string): boolean {
-  return ['worker', 'executor'].includes(role);
 }
 
 function extractTargetPaths(toolName: string, toolInput: Record<string, unknown>): string[] {

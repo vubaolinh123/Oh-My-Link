@@ -208,13 +208,20 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
   // Fix: use session phase + mode to infer the EXPECTED role at this point in the pipeline.
   const descIsEmpty = !description.trim() && !prompt.trim();
   if (descIsEmpty && (role === 'worker' || role === 'unknown')) {
-    const sessionPath = getSessionPath(cwd);
-    const sessionForInference = readJson<SessionState>(sessionPath);
+    const sessionPathForInference = getSessionPath(cwd);
+    const sessionForInference = readJson<SessionState>(sessionPathForInference);
     if (sessionForInference?.active) {
       const inferred = inferRoleFromSession(sessionForInference);
       if (inferred) {
-        debugLog(cwd, 'agent-start', `role-inference: ${role} → ${inferred} (phase=${sessionForInference.current_phase}, mode=${sessionForInference.mode})`);
+        debugLog(cwd, 'agent-start', `role-inference: ${role} → ${inferred} (phase=${sessionForInference.locked_phase || sessionForInference.current_phase}, mode=${sessionForInference.locked_mode || sessionForInference.mode})`);
         role = inferred;
+        // Clear locked_phase after first successful inference so subsequent
+        // agent spawns use the actual current_phase (which subagent-lifecycle
+        // manages via maybeAdvancePhase, not the LLM)
+        if (sessionForInference.locked_phase) {
+          sessionForInference.locked_phase = undefined;
+          try { writeJsonAtomic(sessionPathForInference, sessionForInference); } catch { /* best effort */ }
+        }
       }
     }
   }
@@ -558,8 +565,13 @@ function isWorkerRole(role: string): boolean {
  * This mapping is deterministic and follows the OML workflow spec.
  */
 function inferRoleFromSession(session: SessionState): string | null {
-  if (session.mode === 'mylight') {
-    switch (session.current_phase) {
+  // Use locked fields (set at session creation, immune to LLM overwriting)
+  // Fall back to current fields for backwards compatibility
+  const mode = session.locked_mode || session.mode;
+  const phase = session.locked_phase || session.current_phase;
+
+  if (mode === 'mylight') {
+    switch (phase) {
       case 'light_scout':
         // First agent in standard Start Fast → fast-scout
         return session.intent === 'turbo' ? 'executor' : 'fast-scout';
@@ -574,8 +586,8 @@ function inferRoleFromSession(session: SessionState): string | null {
     }
   }
 
-  if (session.mode === 'mylink') {
-    switch (session.current_phase) {
+  if (mode === 'mylink') {
+    switch (phase) {
       case 'bootstrap':
         return 'scout';
       case 'phase_1_scout':

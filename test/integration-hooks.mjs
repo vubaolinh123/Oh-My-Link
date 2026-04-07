@@ -183,8 +183,8 @@ suite('session-start — basic I/O', () => {
 // 3. pre-tool-enforcer (PreToolUse)
 // ============================================================
 
-suite('pre-tool-enforcer — role-based enforcement', () => {
-  test('worker role is allowed to Edit', () => {
+suite('pre-tool-enforcer — no role-based enforcement (prompt-based)', () => {
+  test('allows Edit without role (role enforcement removed)', () => {
     writeSession({ active: true, mode: 'mylink', current_phase: 'phase_5_execution' });
     const result = runHook('pre-tool-enforcer', {
       hook: 'PreToolUse',
@@ -195,42 +195,23 @@ suite('pre-tool-enforcer — role-based enforcement', () => {
         new_string: 'b',
       },
       cwd: TEMP_PROJECT,
-    }, { OML_AGENT_ROLE: 'worker' });
+    });
 
     const denied = result.hookSpecificOutput?.permissionDecision === 'deny';
-    assert(!denied, 'worker should be allowed to Edit (no block/deny)');
+    assert(!denied, 'Edit should be allowed (role enforcement removed — now prompt-based)');
   });
 
-  test('reviewer role is blocked from Edit', () => {
-    writeSession({ active: true, mode: 'mylink', current_phase: 'phase_6_review' });
+  test('blocks dangerous Bash regardless of role', () => {
+    writeSession({ active: true, mode: 'mylink', current_phase: 'phase_5_execution' });
     const result = runHook('pre-tool-enforcer', {
       hook: 'PreToolUse',
-      tool_name: 'Edit',
-      tool_input: {
-        filePath: path.join(TEMP_PROJECT, 'src', 'app.ts'),
-        old_string: 'a',
-        new_string: 'b',
-      },
+      tool_name: 'Bash',
+      tool_input: { command: 'rm -rf /' },
       cwd: TEMP_PROJECT,
-    }, { OML_AGENT_ROLE: 'reviewer' });
+    });
 
     const denied = result.hookSpecificOutput?.permissionDecision === 'deny';
-    assert(denied, 'reviewer should be blocked from Edit');
-  });
-
-  test('scout role is blocked from Edit', () => {
-    writeSession({ active: true, mode: 'mylink', current_phase: 'phase_1_scout' });
-    const result = runHook('pre-tool-enforcer', {
-      hook: 'PreToolUse',
-      tool_name: 'Edit',
-      tool_input: {
-        file_path: path.join(TEMP_PROJECT, 'src', 'app.ts'),
-      },
-      cwd: TEMP_PROJECT,
-    }, { OML_AGENT_ROLE: 'scout' });
-
-    const denied = result.hookSpecificOutput?.permissionDecision === 'deny';
-    assert(denied, 'scout should be blocked from Edit');
+    assert(denied, 'dangerous Bash should be blocked regardless of role');
   });
 });
 
