@@ -1,0 +1,99 @@
+name: CI Tests
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run core test suite
+        run: node test/run-tests.mjs
+
+      - name: Run integration hooks tests
+        run: node test/integration-hooks.mjs
+
+      - name: Run new tests (suite 1)
+        run: node test/new-tests-1.mjs
+
+      - name: Run new tests (suite 2)
+        run: node test/new-tests-2.mjs
+
+      - name: Run new tests (suite 3)
+        run: node test/new-tests-3.mjs
+
+      - name: Run stress locking tests
+        run: node test/stress-locking.mjs
+
+      - name: Run new tests (suite 4 - deliverables)
+        run: node test/new-tests-4.mjs
+
+      - name: Run enforcer regression tests
+        run: node test/test-enforcer-regression.mjs
+
+      - name: Run session-start tests
+        run: node test/test-session-start.mjs
+
+      - name: Run pre-compact tests
+        run: node test/test-pre-compact.mjs
+
+      - name: Run config tests
+        run: node test/test-config.mjs
+
+      - name: Run post-tool-failure tests
+        run: node test/test-post-tool-failure.mjs
+
+      - name: Run verifier extended tests
+        run: node test/test-verifier-extended.mjs
+
+      - name: Run session-end tests
+        run: node test/test-session-end.mjs
+
+      - name: Run skill-injector tests
+        run: node test/test-skill-injector.mjs
+
+      - name: Run statusline tests
+        run: node test/test-statusline.mjs
+
+      - name: Run parity fix tests 
+        run: node test/test-parity-fixes.mjs
+
+      - name: Run phase tracking tests
+        run: node test/test-phase-tracking.mjs
+
+      - name: Run run.cjs wrapper tests
+        run: node test/test-run-cjs.mjs
+
+      - name: Guard against committed absolute paths
+        run: |
+          # Fail if any tracked file contains developer-specific absolute paths
+          # Exclude: this workflow file itself, AGENTS.md (documentation)
+          FOUND=$(git grep -lP '(^|[^$])[A-Z]:\\\\(Users|Oh-My)|/home/\w+/|/Users/\w+/' -- \
+            ':!.github/workflows/test.yml' \
+            ':!AGENTS.md' \
+            ':!.claude/CLAUDE.md' \
+            || true)
+          if [ -n "$FOUND" ]; then
+            echo "::error::Absolute developer paths found in tracked files:"
+            echo "$FOUND"
+            exit 1
+          fi
+          echo "No absolute paths detected — OK"
