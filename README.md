@@ -26,6 +26,8 @@ Just say `start link` or `start fast` in Claude Code.
 ```
 start link build me a REST API with auth      # Full 7-phase workflow
 start fast fix the login validation bug        # Lightweight 2-step workflow
+oml on                                         # Enable Always-On mode
+oml off                                        # Disable Always-On mode
 cancel oml                                     # Cancel active session
 ```
 
@@ -55,6 +57,19 @@ Two steps, zero gates. Designed for bug fixes, small changes, and quick features
 | **Turbo** | Trivial changes (typos, one-liner) | Direct execution, no planning |
 | **Standard** | Moderate tasks (single feature, small refactor) | Quick scout → execute → verify |
 | **Complex** | Scope too large | Promotes to full Start Link |
+
+### Always-On Mode
+
+When enabled, **every prompt** automatically triggers the Start Link workflow — no keyword needed. OML becomes the default for all interactions.
+
+```
+oml on       # Enable — every prompt auto-triggers Start Link
+oml off      # Disable — back to keyword-only activation
+```
+
+- If a session is already active, prompts pass through normally (no double-trigger)
+- Subagents are never affected (prevents infinite loops)
+- The statusline shows an `AUTO` badge when Always-On is enabled
 
 ## Workflow Diagram
 
@@ -253,6 +268,7 @@ Create `{project}/.oh-my-link/config.json` with the same format. Project values 
 |-----|------|---------|-------------|
 | `models` | `object` | See table above | Model ID per agent role |
 | `quiet_level` | `number` | `0` | `0` = verbose, `1` = less output, `2` = minimal |
+| `always_on` | `boolean` | `false` | When `true`, every prompt auto-triggers Start Link |
 
 Config locations (merged in order, later overrides earlier):
 1. `~/.oh-my-link/config.json` (global) or `$OML_HOME/config.json`
@@ -267,6 +283,8 @@ Config locations (merged in order, later overrides earlier):
 | `start link <request>` | Full 7-phase pipeline for complex tasks |
 | `start fast <request>` | Lightweight mode for simple tasks |
 | `cancel oml` | Cancel the active session |
+| `oml on` | Enable Always-On mode (every prompt triggers OML) |
+| `oml off` | Disable Always-On mode (keyword-only activation) |
 | `setup oml` | Run the setup wizard |
 | `doctor oml` | Diagnose plugin health |
 | `update oml` | Update the plugin |
@@ -316,13 +334,14 @@ Config locations (merged in order, later overrides earlier):
 | **Auto Phase Tracking** | Subagent lifecycle hooks automatically advance session phase (forward-only) |
 | **Prompt Leverage** | Every invocation auto-augments your prompt with guardrails, constraints, and success criteria |
 | **Learnings** | Patterns extracted from sessions are saved and loaded in future sessions (compounding flywheel) |
+| **Always-On Mode** | Toggle with `oml on`/`oml off` — every prompt auto-triggers Start Link without keywords |
 
 ### Live Statusline
 
 The plugin includes a HUD that shows real-time progress:
 
 ```
-╭─ OML v0.8.1 ✧ Start.Link ✧ Phase 5: Execution
+╭─ OML v0.8.2 ✧ Start.Link ✧ Phase 5: Execution
 ╰─ Ctx: [♥♥♥♥♡♡♡♡♡♡] 42% ┊ Session: 9m ┊ Agents: SAW ┊ R:0 F:0
 ```
 

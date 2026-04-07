@@ -26,6 +26,8 @@ Chỉ cần gõ `start link` hoặc `start fast` trong Claude Code.
 ```
 start link build me a REST API with auth      # Workflow đầy đủ 7 giai đoạn
 start fast fix the login validation bug        # Workflow nhẹ 2 bước
+oml on                                         # Bật chế độ Always-On
+oml off                                        # Tắt chế độ Always-On
 cancel oml                                     # Hủy phiên làm việc hiện tại
 ```
 
@@ -55,6 +57,19 @@ Hai bước, không có gate. Thiết kế cho sửa lỗi, thay đổi nhỏ, v
 | **Turbo** | Thay đổi nhỏ (lỗi chính tả, sửa một dòng) | Thực thi trực tiếp, không cần lập kế hoạch |
 | **Standard** | Task vừa phải (một tính năng, refactor nhỏ) | Scout nhanh → thực thi → xác minh |
 | **Complex** | Phạm vi quá lớn | Chuyển sang Start Link đầy đủ |
+
+### Chế độ Always-On
+
+Khi được bật, **mọi prompt** sẽ tự động kích hoạt workflow Start Link — không cần keyword. OML trở thành mặc định cho mọi tương tác.
+
+```
+oml on       # Bật — mọi prompt tự động kích hoạt Start Link
+oml off      # Tắt — quay lại chỉ kích hoạt bằng keyword
+```
+
+- Nếu một phiên đã đang chạy, prompt sẽ đi qua bình thường (không kích hoạt lại)
+- Subagent không bao giờ bị ảnh hưởng (ngăn vòng lặp vô hạn)
+- Statusline hiển thị badge `AUTO` khi Always-On được bật
 
 ## Sơ đồ Workflow
 
@@ -253,6 +268,7 @@ Tạo file `{project}/.oh-my-link/config.json` với cùng định dạng. Giá 
 |-----|------|----------|-------|
 | `models` | `object` | Xem bảng ở trên | Model ID cho từng vai trò agent |
 | `quiet_level` | `number` | `0` | `0` = chi tiết, `1` = ít output hơn, `2` = tối thiểu |
+| `always_on` | `boolean` | `false` | Khi `true`, mọi prompt tự động kích hoạt Start Link |
 
 Vị trí file cấu hình (gộp theo thứ tự, giá trị sau ghi đè giá trị trước):
 1. `~/.oh-my-link/config.json` (toàn cục) hoặc `$OML_HOME/config.json`
@@ -267,6 +283,8 @@ Vị trí file cấu hình (gộp theo thứ tự, giá trị sau ghi đè giá 
 | `start link <request>` | Pipeline đầy đủ 7 giai đoạn cho task phức tạp |
 | `start fast <request>` | Chế độ nhẹ cho task đơn giản |
 | `cancel oml` | Hủy phiên làm việc hiện tại |
+| `oml on` | Bật chế độ Always-On (mọi prompt kích hoạt OML) |
+| `oml off` | Tắt chế độ Always-On (chỉ kích hoạt bằng keyword) |
 | `setup oml` | Chạy trình hướng dẫn cài đặt |
 | `doctor oml` | Chẩn đoán tình trạng plugin |
 | `update oml` | Cập nhật plugin |
@@ -316,13 +334,14 @@ Vị trí file cấu hình (gộp theo thứ tự, giá trị sau ghi đè giá 
 | **Auto Phase Tracking** | Hook vòng đời subagent tự động chuyển phase (chỉ tiến, không lùi) |
 | **Prompt Leverage** | Mỗi lần gọi tự động bổ sung guardrail, ràng buộc, và tiêu chí thành công vào prompt |
 | **Learnings** | Pattern được trích xuất từ các phiên trước được lưu và tải lại cho phiên sau (compounding flywheel) |
+| **Always-On Mode** | Bật/tắt bằng `oml on`/`oml off` — mọi prompt tự động kích hoạt Start Link mà không cần keyword |
 
 ### Live Statusline
 
 Plugin bao gồm một HUD hiển thị tiến trình theo thời gian thực:
 
 ```
-╭─ OML v0.8.1 ✧ Start.Link ✧ Phase 5: Execution
+╭─ OML v0.8.2 ✧ Start.Link ✧ Phase 5: Execution
 ╰─ Ctx: [♥♥♥♥♡♡♡♡♡♡] 42% ┊ Session: 9m ┊ Agents: SAW ┊ R:0 F:0
 ```
 
