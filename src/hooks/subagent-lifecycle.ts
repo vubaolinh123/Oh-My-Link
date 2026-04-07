@@ -413,6 +413,20 @@ function detectRole(agentType: string, description: string): string {
   const envRole = process.env.OML_AGENT_ROLE;
   if (envRole) return envRole.toLowerCase().replace(/_/g, '-');
 
+  // ── 1b. OML:role tag in description (imperative prompt embeds this) ──
+  // Matches "[OML:fast-scout]", "OML:executor", etc. anywhere in description
+  const descLC = description.toLowerCase();
+  const omlTagMatch = descLC.match(/\[?oml:([a-z][a-z0-9-]*)\]?/);
+  if (omlTagMatch) {
+    const tagRole = omlTagMatch[1];
+    const knownRolesAll = [
+      'fast-scout', 'code-reviewer', 'security-reviewer', 'test-engineer',
+      'scout', 'architect', 'worker', 'reviewer', 'executor',
+      'explorer', 'verifier', 'master',
+    ];
+    if (knownRolesAll.includes(tagRole)) return tagRole;
+  }
+
   // ── 2. Structured agent_type (from Claude Code SubagentStart payload) ──
   const typeLC = agentType.toLowerCase().replace(/_/g, '-');
 
@@ -447,20 +461,26 @@ function detectRole(agentType: string, description: string): string {
   }
 
   // Claude Code built-in agent types (mapped to OML roles)
+  // Handles both bare names and suffixed variants (e.g. "general-purpose")
   const builtinMap: Record<string, string> = {
     'explore': 'explorer',
     'explorer': 'explorer',
-    'general': 'worker',     // Claude's "general" agent is typically doing work
-    'fixer': 'worker',       // Claude's fixer agent does implementation
-    'oracle': 'reviewer',    // Oracle is advisory/review
+    'general': 'worker',           // Claude's "general" agent is typically doing work
+    'general-purpose': 'worker',   // Claude may send "general-purpose" as agent_type
+    'fixer': 'worker',             // Claude's fixer agent does implementation
+    'oracle': 'reviewer',          // Oracle is advisory/review
     'designer': 'worker',
     'council': 'reviewer',
     'librarian': 'explorer',
   };
   if (builtinMap[stripped]) return builtinMap[stripped];
 
+  // Prefix match for Claude agent types with suffixes (e.g. "general-purpose-v2")
+  for (const [prefix, role] of Object.entries(builtinMap)) {
+    if (stripped.startsWith(prefix)) return role;
+  }
+
   // ── 3. Keyword scan in description text ──
-  const descLC = description.toLowerCase();
   // Ordered: longer/more-specific names first to avoid partial matches
   const keywords: Array<[string, string]> = [
     ['fast-scout', 'fast-scout'],

@@ -91,7 +91,16 @@ async function main(): Promise<void> {
   // Get agent role from env var (structured, not text-scanning)
   const rawRole = process.env.OML_AGENT_ROLE || '';
   // Normalize: lowercase, replace _ with - (e.g. FAST_SCOUT -> fast-scout)
-  const role = rawRole.toLowerCase().replace(/_/g, '-');
+  let role = rawRole.toLowerCase().replace(/_/g, '-');
+
+  // Read session once for both role inference and later file locking
+  const session = readJson<SessionState>(getSessionPath(cwd));
+
+  // If no explicit role but OML session is active, the root session is the orchestrator (master).
+  // This prevents the root session from bypassing role enforcement when always-on triggers.
+  if (!role && session?.active) {
+    role = 'master';
+  }
 
   debugLog(cwd, 'pre-tool', `tool=${toolName} role=${role || 'none'}`);
 
@@ -121,8 +130,8 @@ async function main(): Promise<void> {
     return;
   }
 
-  // Session check — only needed for file locking, not for role enforcement
-  const session = readJson<SessionState>(getSessionPath(cwd));
+  // Session check — reuse cached session from role inference above
+  // (session was already read at the top of main())
 
   // Check tool denial
   if (restrictions.deny.includes(toolName)) {
