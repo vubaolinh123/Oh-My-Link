@@ -7,6 +7,7 @@ import { generateFramework, formatFramework } from '../prompt-leverage';
 import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot, getDebugLogPath, projectHash } from '../state';
 import { SessionState, HookInput, AgentRole } from '../types';
 import { listTasks, updateTaskStatus, cleanExpiredLocks, failAllInProgressTasks } from '../task-engine';
+import { autoSyncMcpProviders, getMcpGuidanceForRole } from '../mcp-config';
 
 // ============================================================
 // Oh-My-Link — Keyword Detector (UserPromptSubmit)
@@ -182,6 +183,17 @@ async function main(): Promise<void> {
       try { writeJsonAtomic(getSessionPath(cwd), maybeZombie); } catch { /* best effort */ }
     }
   }
+
+  // ── MCP auto-sync ──
+  // Detect MCP servers from Claude Code config (~/.claude.json) and mark
+  // matching OML providers as installed so agents get MCP guidance.
+  // Runs once per keyword-detector invocation (cheap: just reads a JSON file).
+  try {
+    const synced = autoSyncMcpProviders(cwd);
+    if (synced.length > 0) {
+      debugLog(cwd, 'keyword', `mcp-auto-sync: marked ${synced.length} providers installed: ${synced.join(', ')}`);
+    }
+  } catch { /* MCP sync failure must never block user input */ }
   
   // Always-On: if no keyword matched but always_on is enabled,
   // auto-classify task complexity and trigger the appropriate mode
@@ -649,6 +661,7 @@ function buildImperativePrompt(
 
 function buildTurboPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null, cwd?: string): string {
   const executorModel = getModelInstruction('executor', cwd);
+  const executorMcp = cwd ? getMcpGuidanceForRole('executor' as AgentRole, cwd) : '';
   let p = `[OML START FAST — TURBO MODE]\n\n`;
   p += `You are the Oh-My-Link orchestrator. Your ONLY job is to spawn an Executor agent to handle this request.\n\n`;
   p += `## HOW TO SPAWN AN AGENT\n`;
@@ -672,6 +685,11 @@ function buildTurboPrompt(userRequest: string, skillContent: string | null, mode
   p += `\`\`\`\n\n`;
   p += `2. Wait for the Executor to finish\n`;
   p += `3. Report the Executor's result to the user\n\n`;
+  if (executorMcp) {
+    p += `## MCP TOOLS FOR EXECUTOR\n`;
+    p += `Include the following MCP guidance in the Executor's prompt so it uses semantic search and docs:\n`;
+    p += executorMcp + `\n\n`;
+  }
   p += `## IF EXECUTOR FAILS\n`;
   p += `- Do NOT implement the fix yourself — you are the orchestrator\n`;
   p += `- Re-spawn a NEW Executor with additional context about what failed\n`;
@@ -690,6 +708,8 @@ function buildTurboPrompt(userRequest: string, skillContent: string | null, mode
 function buildStandardFastPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null, cwd?: string): string {
   const scoutModel = getModelInstruction('fast-scout', cwd);
   const executorModel = getModelInstruction('executor', cwd);
+  const scoutMcp = cwd ? getMcpGuidanceForRole('fast-scout' as AgentRole, cwd) : '';
+  const executorMcp = cwd ? getMcpGuidanceForRole('executor' as AgentRole, cwd) : '';
   let p = `[OML START FAST — STANDARD MODE]\n\n`;
   p += `You are the Oh-My-Link orchestrator. You coordinate agents — you do NOT implement code yourself.\n\n`;
   p += `## HOW TO SPAWN AN AGENT\n`;
@@ -732,6 +752,13 @@ function buildStandardFastPrompt(userRequest: string, skillContent: string | nul
   p += `\`\`\`\n\n`;
   p += `### Step 4: Report\n`;
   p += `After Executor finishes, summarize to the user: what was changed, files affected, verification result.\n\n`;
+  if (scoutMcp || executorMcp) {
+    p += `## MCP TOOLS FOR AGENTS\n`;
+    p += `Include the relevant MCP guidance in each agent's prompt so they use semantic search and docs:\n`;
+    if (scoutMcp) p += `\n**Fast Scout:**\n${scoutMcp}\n`;
+    if (executorMcp) p += `\n**Executor:**\n${executorMcp}\n`;
+    p += `\n`;
+  }
   p += `## IF AN AGENT FAILS\n`;
   p += `- Do NOT implement the fix yourself — you are the orchestrator\n`;
   p += `- Re-spawn a NEW agent (Fast Scout or Executor) with additional context about what failed\n`;
@@ -751,6 +778,11 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   const architectModel = getModelInstruction('architect', cwd);
   const workerModel = getModelInstruction('worker', cwd);
   const reviewerModel = getModelInstruction('reviewer', cwd);
+  // Gather MCP guidance for all key roles
+  const scoutMcp = cwd ? getMcpGuidanceForRole('scout' as AgentRole, cwd) : '';
+  const architectMcp = cwd ? getMcpGuidanceForRole('architect' as AgentRole, cwd) : '';
+  const workerMcp = cwd ? getMcpGuidanceForRole('worker' as AgentRole, cwd) : '';
+  const reviewerMcp = cwd ? getMcpGuidanceForRole('reviewer' as AgentRole, cwd) : '';
   let p = `[OML START LINK — FULL 7-PHASE PIPELINE]\n\n`;
   p += `You are the Oh-My-Link Master Orchestrator. You drive a 7-phase pipeline by spawning specialized agents.\n`;
   p += `You NEVER implement code yourself — all work is delegated to subagents via the Agent/Task tool.\n\n`;
@@ -820,6 +852,17 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   p += `- Each agent does ONE job: Scout explores, Architect plans, Worker implements, Reviewer reviews\n`;
   p += `- DO NOT write to session.json — the OML hook system manages phase transitions automatically\n`;
   p += `- Respect all 3 HITL gates — never proceed without user approval\n\n`;
+  // Inject MCP guidance section for all roles
+  const mcpParts: string[] = [];
+  if (scoutMcp) mcpParts.push(`**Scout:**\n${scoutMcp}`);
+  if (architectMcp) mcpParts.push(`**Architect:**\n${architectMcp}`);
+  if (workerMcp) mcpParts.push(`**Worker:**\n${workerMcp}`);
+  if (reviewerMcp) mcpParts.push(`**Reviewer:**\n${reviewerMcp}`);
+  if (mcpParts.length > 0) {
+    p += `## MCP TOOLS FOR AGENTS\n`;
+    p += `Include the relevant MCP guidance in each agent's prompt so they use semantic search, docs, and code examples:\n\n`;
+    p += mcpParts.join('\n\n') + '\n\n';
+  }
   if (modelConfig) p += modelConfig + '\n\n';
   if (skillContent) {
     p += `## REFERENCE (detailed skill instructions)\n${skillContent}\n`;

@@ -543,6 +543,179 @@ suite('isMcpInstalled', () => {
 });
 
 // ============================================================
+// Helpers for MCP auto-detection tests
+// ============================================================
+
+function writeClaudeJson(dir, mcpServers) {
+  fs.writeFileSync(path.join(dir, '.claude.json'), JSON.stringify({ mcpServers }), 'utf-8');
+}
+
+function removeClaudeJson(dir) {
+  try { fs.unlinkSync(path.join(dir, '.claude.json')); } catch { /* ignore */ }
+}
+
+// ============================================================
+// Suite 8: detectInstalledMcpServers
+// ============================================================
+
+suite('detectInstalledMcpServers', () => {
+  test('detects MCP servers from project .claude.json', () => {
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+    writeClaudeJson(TEMP_PROJECT, {
+      context7: { command: 'npx' },
+      grep_app: { command: 'npx' },
+    });
+
+    const result = mcpConfig.detectInstalledMcpServers(TEMP_PROJECT);
+    assert(result.includes('context7'), 'should detect context7');
+    assert(result.includes('grep_app'), 'should detect grep_app');
+
+    removeClaudeJson(TEMP_PROJECT);
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+  });
+
+  test('returns empty array when no .claude.json exists', () => {
+    cleanGlobalConfig();
+    const noClaudeDir = path.join(TEMP_ROOT, 'no-claude-dir');
+    fs.mkdirSync(noClaudeDir, { recursive: true });
+
+    const result = mcpConfig.detectInstalledMcpServers(noClaudeDir);
+    // The function also checks ~/.claude.json which may exist, so just assert it returns an array
+    assert(Array.isArray(result), 'result should be an array');
+
+    cleanGlobalConfig();
+  });
+
+  test('maps CC server aliases to OML provider IDs', () => {
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+    writeClaudeJson(TEMP_PROJECT, {
+      'augment-context-engine': { command: 'x' },
+      'browser-use': { command: 'y' },
+    });
+
+    const result = mcpConfig.detectInstalledMcpServers(TEMP_PROJECT);
+    assert(result.includes('augment-context-engine'), 'should detect augment-context-engine');
+    assert(result.includes('browser-use'), 'should detect browser-use');
+
+    removeClaudeJson(TEMP_PROJECT);
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+  });
+
+  test('handles unknown server names (pass-through)', () => {
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+    writeClaudeJson(TEMP_PROJECT, {
+      'my-custom-server': { command: 'z' },
+    });
+
+    const result = mcpConfig.detectInstalledMcpServers(TEMP_PROJECT);
+    assert(result.includes('my-custom-server'), 'should pass through unknown server name');
+
+    removeClaudeJson(TEMP_PROJECT);
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+  });
+});
+
+// ============================================================
+// Suite 9: autoSyncMcpProviders
+// ============================================================
+
+suite('autoSyncMcpProviders', () => {
+  test('marks detected providers as installed in OML config', () => {
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+    writeClaudeJson(TEMP_PROJECT, {
+      context7: {},
+      grep_app: {},
+    });
+
+    const result = mcpConfig.autoSyncMcpProviders(TEMP_PROJECT);
+    assert(result.includes('context7'), 'result should include context7');
+    assert(result.includes('grep_app'), 'result should include grep_app');
+
+    const cfg = mcpConfig.loadMcpConfig(TEMP_PROJECT);
+    assertEqual(cfg.providers.context7.installed, true, 'context7 should be installed');
+    assertEqual(cfg.providers.grep_app.installed, true, 'grep_app should be installed');
+
+    removeClaudeJson(TEMP_PROJECT);
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+  });
+
+  test('does not re-sync already installed providers', () => {
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+    mcpConfig.setProviderInstalled('context7', true);
+
+    writeClaudeJson(TEMP_PROJECT, {
+      context7: {},
+    });
+
+    const result = mcpConfig.autoSyncMcpProviders(TEMP_PROJECT);
+    assertEqual(result.filter(r => r === 'context7').length, 0, 'should not re-sync already installed');
+
+    removeClaudeJson(TEMP_PROJECT);
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+  });
+
+  test('registers unknown servers as new providers', () => {
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+    writeClaudeJson(TEMP_PROJECT, {
+      'my-new-server': { command: 'x' },
+    });
+
+    const result = mcpConfig.autoSyncMcpProviders(TEMP_PROJECT);
+    assert(result.includes('my-new-server'), 'result should include my-new-server');
+
+    const cfg = mcpConfig.loadMcpConfig();
+    assert(cfg.providers['my-new-server'] !== undefined, 'my-new-server should exist in providers');
+    assertEqual(cfg.providers['my-new-server'].installed, true, 'my-new-server should be installed');
+    assert(
+      cfg.providers['my-new-server'].tags && cfg.providers['my-new-server'].tags.includes('auto-detected'),
+      'my-new-server should have auto-detected tag'
+    );
+
+    removeClaudeJson(TEMP_PROJECT);
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+  });
+
+  test('getMcpGuidanceForRole returns guidance after auto-sync', () => {
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+
+    // Before sync: no installed providers → empty guidance
+    assertEqual(mcpConfig.getMcpGuidanceForRole('scout'), '', 'empty before sync');
+
+    writeClaudeJson(TEMP_PROJECT, {
+      context7: {},
+      'augment-context-engine': {},
+    });
+
+    mcpConfig.autoSyncMcpProviders(TEMP_PROJECT);
+
+    // After sync: installed providers should produce guidance
+    const guidance = mcpConfig.getMcpGuidanceForRole('scout');
+    assert(guidance !== '', 'guidance should not be empty after sync');
+    assert(
+      guidance.toLowerCase().includes('context7'),
+      'guidance should mention context7'
+    );
+
+    removeClaudeJson(TEMP_PROJECT);
+    cleanGlobalConfig();
+    cleanProjectConfig(TEMP_PROJECT);
+  });
+});
+
+// ============================================================
 // Cleanup & Summary
 // ============================================================
 

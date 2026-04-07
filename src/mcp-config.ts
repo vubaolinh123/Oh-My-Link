@@ -61,6 +61,23 @@ export interface McpConfig {
 
 // --- Built-in Suggestions (shipped with OML, users can remove/modify) ---
 
+/**
+ * Mapping from Claude Code mcpServers keys to OML provider IDs.
+ * Claude's ~/.claude.json uses these server names; OML uses provider IDs.
+ * Users can add custom mappings by registering providers with matching IDs.
+ */
+const CC_SERVER_TO_OML_ID: Record<string, string> = {
+  'context7': 'context7',
+  'grep_app': 'grep_app',
+  'playwright': 'playwright',
+  'augment-context-engine': 'augment-context-engine',
+  'browser-use': 'browser-use',
+  // Common aliases
+  'augment': 'augment-context-engine',
+  'browser_use': 'browser-use',
+  'browseruse': 'browser-use',
+};
+
 export const SUGGESTED_PROVIDERS: McpProvider[] = [
   {
     id: 'context7',
@@ -251,6 +268,105 @@ export function buildDefaultConfig(): McpConfig {
     providers,
     agent_map: JSON.parse(JSON.stringify(DEFAULT_AGENT_MAP)),
   };
+}
+
+// --- Auto-Detection ---
+
+/**
+ * Detect MCP servers configured in Claude Code and mark matching OML providers as installed.
+ *
+ * Claude Code stores MCP server configs in ~/.claude.json under the `mcpServers` key.
+ * Each key in mcpServers is a server name (e.g., "context7", "augment-context-engine").
+ *
+ * This function reads that config, maps server names to OML provider IDs via
+ * CC_SERVER_TO_OML_ID (plus exact-match fallback), and returns which providers
+ * were detected as available.
+ *
+ * Locations checked (in order):
+ *   1. ~/.claude.json (primary — global CC config)
+ *   2. {cwd}/.claude.json (project-level override, if cwd provided)
+ */
+export function detectInstalledMcpServers(cwd?: string): string[] {
+  const detected: Set<string> = new Set();
+
+  // Candidate config file paths
+  const homedir = require('os').homedir();
+  const candidates: string[] = [
+    normalizePath(path.join(homedir, '.claude.json')),
+  ];
+  if (cwd) {
+    candidates.push(normalizePath(path.join(cwd, '.claude.json')));
+  }
+
+  for (const configPath of candidates) {
+    try {
+      if (!fs.existsSync(configPath)) continue;
+      const raw = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(raw);
+      const mcpServers = config.mcpServers;
+      if (!mcpServers || typeof mcpServers !== 'object') continue;
+
+      for (const serverName of Object.keys(mcpServers)) {
+        // Map CC server name → OML provider ID
+        const omlId = CC_SERVER_TO_OML_ID[serverName] || serverName;
+        detected.add(omlId);
+      }
+    } catch {
+      // Config read failure — skip this file
+    }
+  }
+
+  return Array.from(detected);
+}
+
+/**
+ * Auto-sync: detect installed MCP servers from Claude Code config and update
+ * OML's MCP config to mark matching providers as installed.
+ *
+ * This should be called during session startup (keyword-detector / session-start)
+ * to ensure MCP guidance reflects the actual MCP tools available.
+ *
+ * Behavior:
+ *   - Providers found in CC config → marked installed=true
+ *   - Providers NOT found in CC config → left unchanged (user may have manually set them)
+ *   - Unknown servers in CC config → registered as new providers with installed=true
+ *
+ * Returns the list of provider IDs that were detected and marked installed.
+ */
+export function autoSyncMcpProviders(cwd?: string): string[] {
+  const detected = detectInstalledMcpServers(cwd);
+  if (detected.length === 0) return [];
+
+  const config = loadMcpConfig(cwd);
+  const synced: string[] = [];
+
+  for (const id of detected) {
+    if (config.providers[id]) {
+      // Known provider — mark as installed if not already
+      if (!config.providers[id].installed) {
+        config.providers[id].installed = true;
+        config.providers[id].updated_at = new Date().toISOString();
+        synced.push(id);
+      }
+    } else {
+      // Unknown server in CC config — register as a new provider
+      config.providers[id] = {
+        id,
+        name: id,
+        description: `Auto-detected MCP server from Claude Code config`,
+        installed: true,
+        tags: ['auto-detected'],
+        updated_at: new Date().toISOString(),
+      };
+      synced.push(id);
+    }
+  }
+
+  if (synced.length > 0) {
+    saveMcpConfig(config);
+  }
+
+  return synced;
 }
 
 /**
