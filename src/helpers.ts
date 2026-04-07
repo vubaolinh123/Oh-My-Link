@@ -37,31 +37,43 @@ export function writeJsonAtomic(filePath: string, data: unknown): void {
   const isSessionFile = normalized.endsWith('/session.json') || normalized.endsWith('\\session.json');
 
   // --- Session hardening: preserve locked_* fields ---
+  // IMPORTANT: Only apply hardening when the existing session is ACTIVE.
+  // If the existing session is inactive (active === false), it's a dead/completed session.
+  // Carrying forward locked_mode/locked_phase from a dead session poisons new sessions
+  // (e.g., a new Start Link session gets locked_mode='mylight' from a completed Start Fast).
   if (isSessionFile && data && typeof data === 'object' && !Array.isArray(data)) {
     try {
       if (fs.existsSync(normalized)) {
         const existingRaw = fs.readFileSync(normalized, 'utf-8');
         const existing = JSON.parse(existingRaw) as Record<string, unknown>;
         const incoming = data as Record<string, unknown>;
-        const LOCKED_KEYS = ['locked_mode', 'locked_phase'] as const;
-        const corrected: string[] = [];
 
-        for (const key of LOCKED_KEYS) {
-          if (existing[key] !== undefined) {
-            // If incoming tries to change a locked field, restore the old value
-            if (incoming[key] !== undefined && incoming[key] !== existing[key]) {
-              corrected.push(`${key}: ${JSON.stringify(incoming[key])} → ${JSON.stringify(existing[key])}`);
-              incoming[key] = existing[key];
-            }
-            // If incoming omits a locked field, carry it forward
-            if (incoming[key] === undefined) {
-              incoming[key] = existing[key];
+        // Guard: only harden if existing session is active
+        if (existing.active === true) {
+          const LOCKED_KEYS = ['locked_mode', 'locked_phase'] as const;
+          const corrected: string[] = [];
+
+          for (const key of LOCKED_KEYS) {
+            if (existing[key] !== undefined) {
+              // If incoming tries to change a locked field, restore the old value
+              if (incoming[key] !== undefined && incoming[key] !== existing[key]) {
+                corrected.push(`${key}: ${JSON.stringify(incoming[key])} → ${JSON.stringify(existing[key])}`);
+                incoming[key] = existing[key];
+              }
+              // If incoming omits a locked field, carry it forward
+              if (incoming[key] === undefined) {
+                incoming[key] = existing[key];
+              }
             }
           }
-        }
 
-        if (corrected.length > 0) {
-          sessionWriteAudit(normalized, `LOCKED_FIELD_CORRECTED: ${corrected.join('; ')}`);
+          if (corrected.length > 0) {
+            sessionWriteAudit(normalized, `LOCKED_FIELD_CORRECTED: ${corrected.join('; ')}`);
+          }
+        } else {
+          // Existing session is inactive — do NOT carry forward locked fields.
+          // Log for audit trail.
+          sessionWriteAudit(normalized, `HARDENING_SKIPPED: existing.active=${existing.active}, not carrying forward locked fields`);
         }
       }
     } catch {

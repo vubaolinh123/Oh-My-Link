@@ -329,16 +329,25 @@ async function main(): Promise<void> {
     } catch (err) { debugLog(cwd, 'mem:extract', `FAILED: ${(err as Error)?.message || err}`); }
   }
 
-  // Process <remember> tags (sanitize expressions to prevent CC evaluator crashes)
-  if (toolOutput) {
+  // Process <remember> tags — only for tools that produce AGENT output.
+  // Read/Glob/Grep return raw file/search content that may contain example <remember>
+  // tags from documentation or skill files → causes false-positive memory bloat.
+  const REMEMBER_ALLOWED_TOOLS = new Set(['Bash', 'Edit', 'Write', 'MultiEdit', 'Agent', 'Task']);
+  if (toolOutput && REMEMBER_ALLOWED_TOOLS.has(toolName)) {
     const rememberResult = processRememberTags(sanitizeExpressions(toolOutput), cwd, toolName);
     if (rememberResult) {
       debugLog(cwd, 'post-tool', `remember-tag processed: ${rememberResult.slice(0, 80)}`);
     }
+  } else if (toolOutput && !REMEMBER_ALLOWED_TOOLS.has(toolName)) {
+    // Check if there ARE remember tags to help debug — log but don't process
+    const hasRememberTags = /<remember/.test(toolOutput);
+    if (hasRememberTags) {
+      debugLog(cwd, 'post-tool', `remember-tags SKIPPED for tool=${toolName} (read-only tool, likely file content)`);
+    }
   }
 
-  // Process <skill-feedback> tags (sanitize expressions to prevent CC evaluator crashes)
-  if (toolOutput) {
+  // Process <skill-feedback> tags — same gating: only agent output tools
+  if (toolOutput && REMEMBER_ALLOWED_TOOLS.has(toolName)) {
     processSkillFeedback(sanitizeExpressions(toolOutput), cwd);
   }
 

@@ -856,6 +856,118 @@ suite('integration: zombie → cleanup → re-invoke e2e', () => {
 });
 
 // ============================================================
+// locked_* hardening — active guard (P0 fix)
+// ============================================================
+
+suite('locked_* hardening — active guard (P0 fix)', () => {
+
+  test('Inactive existing session — locked_mode NOT carried forward to new session', () => {
+    clearAuditLog();
+    const sessionDir = path.join(TEMP_ROOT, 'p0-inactive-no-carry');
+    fs.mkdirSync(sessionDir, { recursive: true });
+    const sessionPath = path.join(sessionDir, 'session.json');
+
+    // Write an INACTIVE session (ended)
+    writeJsonAtomic(sessionPath, {
+      active: false,
+      mode: 'mylight',
+      locked_mode: 'mylight',
+      locked_phase: 'light_scout',
+      session_ended_at: '2025-01-01T00:00:00Z',
+      deactivated_reason: 'completed',
+    });
+
+    clearAuditLog();
+
+    // Write a NEW session — should NOT inherit locked fields from inactive session
+    writeJsonAtomic(sessionPath, {
+      active: true,
+      mode: 'mylink',
+      locked_mode: 'mylink',
+      locked_phase: 'bootstrap',
+      current_phase: 'bootstrap',
+    });
+
+    const written = readJson(sessionPath);
+    assertEqual(written.locked_mode, 'mylink', 'locked_mode should be mylink (NOT carried from inactive)');
+    assertEqual(written.locked_phase, 'bootstrap', 'locked_phase should be bootstrap (NOT carried from inactive)');
+
+    const log = readAuditLog();
+    assert(!log.includes('LOCKED_FIELD_CORRECTED'), 'should NOT contain LOCKED_FIELD_CORRECTED for inactive existing session');
+    assert(log.includes('HARDENING_SKIPPED'), 'should contain HARDENING_SKIPPED for inactive existing session');
+  });
+
+  test('Active existing session — locked_mode IS still protected', () => {
+    clearAuditLog();
+    const sessionDir = path.join(TEMP_ROOT, 'p0-active-protected');
+    fs.mkdirSync(sessionDir, { recursive: true });
+    const sessionPath = path.join(sessionDir, 'session.json');
+
+    // Write an ACTIVE session with locked fields
+    writeJsonAtomic(sessionPath, {
+      active: true,
+      mode: 'mylink',
+      locked_mode: 'mylink',
+      locked_phase: 'phase_5_execution',
+    });
+
+    clearAuditLog();
+
+    // Try to overwrite with different locked values — should be blocked
+    writeJsonAtomic(sessionPath, {
+      active: true,
+      mode: 'mylight',
+      locked_mode: 'mylight',
+      locked_phase: 'light_scout',
+    });
+
+    const written = readJson(sessionPath);
+    assertEqual(written.locked_mode, 'mylink', 'locked_mode should be preserved from active session');
+    assertEqual(written.locked_phase, 'phase_5_execution', 'locked_phase should be preserved from active session');
+
+    const log = readAuditLog();
+    assert(log.includes('LOCKED_FIELD_CORRECTED'), 'should contain LOCKED_FIELD_CORRECTED for active session override attempt');
+  });
+
+  test('Inactive session — omitted locked fields are NOT carried forward', () => {
+    clearAuditLog();
+    const sessionDir = path.join(TEMP_ROOT, 'p0-inactive-omitted');
+    fs.mkdirSync(sessionDir, { recursive: true });
+    const sessionPath = path.join(sessionDir, 'session.json');
+
+    // Write an INACTIVE session with locked fields
+    writeJsonAtomic(sessionPath, {
+      active: false,
+      mode: 'mylight',
+      locked_mode: 'mylight',
+      locked_phase: 'light_complete',
+      deactivated_reason: 'completed',
+    });
+
+    clearAuditLog();
+
+    // Write new session WITHOUT locked fields — they should NOT be inherited
+    writeJsonAtomic(sessionPath, {
+      active: true,
+      mode: 'mylink',
+      current_phase: 'bootstrap',
+    });
+
+    const written = readJson(sessionPath);
+    assertEqual(written.locked_mode, undefined, 'locked_mode should be undefined (not carried from inactive)');
+    assertEqual(written.locked_phase, undefined, 'locked_phase should be undefined (not carried from inactive)');
+  });
+});
+
+// ============================================================
+// remember-tag gating (P2 fix)
+// ============================================================
+
+suite('remember-tag gating (P2 fix)', () => {
+  skip('remember-tag gating — verified by code inspection, Read/Glob/Grep excluded from processRememberTags');
+});
+
+// ============================================================
 // Cleanup & Summary
 // ============================================================
 
