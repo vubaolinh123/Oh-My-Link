@@ -605,7 +605,7 @@ suite('hooks — smoke tests', () => {
 
     const parsed = JSON.parse(output);
     assert(
-      parsed.hookSpecificOutput?.additionalContext?.includes('MAGIC KEYWORD'),
+      parsed.hookSpecificOutput?.additionalContext?.includes('OML START LINK'),
       'should detect start link keyword'
     );
   });
@@ -629,7 +629,7 @@ suite('hooks — smoke tests', () => {
 
     const parsed = JSON.parse(output);
     assert(
-      parsed.hookSpecificOutput?.additionalContext?.includes('MAGIC KEYWORD'),
+      parsed.hookSpecificOutput?.additionalContext?.includes('OML START FAST'),
       'should detect start fast keyword'
     );
   });
@@ -896,10 +896,10 @@ suite('keyword-detector — sanitization and augmentation', () => {
     }).toString().trim();
     const parsed = JSON.parse(output);
     const ctx = parsed.hookSpecificOutput?.additionalContext || '';
-    assert(ctx.includes('MAGIC KEYWORD'), 'keyword detected');
+    assert(ctx.includes('OML START LINK'), 'keyword detected');
     assert(
-      ctx.includes('Verify') || ctx.includes('first-principles') || ctx.includes('Inspect'),
-      'should include framework augmentation text'
+      ctx.includes('Scout') || ctx.includes('Agent tool') || ctx.includes('orchestrator'),
+      'should include orchestration instructions'
     );
   });
 

@@ -2,6 +2,29 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.9.0] — Imperative Agent Orchestration
+
+**Breaking change in how the plugin instructs Claude to delegate work.**
+
+Previously, OML injected skill instructions via `additionalContext` — which Claude treated as soft guidance and often ignored, resulting in the root session doing all work itself instead of spawning subagents.
+
+Now, OML rewrites the user prompt into explicit, imperative orchestration instructions:
+- "Use the Agent tool to spawn a Fast Scout subagent with this prompt: ..."
+- "Use the Agent tool to spawn an Executor subagent with this prompt: ..."
+- "You are the orchestrator — never read source code, never write/edit code files"
+
+This ensures Claude treats agent spawning as its PRIMARY task, not optional guidance.
+
+### Changes
+- Replace `additionalContext` skill injection with imperative prompt rewrite in `keyword-detector.ts`
+- Add `buildImperativePrompt()` dispatcher with 3 prompt builders:
+  - `buildTurboPrompt()` — single Executor spawn for trivial fixes
+  - `buildStandardFastPrompt()` — Fast Scout → read BRIEF.md → Executor pipeline
+  - `buildStartLinkPrompt()` — full 7-phase Master orchestration with explicit Agent tool instructions
+- Non-orchestration actions (doctor, setup, cancel, debug, etc.) still use original skill injection
+- Fix debug mode toggle to show actual debug log path and project hash
+- Update tests to match new output format (OML START LINK / OML START FAST)
+
 ## [v0.8.1] — Resilient Resolution & Per-Project Config
 
 - Add `resolvePluginRoot()` to `state.ts` — 3-strategy plugin root resolution (env var → setup.json → __dirname)

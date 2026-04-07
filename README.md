@@ -341,7 +341,7 @@ Config locations (merged in order, later overrides earlier):
 The plugin includes a HUD that shows real-time progress:
 
 ```
-╭─ OML v0.8.2 ✧ Start.Link ✧ Phase 5: Execution
+╭─ OML v0.9.0 ✧ Start.Link ✧ Phase 5: Execution
 ╰─ Ctx: [♥♥♥♥♡♡♡♡♡♡] 42% ┊ Session: 9m ┊ Agents: SAW ┊ R:0 F:0
 ```
 

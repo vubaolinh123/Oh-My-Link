@@ -336,34 +336,18 @@ async function main(): Promise<void> {
     }
   }
 
-  let context = `[MAGIC KEYWORD: ${match.action}]\n\n`;
-  context += `User request:\n${augmentedPrompt}\n\n`;
-
   // Inject model configuration if overrides exist
   const modelConfig = buildModelConfigSection();
-  if (modelConfig) {
-    context += modelConfig + '\n\n';
-  }
-
-  // Inject skill instructions directly (no dependency on Skill tool registration)
-  const skillContent = effectiveSkill ? loadSkillContent(effectiveSkill) : null;
 
   debugLog(cwd, 'keyword', `action=${match.action} skill=${effectiveSkill || match.skill || 'none'}`);
 
-  if (skillContent) {
-    context += `--- SKILL INSTRUCTIONS ---\n${skillContent}\n--- END SKILL INSTRUCTIONS ---\n`;
-    if (quiet < 2) {
-      context += `\nIMPORTANT: Follow the skill instructions above IMMEDIATELY.`;
-    }
-  } else {
-    // Fallback: tell Claude to use the Skill tool
-    context += `You MUST invoke the skill using the Skill tool:\n\nSkill: ${effectiveSkill || match.action}\n`;
-    if (quiet < 2) {
-      context += `\nIMPORTANT: Invoke the skill IMMEDIATELY. Do not proceed without loading the skill instructions.`;
-    }
-  }
+  // ─── IMPERATIVE PROMPT REWRITE ───
+  // Instead of injecting skill content as additionalContext (which Claude treats as
+  // soft guidance and often ignores), we rewrite the user prompt into explicit
+  // step-by-step orchestration instructions that Claude treats as its PRIMARY task.
+  const imperativePrompt = buildImperativePrompt(match.action, augmentedPrompt, effectiveSkill, modelConfig, cwd);
 
-  hookOutput('UserPromptSubmit', context);
+  hookOutput('UserPromptSubmit', imperativePrompt);
 }
 
 function findKeywordMatch(promptLower: string): KeywordRule | null {
@@ -439,6 +423,165 @@ function loadSkillContent(skillRef: string): string | null {
     }
   } catch { /* ignore */ }
   return null;
+}
+
+/**
+ * Build an imperative orchestration prompt that forces Claude to use the Agent tool
+ * to spawn subagents instead of doing work itself.
+ *
+ * Key insight: additionalContext is treated as "soft guidance" by Claude and often ignored.
+ * By rewriting the user prompt into explicit step-by-step instructions with Agent tool calls,
+ * Claude treats this as its PRIMARY task — "spawn agent X with prompt Y" — not optional context.
+ */
+function buildImperativePrompt(
+  action: string,
+  userRequest: string,
+  effectiveSkill: string | undefined,
+  modelConfig: string | null,
+  cwd: string,
+): string {
+  const session = readJson<SessionState>(getSessionPath(cwd));
+  const intent = session?.intent || 'standard';
+
+  // Load skill content for reference (included as context, not as the primary instruction)
+  const skillContent = effectiveSkill ? loadSkillContent(effectiveSkill) : null;
+
+  let prompt = '';
+
+  if (action === 'invoke-light') {
+    // ─── START FAST ───
+    if (intent === 'turbo') {
+      prompt = buildTurboPrompt(userRequest, skillContent, modelConfig);
+    } else {
+      prompt = buildStandardFastPrompt(userRequest, skillContent, modelConfig);
+    }
+  } else if (action === 'invoke') {
+    // ─── START LINK (full 7-phase) ───
+    prompt = buildStartLinkPrompt(userRequest, skillContent, modelConfig);
+  } else {
+    // Other actions (doctor, setup, etc.) — use original skill injection
+    prompt = `[MAGIC KEYWORD: ${action}]\n\nUser request:\n${userRequest}\n\n`;
+    if (modelConfig) prompt += modelConfig + '\n\n';
+    if (skillContent) {
+      prompt += `--- SKILL INSTRUCTIONS ---\n${skillContent}\n--- END SKILL INSTRUCTIONS ---\n`;
+      prompt += `\nIMPORTANT: Follow the skill instructions above IMMEDIATELY.`;
+    }
+  }
+
+  return prompt;
+}
+
+function buildTurboPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null): string {
+  let p = `[OML START FAST — TURBO MODE]\n\n`;
+  p += `You are the Oh-My-Link orchestrator. Your ONLY job is to spawn an Executor agent to handle this request.\n\n`;
+  p += `## YOUR TASK (mandatory steps)\n\n`;
+  p += `1. Use the **Agent tool** (also called Task tool) to spawn an Executor subagent with this prompt:\n\n`;
+  p += `\`\`\`\n`;
+  p += `You are the OML Executor. Implement this request directly:\n\n`;
+  p += `${userRequest}\n\n`;
+  p += `Steps:\n`;
+  p += `1. Read the affected file(s)\n`;
+  p += `2. Implement the fix using Edit\n`;
+  p += `3. Self-verify (run build/test if available)\n`;
+  p += `4. Report what you changed\n`;
+  p += `\`\`\`\n\n`;
+  p += `2. Wait for the Executor to finish\n`;
+  p += `3. Report the Executor's result to the user\n\n`;
+  p += `## RULES\n`;
+  p += `- Do NOT implement anything yourself — you are the orchestrator, not the implementer\n`;
+  p += `- Do NOT read source code yourself — the Executor will do that\n`;
+  p += `- Do NOT skip spawning the agent — this is mandatory\n`;
+  p += `- The Agent/Task tool is your primary tool for this task\n\n`;
+  if (modelConfig) p += modelConfig + '\n\n';
+  return p;
+}
+
+function buildStandardFastPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null): string {
+  let p = `[OML START FAST — STANDARD MODE]\n\n`;
+  p += `You are the Oh-My-Link orchestrator. You coordinate agents — you do NOT implement code yourself.\n\n`;
+  p += `## YOUR TASK (mandatory steps — execute in order)\n\n`;
+  p += `### Step 1: Spawn Fast Scout\n`;
+  p += `Use the **Agent tool** (also called Task tool) to spawn a Fast Scout subagent with this prompt:\n\n`;
+  p += `\`\`\`\n`;
+  p += `You are the OML Fast Scout. Analyze this request and produce a BRIEF.md:\n\n`;
+  p += `${userRequest}\n\n`;
+  p += `Steps:\n`;
+  p += `1. Use Glob/Grep to locate the relevant files (be quick, under 3 minutes)\n`;
+  p += `2. Read the key sections of those files\n`;
+  p += `3. Write .oh-my-link/plans/BRIEF.md with:\n`;
+  p += `   - Summary (1 paragraph: root cause or scope)\n`;
+  p += `   - Affected Files (path + reason)\n`;
+  p += `   - Suggested Approach (1-2 sentences)\n`;
+  p += `   - Acceptance Criteria (checklist)\n`;
+  p += `4. If the task is too complex (>3 files, unclear scope), say so and recommend "start link"\n`;
+  p += `\`\`\`\n\n`;
+  p += `### Step 2: Read BRIEF.md\n`;
+  p += `After Fast Scout finishes, read \`.oh-my-link/plans/BRIEF.md\` to understand the analysis.\n\n`;
+  p += `### Step 3: Spawn Executor\n`;
+  p += `Use the **Agent tool** to spawn an Executor subagent with this prompt:\n\n`;
+  p += `\`\`\`\n`;
+  p += `You are the OML Executor. Read .oh-my-link/plans/BRIEF.md for your task analysis, then:\n\n`;
+  p += `1. Read all affected files listed in BRIEF.md\n`;
+  p += `2. Implement the fix using Edit (preferred) or Write (new files only)\n`;
+  p += `3. Self-verify: run build/test commands if available\n`;
+  p += `4. Report what you changed and verification results\n`;
+  p += `\`\`\`\n\n`;
+  p += `### Step 4: Report\n`;
+  p += `After Executor finishes, summarize to the user: what was changed, files affected, verification result.\n\n`;
+  p += `## RULES\n`;
+  p += `- Do NOT read source code yourself — Fast Scout and Executor do that\n`;
+  p += `- Do NOT write/edit any code yourself — Executor does that\n`;
+  p += `- Do NOT skip agent spawning — you MUST use the Agent/Task tool for Steps 1 and 3\n`;
+  p += `- You are the orchestrator: your tools are Agent/Task (to spawn), Read (to check artifacts), and reporting\n\n`;
+  if (modelConfig) p += modelConfig + '\n\n';
+  return p;
+}
+
+function buildStartLinkPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null): string {
+  let p = `[OML START LINK — FULL 7-PHASE PIPELINE]\n\n`;
+  p += `You are the Oh-My-Link Master Orchestrator. You drive a 7-phase pipeline by spawning specialized agents.\n`;
+  p += `You NEVER implement code yourself — all work is delegated to subagents via the Agent/Task tool.\n\n`;
+  p += `## USER REQUEST\n${userRequest}\n\n`;
+  p += `## YOUR TASK (execute phases in order)\n\n`;
+  p += `### Phase 1: Spawn Scout\n`;
+  p += `Use the **Agent tool** to spawn a Scout subagent:\n`;
+  p += `- Scout explores the codebase and asks clarifying questions\n`;
+  p += `- Scout writes CONTEXT.md to .oh-my-link/plans/CONTEXT.md\n`;
+  p += `- Wait for Scout to finish, then present questions to user\n\n`;
+  p += `### Gate 1: User Approval\n`;
+  p += `Present Scout's questions/options to the user. BLOCK until user answers.\n`;
+  p += `Lock decisions as D1, D2, ... Dn.\n\n`;
+  p += `### Phase 2: Spawn Architect\n`;
+  p += `Use the **Agent tool** to spawn an Architect subagent:\n`;
+  p += `- Pass CONTEXT.md + locked decisions\n`;
+  p += `- Architect writes plan.md to .oh-my-link/plans/plan.md\n\n`;
+  p += `### Gate 2: User Approval\n`;
+  p += `Present plan summary to user. BLOCK until approved. Loop if feedback given.\n\n`;
+  p += `### Phase 3-4: Decomposition & Validation\n`;
+  p += `Spawn Architect again to decompose plan into task JSONs in .oh-my-link/tasks/.\n\n`;
+  p += `### Gate 3: Execution Approval\n`;
+  p += `Show task list and dependencies. Ask user: Sequential or Parallel? BLOCK until approved.\n\n`;
+  p += `### Phase 5: Spawn Worker(s)\n`;
+  p += `For each task (respecting depends_on order):\n`;
+  p += `1. Write worker-{link-id}.md with task details\n`;
+  p += `2. Use the **Agent tool** to spawn a Worker subagent with the task\n`;
+  p += `3. Worker implements within file_scope, self-verifies, updates task status\n\n`;
+  p += `### Phase 6: Spawn Reviewer\n`;
+  p += `After each Worker completes, spawn a Reviewer to verify the implementation.\n`;
+  p += `On FAIL: re-spawn Worker with feedback. On PASS: continue.\n\n`;
+  p += `### Phase 7: Summary\n`;
+  p += `Write WRAP-UP.md. Set session to complete.\n\n`;
+  p += `## CRITICAL RULES\n`;
+  p += `- You are the ORCHESTRATOR — never read source code, never write/edit code files\n`;
+  p += `- Use the **Agent tool** (also called Task tool) to spawn each specialist\n`;
+  p += `- Each agent does ONE job: Scout explores, Architect plans, Worker implements, Reviewer reviews\n`;
+  p += `- Update session.json phase at every transition\n`;
+  p += `- Respect all 3 HITL gates — never proceed without user approval\n\n`;
+  if (modelConfig) p += modelConfig + '\n\n';
+  if (skillContent) {
+    p += `## REFERENCE (detailed skill instructions)\n${skillContent}\n`;
+  }
+  return p;
 }
 
 // Run
