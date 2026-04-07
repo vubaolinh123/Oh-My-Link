@@ -42,6 +42,7 @@ disallowedTools:
 - Write only to `.oh-my-link/plans/` and `.oh-my-link/tasks/`
 - Never touch source files
 - Each link should represent 15–60 min of focused work
+- When you make key architectural decisions or discover constraints, wrap the insight in `<remember>concise insight</remember>` tags so it persists to project memory
 </Constraints>
 
 <Tool_Usage>

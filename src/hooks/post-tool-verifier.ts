@@ -135,7 +135,12 @@ async function main(): Promise<void> {
         timestamp: new Date().toISOString(),
         snippet: clippedOutput.slice(0, 500),
       });
-      tracking.failures = failures;
+      // Cap failures to prevent unbounded growth
+      if (failures.length > 100) {
+        tracking.failures = failures.slice(-100);
+      } else {
+        tracking.failures = failures;
+      }
       writeJsonAtomic(trackPath, tracking);
     } catch { /* best effort */ }
   }
@@ -177,7 +182,12 @@ async function main(): Promise<void> {
       for (const fp of targetPaths) {
         if (!files.includes(fp)) files.push(fp);
       }
-      tracking.files_modified = files;
+      // Cap files_modified to prevent unbounded growth
+      if (files.length > 500) {
+        tracking.files_modified = files.slice(-500);
+      } else {
+        tracking.files_modified = files;
+      }
     }
     writeJsonAtomic(trackPath, tracking);
   } catch { /* best effort */ }
@@ -231,9 +241,43 @@ async function main(): Promise<void> {
     }
   } catch { /* best effort — don't block tool use */ }
 
+  // Auto-extract memories from tool output (best effort, never injects context)
+  if (toolOutput && toolOutput.length >= 200
+      && ['Bash', 'Edit', 'Write', 'MultiEdit'].includes(toolName)) {
+    try {
+      const { extractMemories } = require('../memory/memory-extractor') as { extractMemories: (text: string, minConfidence?: number) => Array<{ content: string; memory_type: string; chunk_index: number; confidence: number }> };
+      const { Dialect } = require('../memory/aaak-dialect') as { Dialect: new () => { compress: (text: string, metadata?: Record<string, string>) => string } };
+      const { addDocument } = require('../memory/vector-store') as { addDocument: (cwd: string, text: string, metadata: Record<string, unknown>) => string };
+
+      const sanitized = sanitizeExpressions(toolOutput);
+      const memories = extractMemories(sanitized, 0.4);  // slightly higher threshold for auto-extraction
+
+      if (memories.length > 0) {
+        const dialect = new Dialect();
+        // Limit extractions per tool call to cap file I/O
+        // Allow more extractions (5) for large outputs that likely contain more valuable info
+        const extractionCap = toolOutput.length > 2000 ? 5 : 3;
+        for (const mem of memories.slice(0, extractionCap)) {
+          const compressed = dialect.compress(mem.content, {
+            room: mem.memory_type,
+            date: new Date().toISOString().slice(0, 10),
+          });
+          addDocument(cwd, compressed, {
+            raw: mem.content.slice(0, 500),
+            room: mem.memory_type,
+            source: toolName,
+            importance: mem.confidence >= 0.7 ? 4 : 3,
+            timestamp: new Date().toISOString(),
+          });
+        }
+        debugLog(cwd, 'post-tool', `auto-extracted ${memories.length} memories (stored top ${Math.min(memories.length, extractionCap)})`);
+      }
+    } catch { /* best effort — memory modules may not exist yet */ }
+  }
+
   // Process <remember> tags (sanitize expressions to prevent CC evaluator crashes)
   if (toolOutput) {
-    const rememberResult = processRememberTags(sanitizeExpressions(toolOutput), cwd);
+    const rememberResult = processRememberTags(sanitizeExpressions(toolOutput), cwd, toolName);
     if (rememberResult) {
       debugLog(cwd, 'post-tool', `remember-tag processed: ${rememberResult.slice(0, 80)}`);
     }
@@ -257,7 +301,7 @@ function trackFile(filePath: string, cwd: string): void {
   }
 }
 
-function processRememberTags(output: string, cwd: string): string | null {
+function processRememberTags(output: string, cwd: string, toolName?: string): string | null {
   let firstContent: string | null = null;
   // <remember>content</remember> → append to working-memory.md with timestamp and --- separator
   const rememberMatches = output.match(/<remember>(?![\s]*priority)([\s\S]*?)<\/remember>/g);
@@ -272,8 +316,34 @@ function processRememberTags(output: string, cwd: string): string | null {
         const entry = `\n---\n**${timestamp}**\n${content}\n`;
         try {
           const existing = fs.existsSync(memPath) ? fs.readFileSync(memPath, 'utf-8') : '';
-          fs.writeFileSync(memPath, existing + entry, 'utf-8');
+          // Cap working-memory.md at 50KB — trim oldest entries (separated by ---)
+          let combined = existing + entry;
+          if (combined.length > 50_000) {
+            const sections = combined.split('\n---\n');
+            while (sections.join('\n---\n').length > 50_000 && sections.length > 1) {
+              sections.shift();
+            }
+            combined = sections.join('\n---\n');
+          }
+          fs.writeFileSync(memPath, combined, 'utf-8');
         } catch { /* ignore */ }
+        // Memory system: AAAK compress + vector store write (best effort)
+        try {
+          const { Dialect } = require('../memory/aaak-dialect') as { Dialect: new () => { compress: (text: string, metadata?: Record<string, string>) => string } };
+          const { addDocument } = require('../memory/vector-store') as { addDocument: (cwd: string, text: string, metadata: Record<string, unknown>) => string };
+          const dialect = new Dialect();
+          const compressed = dialect.compress(content, {
+            room: 'remember',
+            date: new Date().toISOString().slice(0, 10),
+          });
+          addDocument(cwd, compressed, {
+            raw: content.slice(0, 500),
+            room: 'remember',
+            source: toolName || 'unknown',
+            importance: 3,
+            timestamp,
+          });
+        } catch { /* best effort — memory modules may not be compiled yet */ }
       }
     }
   }
@@ -306,6 +376,23 @@ function processRememberTags(output: string, cwd: string): string | null {
             let final = entries.join('\n');
             if (final.length > 500) final = final.substring(0, 500);
             fs.writeFileSync(priPath, final, 'utf-8');
+            // Memory system: AAAK compress + vector store write (best effort)
+            try {
+              const { Dialect } = require('../memory/aaak-dialect') as { Dialect: new () => { compress: (text: string, metadata?: Record<string, string>) => string } };
+              const { addDocument } = require('../memory/vector-store') as { addDocument: (cwd: string, text: string, metadata: Record<string, unknown>) => string };
+              const dialect = new Dialect();
+              const compressed = dialect.compress(newContent, {
+                room: 'priority',
+                date: new Date().toISOString().slice(0, 10),
+              });
+              addDocument(cwd, compressed, {
+                raw: newContent.slice(0, 500),
+                room: 'priority',
+                source: toolName || 'unknown',
+                importance: 5,
+                timestamp: new Date().toISOString(),
+              });
+            } catch { /* best effort — memory modules may not be compiled yet */ }
           }
         } catch { /* ignore */ }
       }

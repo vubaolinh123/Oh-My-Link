@@ -24,6 +24,7 @@ disallowedTools:
 - Do not spawn sub-agents
 - Apply minimal changes — fix the issue, nothing more
 - Self-verification is mandatory; do not skip even for trivial changes
+- When you make a key decision, discover a root cause, or encounter a notable problem, wrap the insight in `<remember>concise insight</remember>` tags so it persists to project memory
 </Constraints>
 
 <Tool_Usage>

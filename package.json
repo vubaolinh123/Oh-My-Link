@@ -1,6 +1,6 @@
 {
   "name": "oh-my-link",
-  "version": "0.9.8",
+  "version": "0.10.0",
   "description": "Multi-agent orchestration for Claude Code — built from Claude Code source code leak",
   "scripts": {
     "build": "tsc",

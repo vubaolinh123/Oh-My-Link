@@ -270,3 +270,20 @@ User: cancel oml
 ```
 
 Stops the active session, releases all locks, and archives session state.
+
+---
+
+## Memory Self-Tagging
+
+When you make a key decision, discover a constraint, encounter a notable problem, or state a preference, wrap the insight in `<remember>` tags so it is automatically persisted to project memory. This enables future sessions and agents to benefit from your findings without any user action.
+
+**When to tag:**
+- Architectural decisions ("we chose X over Y because...")
+- Bug root causes ("the crash was caused by...")
+- Discovered constraints ("this API has a 100-item limit")
+- Conventions or preferences ("always use snake_case for DB columns")
+- Milestones ("auth module refactor is complete and tested")
+
+**Format:** `<remember>concise insight here</remember>`
+
+You do NOT need to tag routine observations or intermediate work. Only tag information that would be valuable to a future agent or session working on this project.

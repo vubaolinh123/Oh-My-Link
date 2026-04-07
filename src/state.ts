@@ -290,6 +290,40 @@ export function getPriorityContextPath(cwd: string): string {
   return normalizePath(path.join(getArtifactsDir(cwd), 'priority-context.md'));
 }
 
+// --- Memory System Paths (Phase 1) ---
+
+/**
+ * Get vector index file path.
+ * ~/.oh-my-link/projects/{hash}/vector-index.json
+ */
+export function getVectorIndexPath(cwd: string): string {
+  return normalizePath(path.join(getProjectStateRoot(cwd), 'vector-index.json'));
+}
+
+/**
+ * Get identity file path (project-level, user-authored).
+ * {cwd}/.oh-my-link/identity.md
+ */
+export function getIdentityPath(cwd: string): string {
+  return normalizePath(path.join(getArtifactsDir(cwd), 'identity.md'));
+}
+
+/**
+ * Get knowledge graph database path (Phase 2).
+ * ~/.oh-my-link/projects/{hash}/knowledge-graph.sqlite3
+ */
+export function getKnowledgeGraphPath(cwd: string): string {
+  return normalizePath(path.join(getProjectStateRoot(cwd), 'knowledge-graph.sqlite3'));
+}
+
+/**
+ * Get palace directory path (reserved for future use).
+ * ~/.oh-my-link/projects/{hash}/palace/
+ */
+export function getPalacePath(cwd: string): string {
+  return normalizePath(path.join(getProjectStateRoot(cwd), 'palace'));
+}
+
 // --- Project Registry ---
 
 /**

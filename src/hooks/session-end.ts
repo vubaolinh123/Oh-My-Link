@@ -39,6 +39,13 @@ async function main(): Promise<void> {
     try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* ignore */ }
   }
 
+  // Consolidate working-memory into vector index before session ends
+  try {
+    const { consolidateSession } = require('../memory/memory-stack') as { consolidateSession: (cwd: string) => void };
+    consolidateSession(cwd);
+    debugLog(cwd, 'session-end', 'memory consolidated to vector index');
+  } catch { /* best effort — memory modules may not exist */ }
+
   // Clear transient state files (write markers instead of deleting for audit trail)
   const stateRoot = getProjectStateRoot(cwd);
   const transientFiles = ['tool-tracking.json', 'last-tool-error.json', 'injected-skills.json'];

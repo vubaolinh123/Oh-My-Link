@@ -131,6 +131,25 @@ async function main(): Promise<void> {
     }
   }
 
+  // ── PRE-TOOL MEMORY FETCH ──
+  // For Edit/Write tools, fetch relevant memories about the target file
+  // to provide context before modifications. Hard cap: 300 chars.
+  if (session?.active && isWriteOperation(toolName)) {
+    try {
+      const { searchDocuments } = require('../memory/vector-store');
+      const filePath = (toolInput.file_path as string) || (toolInput.filePath as string) || '';
+      if (filePath) {
+        const basename = require('path').basename(filePath);
+        const results = searchDocuments(cwd, basename, 3);
+        if (results.length > 0) {
+          const memBlock = results.map((r: { document: { text: string } }) => r.document.text).join(' | ').slice(0, 300);
+          hookOutput('PreToolUse', `[File Memory: ${basename}] ${memBlock}`);
+          return;
+        }
+      }
+    } catch { /* best effort — memory modules may not be compiled yet */ }
+  }
+
   hookOutput('PreToolUse');
 }
 

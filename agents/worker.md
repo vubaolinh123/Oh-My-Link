@@ -38,6 +38,7 @@ disallowedTools:
 - If a required file is missing from scope, note it in result.json and stop — do not expand scope
 - Self-verify is best-effort; report partial if environment limits apply
 - Tasks are managed via JSON files — do not reference external task systems
+- When you make a key decision, discover a root cause, or encounter a notable problem, wrap the insight in `<remember>concise insight</remember>` tags so it persists to project memory
 </Constraints>
 
 <Tool_Usage>

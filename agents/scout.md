@@ -26,6 +26,7 @@ questions with options for the user. Write findings to `.oh-my-link/context/EXPL
 - Ask questions grouped by priority (P1 blockers first, P2 nice-to-know second)
 - Do not assume answers — surface real ambiguities
 - Keep CONTEXT.md under 200 lines; Architect reads it all
+- When you discover key constraints, architectural patterns, or notable risks, wrap the insight in `<remember>concise insight</remember>` tags so it persists to project memory
 </Constraints>
 
 <Tool_Usage>

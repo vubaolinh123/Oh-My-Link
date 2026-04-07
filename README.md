@@ -326,6 +326,7 @@ Config locations (merged in order, later overrides earlier):
 
 | Feature | How It Works |
 |---------|-------------|
+| **Automatic Memory System** | AAAK-compressed memories extracted from every session, persisted in a BM25 vector store, and injected at session/agent start — fully transparent, zero user action |
 | **Task Engine** | Task JSONs in `.oh-my-link/tasks/` with status flow: `pending` → `in_progress` → `done` / `failed` |
 | **File Locking** | `mkdir`-based atomic mutex with 30s TTL. Workers must acquire locks before editing. |
 | **Messaging** | JSON message files in `.oh-my-link/messages/` with thread-based routing |
@@ -336,12 +337,66 @@ Config locations (merged in order, later overrides earlier):
 | **Learnings** | Patterns extracted from sessions are saved and loaded in future sessions (compounding flywheel) |
 | **Always-On Mode** | Toggle with `oml on`/`oml off` — every prompt auto-triggers Start Link without keywords |
 
+### Automatic Memory System (v0.10.0)
+
+OML includes a fully automatic memory system inspired by [MemPalace](https://github.com/ultrawolff/mempalace). No user action required — hooks handle everything transparently.
+
+**How it works:**
+
+```
+Session Start
+  └─ wakeUp() loads L0 (identity) + L1 (top memories via BM25 search)
+       └─ Task-aware: "fix BM25 bug" fetches BM25-related memories first
+
+Agent runs tools (Bash/Edit/Write)
+  └─ post-tool-verifier auto-extracts decisions/milestones/problems
+       └─ AAAK compresses (~5-15x ratio) → stores in vector index
+
+SubAgent spawns (Worker/Scout/Architect)
+  └─ subagent-lifecycle injects role-relevant memories automatically
+
+Before file edits
+  └─ pre-tool-enforcer fetches file-specific memories (≤300 chars)
+
+Session End
+  └─ consolidateSession() flushes working-memory to vector store
+```
+
+**Core components (all pure TypeScript, zero runtime deps):**
+
+| Module | Purpose |
+|--------|---------|
+| `src/memory/aaak-dialect.ts` | AAAK compression engine — entity detection, topic extraction, emotion/flag classification |
+| `src/memory/memory-extractor.ts` | Extracts 5 memory types (decision, preference, milestone, problem, emotional) via regex heuristics |
+| `src/memory/vector-store.ts` | BM25 Okapi vector store with JSON file backing, SHA256 dedup, LRU eviction at 500 docs |
+| `src/memory/memory-stack.ts` | 4-layer memory stack: L0 Identity + L1 Essential Story + task-aware BM25 retrieval |
+
+**What's automatic:**
+
+- Memory **extraction**: Every tool output ≥200 chars is scanned for decisions/milestones/problems
+- Memory **compression**: All memories AAAK-compressed before storage (5-15x token reduction)
+- Memory **injection**: L0+L1 loaded at session start; task-relevant memories via BM25 search
+- Memory **per-agent**: Each SubAgent receives role-appropriate memory context at spawn
+- Memory **per-file**: File-specific memories injected before Edit/Write operations
+- Memory **consolidation**: Working memory flushed to vector store at session end
+- Agent **self-tagging**: Agents automatically wrap key insights in `<remember>` tags
+
+**Optional user action:**
+
+Create `.oh-my-link/identity.md` in your project root to seed L0 identity context:
+
+```markdown
+Project: E-commerce API
+Stack: TypeScript, Node.js, PostgreSQL
+Team: 3 developers, agile sprints
+```
+
 ### Live Statusline
 
 The plugin includes a HUD that shows real-time progress:
 
 ```
-╭─ OML v0.9.0 ✧ Start.Link ✧ Phase 5: Execution
+╭─ OML v0.10.0 ✧ Start.Link ✧ Phase 5: Execution
 ╰─ Ctx: [♥♥♥♥♡♡♡♡♡♡] 42% ┊ Session: 9m ┊ Agents: SAW ┊ R:0 F:0
 ```
 
@@ -353,6 +408,11 @@ The plugin includes a HUD that shows real-time progress:
 Oh-My-Link/
 ├── src/                  # TypeScript source
 │   ├── hooks/            # 10 Claude Code hook handlers
+│   ├── memory/           # Automatic memory system (MemPalace port)
+│   │   ├── aaak-dialect.ts    # AAAK compression engine
+│   │   ├── memory-extractor.ts # 5-type memory extraction
+│   │   ├── vector-store.ts    # BM25 vector store (JSON-backed)
+│   │   └── memory-stack.ts    # 4-layer memory stack
 │   ├── helpers.ts        # Shared utilities
 │   ├── state.ts          # Path and state management
 │   ├── types.ts          # Type definitions
@@ -366,7 +426,7 @@ Oh-My-Link/
 ├── skills/               # Skill definitions (20+ skills)
 ├── hooks/
 │   └── hooks.json        # Hook wiring configuration
-├── test/                 # 138+ tests across 4 suites
+├── test/                 # 176+ tests across 7 suites
 ├── .claude-plugin/       # Marketplace manifest
 └── .oh-my-link/          # Runtime artifacts (per-project, not committed)
     ├── plans/            # CONTEXT.md, plan.md, review.md
@@ -399,14 +459,14 @@ OML registers 10 hooks into the Claude Code lifecycle:
 |------------|--------|---------|
 | `UserPromptSubmit` | `keyword-detector.js` | Detect `start link`, `start fast`, `cancel oml` triggers |
 | `UserPromptSubmit` | `skill-injector.js` | Inject learned skills into context |
-| `SessionStart` | `session-start.js` | Load project memory and session state |
-| `PreToolUse` | `pre-tool-enforcer.js` | Role-based tool/path restrictions |
-| `PostToolUse` | `post-tool-verifier.js` | Hot path tracking, skill feedback |
+| `SessionStart` | `session-start.js` | Load layered memory (L0+L1), project memory, session state |
+| `PreToolUse` | `pre-tool-enforcer.js` | Role-based tool/path restrictions, file-specific memory fetch |
+| `PostToolUse` | `post-tool-verifier.js` | Auto-extract memories, AAAK compress, hot path tracking |
 | `PostToolUseFailure` | `post-tool-failure.js` | Track and handle tool failures |
 | `Stop` | `stop-handler.js` | Phase continuation, cancel signal, terminal detection |
 | `PreCompact` | `pre-compact.js` | Save state before context compaction |
-| `SubagentStart/Stop` | `subagent-lifecycle.js` | Agent role detection, phase advance, auto-completion |
-| `SessionEnd` | `session-end.js` | Cleanup, release locks, archive session |
+| `SubagentStart/Stop` | `subagent-lifecycle.js` | Agent role detection, memory injection, phase advance, auto-completion |
+| `SessionEnd` | `session-end.js` | Memory consolidation, cleanup, release locks, archive session |
 
 All hooks use the `run.cjs` wrapper for marketplace-safe path resolution — no absolute paths committed.
 
@@ -424,12 +484,15 @@ All hooks use the `run.cjs` wrapper for marketplace-safe path resolution — no 
 ```bash
 npm run build
 node test/run-tests.mjs           # 106 core tests
+node test/test-aaak.mjs           # 18 AAAK compression tests
+node test/test-memory-extractor.mjs # 22 memory extraction tests
+node test/test-vector-store.mjs   # 30 BM25 vector store tests
 node test/test-run-cjs.mjs        # 6 hook runner tests
 node test/test-phase-tracking.mjs # 16 phase tracking tests
 node test/test-new-features.mjs   # 11 resolution & config tests
 ```
 
-139 tests across 4 suites covering keyword detection, tool enforcement, state management, task engine, file locking, prompt leverage, session lifecycle, phase tracking, hook runner resolution, plugin root resolution, and per-project config merge.
+209 tests across 7 suites covering keyword detection, tool enforcement, state management, task engine, file locking, prompt leverage, session lifecycle, phase tracking, hook runner resolution, plugin root resolution, per-project config merge, AAAK compression, memory extraction, and BM25 vector search.
 
 ---
 

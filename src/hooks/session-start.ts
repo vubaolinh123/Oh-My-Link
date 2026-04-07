@@ -78,54 +78,73 @@ async function main(): Promise<void> {
   let priorityContextPart: string | null = null;
   let workingMemoryPart: string | null = null;
 
-  // 2. Load and auto-rescan project memory
+  // 2-4. Memory injection: try layered stack first, fall back to flat injection
+  let memoryInjected = false;
   try {
-    let memory = loadMemory(cwd);
-    if (needsRescan(memory)) {
-      const freshStack = detectProjectEnv(cwd);
-      memory.tech_stack = freshStack;
-      memory.last_scanned_at = new Date().toISOString();
-      saveMemory(cwd, memory);
+    const { wakeUp } = require('../memory/memory-stack') as { wakeUp: (cwd: string, taskHint?: string) => string | null };
+    const session = readJson<SessionState>(getSessionPath(cwd));
+    const taskHint = session?.feature_slug || '';
+    const memoryBlock = wakeUp(cwd, taskHint);
+    if (memoryBlock) {
+      parts.push(`[Memory]\n${memoryBlock}`);
+      debugLog(cwd, 'session-start', `injected: layered memory stack (${memoryBlock.length} chars)`);
+      memoryInjected = true;
     }
-    const memorySummary = formatSummary(memory, 650);
-    if (memorySummary) {
-      projectMemoryPart = `[Project Memory]\n${memorySummary}`;
-      debugLog(cwd, 'session-start', `injected: project-memory (${memorySummary.length} chars)`);
-    }
-  } catch { /* best effort */ }
-
-  // 3. Inject priority context content
-  const priorityPath = getPriorityContextPath(cwd);
-  if (fs.existsSync(priorityPath)) {
-    try {
-      const content = fs.readFileSync(priorityPath, 'utf-8').trim();
-      if (content) {
-        const capped = content.length > 500 ? content.substring(0, 500) : content;
-        priorityContextPart = `[Priority Context]\n${capped}`;
-        debugLog(cwd, 'session-start', `injected: priority-context`);
-      }
-    } catch { /* ignore */ }
+  } catch (err) {
+    debugLog(cwd, 'session-start', `memory-stack failed, falling back to flat injection: ${err}`);
   }
 
-  // 4. Inject working memory (last 5 entries)
-  const workingPath = getWorkingMemoryPath(cwd);
-  if (fs.existsSync(workingPath)) {
+  // Fallback: original flat injection if memory stack returned null or threw
+  if (!memoryInjected) {
+    // 2. Load and auto-rescan project memory
     try {
-      const content = fs.readFileSync(workingPath, 'utf-8').trim();
-      if (content) {
-        const entries = content.split(/\n---\n/).filter(e => e.trim());
-        const recent = entries.slice(-5).join('\n---\n');
-        const capped = recent.length > 800 ? recent.substring(recent.length - 800) : recent;
-        workingMemoryPart = `[Working Memory (Recent)]\n${capped}`;
-        debugLog(cwd, 'session-start', `injected: working-memory (${entries.length} entries)`);
+      let memory = loadMemory(cwd);
+      if (needsRescan(memory)) {
+        const freshStack = detectProjectEnv(cwd);
+        memory.tech_stack = freshStack;
+        memory.last_scanned_at = new Date().toISOString();
+        saveMemory(cwd, memory);
       }
-    } catch { /* ignore */ }
-  }
+      const memorySummary = formatSummary(memory, 650);
+      if (memorySummary) {
+        projectMemoryPart = `[Project Memory]\n${memorySummary}`;
+        debugLog(cwd, 'session-start', `injected: project-memory (${memorySummary.length} chars)`);
+      }
+    } catch { /* best effort */ }
 
-  // Insert in correct order: Priority Context FIRST (highest priority), then Working Memory, then Project Memory
-  if (priorityContextPart) parts.push(priorityContextPart);
-  if (workingMemoryPart) parts.push(workingMemoryPart);
-  if (projectMemoryPart) parts.push(projectMemoryPart);
+    // 3. Inject priority context content
+    const priorityPath = getPriorityContextPath(cwd);
+    if (fs.existsSync(priorityPath)) {
+      try {
+        const content = fs.readFileSync(priorityPath, 'utf-8').trim();
+        if (content) {
+          const capped = content.length > 500 ? content.substring(0, 500) : content;
+          priorityContextPart = `[Priority Context]\n${capped}`;
+          debugLog(cwd, 'session-start', `injected: priority-context`);
+        }
+      } catch { /* ignore */ }
+    }
+
+    // 4. Inject working memory (last 5 entries)
+    const workingPath = getWorkingMemoryPath(cwd);
+    if (fs.existsSync(workingPath)) {
+      try {
+        const content = fs.readFileSync(workingPath, 'utf-8').trim();
+        if (content) {
+          const entries = content.split(/\n---\n/).filter(e => e.trim());
+          const recent = entries.slice(-5).join('\n---\n');
+          const capped = recent.length > 800 ? recent.substring(recent.length - 800) : recent;
+          workingMemoryPart = `[Working Memory (Recent)]\n${capped}`;
+          debugLog(cwd, 'session-start', `injected: working-memory (${entries.length} entries)`);
+        }
+      } catch { /* ignore */ }
+    }
+
+    // Insert in correct order
+    if (priorityContextPart) parts.push(priorityContextPart);
+    if (workingMemoryPart) parts.push(workingMemoryPart);
+    if (projectMemoryPart) parts.push(projectMemoryPart);
+  }
 
   // 5. Check for active session (resume detection)
   const session = readJson<SessionState>(getSessionPath(cwd));

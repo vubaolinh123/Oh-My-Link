@@ -261,3 +261,65 @@ export interface ProjectRegistry {
   version: 1;
   projects: Record<string, ProjectEntry>;
 }
+
+// --- Memory System (Phase 1 — MemPalace deep integration) ---
+
+/** A single stored memory entry in the vector index */
+export interface MemoryDrawer {
+  id: string;             // SHA256 hash of raw content (8 chars), used for dedup
+  content: string;        // AAAK-compressed text
+  raw?: string;           // Original text before compression (truncated to 500 chars)
+  room: string;           // memory_type tag: 'decision'|'preference'|'milestone'|'problem'|'emotional'|'remember'|'diary'
+  source: string;         // Tool name or 'hook'
+  importance: number;     // 1-5 score (default 3). Used by Layer1 sorting
+  timestamp: string;      // ISO string
+  wing?: string;          // Optional topic wing for hierarchical organization
+}
+
+/** Configuration constants for the memory system */
+export interface MemoryConfig {
+  maxL1Drawers: number;   // Max entries in L1 (default 15, from layers.py line 83)
+  maxL1Chars: number;     // Hard cap on L1 text (default 3200, ~800 tokens, from layers.py line 84)
+  minConfidence: number;  // Min extraction confidence (default 0.3, from general_extractor.py line 363)
+  topicWings: string[];   // Wing categories (from config.py lines 14-22)
+  hallKeywords: Record<string, string[]>;  // Wing -> keyword list (from config.py lines 24-61)
+}
+
+/** Output of Dialect.compress() with stats */
+export interface CompressedMemory {
+  aaak: string;           // The compressed AAAK string
+  originalChars: number;
+  compressedChars: number;
+  ratio: number;          // originalChars / compressedChars
+}
+
+/** Output of extractMemories() — one extracted segment */
+export interface ExtractionResult {
+  content: string;        // Original paragraph text
+  memory_type: 'decision' | 'preference' | 'milestone' | 'problem' | 'emotional';
+  chunk_index: number;    // Position in source text (0-based)
+  confidence: number;     // 0.0-1.0
+}
+
+/** A document stored in the BM25 vector store */
+export interface VectorDocument {
+  id: string;             // SHA256 of raw content (8 chars), matches MemoryDrawer.id
+  text: string;           // AAAK-compressed or raw text (what is indexed + returned)
+  tokens: string[];       // Pre-tokenized for BM25 scoring (stop words removed)
+  metadata: Omit<MemoryDrawer, 'id' | 'content'>;
+  added_at: string;       // ISO string
+}
+
+/** A search result from the vector store */
+export interface SearchResult {
+  document: VectorDocument;
+  score: number;          // BM25 score (higher = more relevant)
+  rank: number;           // 1-based rank in results
+}
+
+/** The full vector index file: vector-index.json */
+export interface VectorIndex {
+  version: 1;
+  documents: VectorDocument[];
+  last_updated: string;   // ISO string
+}

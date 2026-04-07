@@ -12,6 +12,15 @@ import { getMcpGuidanceForRole } from '../mcp-config';
 // The heart of file-based agent coordination
 // ============================================================
 
+/** Cap tracking array to 200 entries, keeping running agents + most recent stopped ones. */
+function trimTracking(arr: SubagentRecord[]): SubagentRecord[] {
+  if (arr.length <= 200) return arr;
+  const running = arr.filter(a => a.status === 'running');
+  const stopped = arr.filter(a => a.status !== 'running');
+  const keep = Math.max(200 - running.length, 50);
+  return [...running, ...stopped.slice(-keep)];
+}
+
 // ── Auto Phase Tracking ─────────────────────────────────────
 // Phase ordering for forward-only advancement
 const MYLINK_PHASE_ORDER: string[] = [
@@ -280,6 +289,19 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
     }
   }
 
+  // ── MEMORY INJECTION ──
+  // Inject L0 identity + L1 vector memories so subagents start with historical context.
+  // Uses the agent description/prompt as taskHint for task-relevant retrieval.
+  let memoryBlock = '';
+  try {
+    const { wakeUp } = require('../memory/memory-stack');
+    const taskHint = description || prompt?.slice(0, 200) || '';
+    const result = wakeUp(cwd, taskHint);
+    if (result) {
+      memoryBlock = `\n\n[Memory]\n${result}`;
+    }
+  } catch { /* best effort — memory modules may not be compiled yet */ }
+
   // Auto-claim task for worker/executor roles
   if (isWorkerRole(role)) {
     const task = findAssignedTask(cwd, agentId, description);
@@ -294,10 +316,12 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
         // Append MCP guidance for this role
         const mcpGuidance = getMcpGuidanceForAgent(role, cwd);
         if (mcpGuidance) context += '\n' + mcpGuidance;
+        // Append memory context
+        if (memoryBlock) context += memoryBlock;
         // Dedup: remove existing entry with same ID (handles retries)
         const dedupedTracking = tracking.filter(a => a.agent_id !== agentId);
         dedupedTracking.push(record);
-        writeJsonAtomic(trackingPath, dedupedTracking);
+        writeJsonAtomic(trackingPath, trimTracking(dedupedTracking));
         hookOutput('SubagentStart', context);
         return;
       }
@@ -307,7 +331,7 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
   // Dedup: remove existing entry with same ID (handles retries)
   const dedupedTracking = tracking.filter(a => a.agent_id !== agentId);
   dedupedTracking.push(record);
-  writeJsonAtomic(trackingPath, dedupedTracking);
+  writeJsonAtomic(trackingPath, trimTracking(dedupedTracking));
 
   if (quiet < 2) {
     let context = `[oh-my-link] ${role} agent started (${agentId}).`;
@@ -315,6 +339,8 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
     // Append MCP guidance for this role
     const mcpGuidance = getMcpGuidanceForAgent(role, cwd);
     if (mcpGuidance) context += '\n' + mcpGuidance;
+    // Append memory context
+    if (memoryBlock) context += memoryBlock;
     hookOutput('SubagentStart', context);
   } else {
     hookOutput('SubagentStart');
@@ -349,7 +375,7 @@ async function handleStop(input: HookInput, cwd: string): Promise<void> {
       );
     }
 
-    writeJsonAtomic(trackingPath, tracking);
+    writeJsonAtomic(trackingPath, trimTracking(tracking));
 
     // ── AUTO PHASE ADVANCEMENT ON STOP ──
     // When the master agent stops after P7, auto-mark session as complete.
