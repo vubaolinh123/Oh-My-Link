@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, getCwd, getQuietLevel, readJson, writeJsonAtomic, debugLog, normalizeToolOutput } from '../helpers';
+import { parseHookInput, hookOutput, getCwd, getQuietLevel, readJson, writeJsonAtomic, debugLog, normalizeToolOutput, logMemoryUsage } from '../helpers';
 import { loadMemory, saveMemory, recordHotPath } from '../project-memory';
 import { getSessionPath, getProjectStateRoot, getWorkingMemoryPath,
          getPriorityContextPath, ensureDir, normalizePath } from '../state';
@@ -60,6 +60,7 @@ function extractFilePaths(toolName: string, toolInput: Record<string, unknown>):
 async function main(): Promise<void> {
   const input = await parseHookInput() as HookInput;
   const cwd = getCwd(input as Record<string, unknown>);
+  logMemoryUsage(cwd, 'post-tool-verifier:start');
   const session = readJson<SessionState>(getSessionPath(cwd));
 
   if (!session?.active) { hookOutput('PostToolUse'); return; }

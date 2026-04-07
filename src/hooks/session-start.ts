@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, readJson, getCwd, getQuietLevel, getElapsed, debugLog } from '../helpers';
+import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel, getElapsed, debugLog } from '../helpers';
 import {
   ensureRuntimeDirs, ensureArtifactDirs, getSessionPath,
   getProjectMemoryPath, getPriorityContextPath, getWorkingMemoryPath,
@@ -148,6 +148,16 @@ async function main(): Promise<void> {
 
   // 5. Check for active session (resume detection)
   const session = readJson<SessionState>(getSessionPath(cwd));
+
+  // Zombie cleanup: if session_ended_at is set, the previous CC session is dead.
+  // Deactivate so we show clean banner instead of misleading resume prompt.
+  if (session?.active && session.session_ended_at) {
+    debugLog(cwd, 'session-start', `zombie-cleared: mode=${session.mode} phase=${session.current_phase} ended=${session.session_ended_at}`);
+    session.active = false;
+    session.deactivated_reason = 'zombie_cleared_on_session_start';
+    try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* best effort */ }
+  }
+
   if (session?.active) {
     const mode = session.mode === 'mylink' ? 'Start Link' : 'Start Fast';
     const phase = session.current_phase;

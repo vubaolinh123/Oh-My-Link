@@ -1,12 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, promptContextOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel, debugLog } from '../helpers';
+import { parseHookInput, hookOutput, promptContextOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel, debugLog, logMemoryUsage } from '../helpers';
 import { loadMemory, saveMemory, addDirective } from '../project-memory';
 import { loadConfig, DEFAULT_MODELS, saveConfigField, isAlwaysOn, getModelForRole } from '../config';
 import { generateFramework, formatFramework } from '../prompt-leverage';
 import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot, getDebugLogPath, projectHash } from '../state';
 import { SessionState, HookInput, AgentRole } from '../types';
-import { listTasks, updateTaskStatus, cleanExpiredLocks } from '../task-engine';
+import { listTasks, updateTaskStatus, cleanExpiredLocks, failAllInProgressTasks } from '../task-engine';
 
 // ============================================================
 // Oh-My-Link — Keyword Detector (UserPromptSubmit)
@@ -152,6 +152,7 @@ async function main(): Promise<void> {
   }
 
   const cwd = getCwd(input as Record<string, unknown>);
+  logMemoryUsage(cwd, 'keyword-detector:start');
   const promptLower = prompt.toLowerCase();
   // Sanitize prompt to avoid false-trigger from code/URLs/paths
   const cleanPrompt = sanitize(prompt).toLowerCase();
@@ -165,6 +166,22 @@ async function main(): Promise<void> {
   let match = findKeywordMatch(cleanPrompt);
 
   debugLog(cwd, 'keyword', `match=${match ? match.action : 'none'}`);
+
+  // ── Zombie session cleanup ──
+  // session_ended_at is ONLY set by the SessionEnd hook when a Claude Code session terminates.
+  // If active=true AND session_ended_at is present, the previous CC session died mid-execution
+  // (session-end keeps active=true for critical phases to allow resume).
+  // Since keyword-detector is running NOW in a new CC session, that old session is permanently dead.
+  // Deactivate it so it doesn't block new invocations or always-on classification.
+  {
+    const maybeZombie = readJson<SessionState>(getSessionPath(cwd));
+    if (maybeZombie?.active && maybeZombie.session_ended_at) {
+      debugLog(cwd, 'keyword', `zombie-cleared: mode=${maybeZombie.mode} phase=${maybeZombie.current_phase} ended=${maybeZombie.session_ended_at}`);
+      maybeZombie.active = false;
+      maybeZombie.deactivated_reason = 'zombie_cleared';
+      try { writeJsonAtomic(getSessionPath(cwd), maybeZombie); } catch { /* best effort */ }
+    }
+  }
   
   // Always-On: if no keyword matched but always_on is enabled,
   // auto-classify task complexity and trigger the appropriate mode
@@ -320,6 +337,53 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Same-mode re-invoke handling
+  if (session?.active && (
+    (match.action === 'invoke' && session.mode === 'mylink') ||
+    (match.action === 'invoke-light' && session.mode === 'mylight')
+  )) {
+    const isForce = /\bforce\b/i.test(cleanPrompt);
+
+    if (isForce) {
+      // Force re-invoke: clean up old session, create fresh one
+      debugLog(cwd, 'keyword', `force-reinvoke: mode=${session.mode} phase=${session.current_phase}`);
+
+      // Fail all in-progress tasks
+      try { failAllInProgressTasks(cwd, 'force_reinvoke: session restarted by user'); } catch { /* best effort */ }
+
+      // Also fail pending tasks (fresh start)
+      try {
+        const pendingTasks = listTasks(cwd, 'pending');
+        for (const task of pendingTasks) {
+          updateTaskStatus(cwd, task.link_id, 'failed', 'force_reinvoke: session restarted by user');
+        }
+      } catch { /* best effort */ }
+
+      // Clean locks
+      try { cleanExpiredLocks(cwd); } catch { /* best effort */ }
+
+      // Deactivate old session so the creation block below creates a fresh one
+      session.active = false;
+      session.deactivated_reason = 'force_reinvoke';
+      session.session_ended_at = new Date().toISOString();
+      try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* best effort */ }
+
+      // Fall through to create new session below
+    } else {
+      // Same mode, no force: warn user
+      const modeLabel = session.mode === 'mylink' ? 'Start Link' : 'Start Fast';
+      const cancelCmd = session.mode === 'mylink' ? 'cancel link' : 'cancel fast';
+      const startCmd = match.action === 'invoke' ? 'start link force' : 'start fast force';
+      hookOutput('UserPromptSubmit',
+        `[oh-my-link] A ${modeLabel} session is already active (phase: ${session.current_phase}).\n` +
+        `Options:\n` +
+        `- Say "${startCmd}" to force restart with a clean slate\n` +
+        `- Say "${cancelCmd}" to cancel current session\n` +
+        `- Just continue working — the active session will resume automatically`);
+      return;
+    }
+  }
+
   // Write/update session state for mode invocations
   if (match.action === 'invoke' || match.action === 'invoke-light') {
     const mode = match.action === 'invoke' ? 'mylink' : 'mylight' as const;
@@ -404,6 +468,7 @@ async function main(): Promise<void> {
   // step-by-step orchestration instructions that Claude treats as its PRIMARY task.
   const imperativePrompt = buildImperativePrompt(match.action, augmentedPrompt, effectiveSkill, modelConfig, cwd);
 
+  logMemoryUsage(cwd, 'keyword-detector:end');
   promptContextOutput(imperativePrompt);
 }
 

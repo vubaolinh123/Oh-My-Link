@@ -1,6 +1,6 @@
 {
   "name": "oh-my-link",
-  "version": "0.10.1",
+  "version": "0.10.2",
   "description": "Multi-agent orchestration for Claude Code — built from Claude Code source code leak",
   "author": { "name": "vubaolinh123" },
   "license": "MIT",

@@ -1,4 +1,4 @@
-import { parseHookInput, hookOutput, toolDenyOutput, getCwd, debugLog } from '../helpers';
+import { parseHookInput, hookOutput, toolDenyOutput, getCwd, debugLog, logMemoryUsage } from '../helpers';
 import { getSessionPath } from '../state';
 import { readJson } from '../helpers';
 import { SessionState, HookInput } from '../types';
@@ -65,6 +65,7 @@ async function main(): Promise<void> {
   const toolName = input.tool_name || '';
   const toolInput = (input.tool_input || {}) as Record<string, unknown>;
   const cwd = getCwd(input as Record<string, unknown>);
+  logMemoryUsage(cwd, 'pre-tool-enforcer:start');
 
   // Read session for file locking checks
   const session = readJson<SessionState>(getSessionPath(cwd));

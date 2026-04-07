@@ -508,6 +508,15 @@ export function claimNextTask(cwd: string, holder: string): TaskAssignment | nul
   return null;
 }
 
+/** Fail all in-progress tasks with a reason. Returns count of tasks failed. */
+export function failAllInProgressTasks(cwd: string, reason: string): number {
+  const inProgress = listTasks(cwd, 'in_progress');
+  for (const task of inProgress) {
+    updateTaskStatus(cwd, task.link_id, 'failed', reason);
+  }
+  return inProgress.length;
+}
+
 /** List all current file locks across all holders */
 export function listAllLocks(cwd: string): FileLock[] {
   const locksDir = getLocksDir(cwd);

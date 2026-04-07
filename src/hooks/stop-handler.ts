@@ -11,6 +11,7 @@ import {
   getElapsed,
   logError,
   debugLog,
+  logMemoryUsage,
 } from '../helpers';
 import {
   getSessionPath,
@@ -131,6 +132,7 @@ function writeHandoff(cwd: string, session: SessionState, trigger: string): void
 async function main(): Promise<void> {
   const input = await parseHookInput() as HookInput;
   const cwd = getCwd(input as Record<string, unknown>);
+  logMemoryUsage(cwd, 'stop-handler:start');
 
   // Read session state
   const session = readJson<SessionState>(getSessionPath(cwd));

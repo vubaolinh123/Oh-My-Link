@@ -450,6 +450,21 @@ export function debugLog(cwd: string, source: string, message: string): void {
 }
 
 /**
+ * Log process memory usage to debug log. Lightweight — only runs when debug mode is on.
+ * Call at hook entry/exit to trace memory consumption per hook.
+ */
+export function logMemoryUsage(cwd: string, label: string): void {
+  try {
+    if (!isDebugMode(cwd)) return;
+    const mem = process.memoryUsage();
+    const rss = (mem.rss / 1024 / 1024).toFixed(1);
+    const heap = (mem.heapUsed / 1024 / 1024).toFixed(1);
+    const heapTotal = (mem.heapTotal / 1024 / 1024).toFixed(1);
+    debugLog(cwd, 'mem:process', `${label} rss=${rss}MB heap=${heap}/${heapTotal}MB`);
+  } catch { /* best effort */ }
+}
+
+/**
  * Check if debug mode is enabled (global or project-level).
  * CACHED per process — reads config files at most once per cwd to eliminate
  * ~18 redundant readFileSync calls per tool call.

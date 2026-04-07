@@ -1,9 +1,9 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, simpleOutput, readJson, writeJsonAtomic, getCwd, isCriticalPhase, debugLog } from '../helpers';
-import { getSessionPath, getProjectStateRoot, normalizePath } from '../state';
-import { SessionState, HookInput } from '../types';
-import { cleanExpiredLocks } from '../task-engine';
+import { parseHookInput, simpleOutput, readJson, writeJsonAtomic, getCwd, isCriticalPhase, debugLog, logMemoryUsage } from '../helpers';
+import { getSessionPath, getProjectStateRoot, getCheckpointPath, getSubagentTrackingPath, getToolTrackingPath, normalizePath } from '../state';
+import { SessionState, HookInput, SubagentRecord } from '../types';
+import { cleanExpiredLocks, listTasks, failAllInProgressTasks, releaseAllLocks, listAllLocks } from '../task-engine';
 
 // Critical phases where we must NOT deactivate (to allow resume)
 const CRITICAL_PHASES = [
@@ -17,6 +17,7 @@ const CRITICAL_PHASES = [
 async function main(): Promise<void> {
   const input = await parseHookInput() as HookInput;
   const cwd = getCwd(input as Record<string, unknown>);
+  logMemoryUsage(cwd, 'session-end:start');
 
   // Read session early for debug logging
   const session = readJson<SessionState>(getSessionPath(cwd));
@@ -33,8 +34,73 @@ async function main(): Promise<void> {
       session.session_ended_at = now;
       session.deactivated_reason = 'session_ended';
     } else {
-      // Critical phase: keep active but still record that the Claude session ended
+      // Critical phase: Claude session ended mid-execution.
+      // Keep active flag for potential resume, but snapshot state + fail orphan tasks.
       session.session_ended_at = now;
+
+      // 1. Fail all in-progress tasks (they can't continue without Claude)
+      const failedCount = failAllInProgressTasks(cwd, 'session_end: Claude session terminated mid-execution');
+      debugLog(cwd, 'session-end', `failed ${failedCount} in-progress tasks`);
+
+      // 2. Release all file locks (no agent can hold them after session dies)
+      try {
+        const allLocks = listAllLocks(cwd);
+        for (const lock of allLocks) {
+          releaseAllLocks(cwd, lock.holder);
+        }
+        debugLog(cwd, 'session-end', `released locks for ${allLocks.length} holders`);
+      } catch { /* best effort */ }
+
+      // 3. Write checkpoint for session resumption
+      try {
+        const tracking = readJson<Record<string, unknown>>(getToolTrackingPath(cwd)) || {};
+        const subagents = readJson<SubagentRecord[]>(getSubagentTrackingPath(cwd)) || [];
+        const checkpoint = {
+          session: { ...session },
+          active_tasks: listTasks(cwd, 'in_progress'), // should be 0 after failAll, but snapshot anyway
+          failed_tasks_count: failedCount,
+          tool_tracking: {
+            files_modified: (tracking as any).files_modified || [],
+            tool_count: (tracking as any).tool_count || 0,
+          },
+          active_agents: subagents
+            .filter((a: SubagentRecord) => a.status === 'running')
+            .map((a: SubagentRecord) => ({ agent_id: a.agent_id, role: a.role, started_at: a.started_at })),
+          created_at: now,
+          trigger: 'session_end_interrupted' as const,
+        };
+        writeJsonAtomic(getCheckpointPath(cwd), checkpoint);
+        debugLog(cwd, 'session-end', 'checkpoint written for interrupted session');
+      } catch (err) { debugLog(cwd, 'session-end', `checkpoint write failed: ${(err as Error)?.message}`); }
+
+      // 4. Write handoff for next session
+      try {
+        const handoffsDir = path.join(getProjectStateRoot(cwd), 'handoffs');
+        if (!fs.existsSync(handoffsDir)) fs.mkdirSync(handoffsDir, { recursive: true });
+        const handoffPath = normalizePath(path.join(handoffsDir, `session_end_interrupted-${Date.now()}.md`));
+        const content = [
+          `## Handoff: session_end_interrupted`,
+          ``,
+          `**Phase:** ${session.current_phase}`,
+          `**Time:** ${now}`,
+          `**Failed tasks:** ${failedCount}`,
+          ``,
+          `### Resume Instructions`,
+          `1. Read checkpoint.json for full state snapshot`,
+          `2. Failed tasks need to be re-created or retried`,
+          `3. Continue from phase: ${session.current_phase}`,
+        ].join('\n');
+        fs.writeFileSync(handoffPath, content, 'utf-8');
+        // Cleanup old handoffs — keep only the last 10
+        try {
+          const allHandoffs = fs.readdirSync(handoffsDir).filter((f: string) => f.endsWith('.md')).sort();
+          if (allHandoffs.length > 10) {
+            for (const old of allHandoffs.slice(0, allHandoffs.length - 10)) {
+              try { fs.unlinkSync(path.join(handoffsDir, old)); } catch { /* best effort */ }
+            }
+          }
+        } catch { /* best effort */ }
+      } catch { /* best effort */ }
     }
     try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* ignore */ }
   }
@@ -60,6 +126,7 @@ async function main(): Promise<void> {
     } catch { /* ignore */ }
   }
 
+  logMemoryUsage(cwd, 'session-end:end');
   simpleOutput();
 }
 
