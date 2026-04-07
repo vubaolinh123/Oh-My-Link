@@ -1,6 +1,10 @@
 # Oh-My-Link — Multi-Agent Orchestration for Claude Code
 
 <p align="center">
+  <a href="README.vi.md">Vietnamese / Tiếng Việt</a>
+</p>
+
+<p align="center">
   <em>Seven phases. Twelve agents. File-based coordination.<br/>
   A structured pipeline that turns complex requests into reviewed, production-ready code.</em>
 </p>
