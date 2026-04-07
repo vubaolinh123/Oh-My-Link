@@ -130,14 +130,18 @@ export function sessionWriteAudit(sessionPath: string, message: string): void {
     const entry = `[${ts}] pid=${pid} argv=${argv} session=${sessionPath} ${message} stack=[${stackLines}]\n`;
     fs.appendFileSync(auditPath, entry, 'utf-8');
 
-    // Rotate: cap at 200KB
+    // Rotate: cap at 200KB — use fd-based tail read to avoid heap bloat
     try {
       const stats = fs.statSync(auditPath);
       if (stats.size > 200_000) {
-        const content = fs.readFileSync(auditPath, 'utf-8');
-        const truncated = content.slice(content.length - 100_000);
-        const firstNl = truncated.indexOf('\n');
-        fs.writeFileSync(auditPath, firstNl >= 0 ? truncated.slice(firstNl + 1) : truncated, 'utf-8');
+        const KEEP = 100_000;
+        const fd = fs.openSync(auditPath, 'r');
+        const buf = Buffer.alloc(KEEP);
+        fs.readSync(fd, buf, 0, KEEP, stats.size - KEEP);
+        fs.closeSync(fd);
+        const tail = buf.toString('utf-8');
+        const firstNl = tail.indexOf('\n');
+        fs.writeFileSync(auditPath, firstNl >= 0 ? tail.slice(firstNl + 1) : tail, 'utf-8');
       }
     } catch { /* rotation is best effort */ }
   } catch {
@@ -225,6 +229,39 @@ function captureRawPayload(raw: string): void {
   } catch {
     // Payload capture must never throw
   }
+}
+
+/**
+ * Normalize tool output from Claude Code's hook payload.
+ *
+ * Claude Code sends `tool_response` (object with stdout/stderr or string), NOT `tool_output`.
+ * This was discovered via raw payload capture on 2026-04-07:
+ *   - PostToolUse for Bash: { tool_response: { stdout: "...", stderr: "..." } }
+ *   - PostToolUse for Edit: { tool_response: { filePath: "...", oldString: "...", ... } }
+ *   - PostToolUseFailure: { tool_error: "..." }
+ *   - `tool_output` is NEVER sent by Claude Code.
+ *
+ * Returns a flat string suitable for pattern matching / memory extraction.
+ */
+export function normalizeToolOutput(input: Record<string, unknown>): string {
+  // 1. Prefer tool_response (what Claude Code actually sends)
+  const resp = input.tool_response;
+  if (resp != null) {
+    if (typeof resp === 'string') return resp;
+    if (typeof resp === 'object') {
+      const r = resp as Record<string, unknown>;
+      // Bash: { stdout, stderr }
+      const parts: string[] = [];
+      if (typeof r.stdout === 'string' && r.stdout) parts.push(r.stdout);
+      if (typeof r.stderr === 'string' && r.stderr) parts.push(r.stderr);
+      if (parts.length > 0) return parts.join('\n');
+      // Edit/Write: stringify the object for downstream consumers
+      try { return JSON.stringify(r); } catch { return ''; }
+    }
+  }
+  // 2. Fallback to tool_output (for tests & any future CC changes)
+  if (typeof input.tool_output === 'string') return input.tool_output;
+  return '';
 }
 
 /**
@@ -354,6 +391,21 @@ export function logError(source: string, message: string): void {
     const entry = `[${timestamp}] [${source}] ${message}\n`;
 
     fs.appendFileSync(logPath, entry, 'utf-8');
+
+    // Rotate: cap at 500KB
+    try {
+      const stats = fs.statSync(logPath);
+      if (stats.size > 512_000) {
+        const KEEP = 256_000;
+        const fd = fs.openSync(logPath, 'r');
+        const buf = Buffer.alloc(KEEP);
+        fs.readSync(fd, buf, 0, KEEP, stats.size - KEEP);
+        fs.closeSync(fd);
+        const tail = buf.toString('utf-8');
+        const nl = tail.indexOf('\n');
+        fs.writeFileSync(logPath, nl >= 0 ? tail.slice(nl + 1) : tail, 'utf-8');
+      }
+    } catch { /* best effort */ }
   } catch {
     // Cannot log the logging error — silent fail is acceptable here
   }
@@ -377,15 +429,19 @@ export function debugLog(cwd: string, source: string, message: string): void {
 
     fs.appendFileSync(logPath, entry, 'utf-8');
 
-    // Rotate: if file exceeds 500KB, truncate to last 250KB
+    // Rotate: if file exceeds 500KB, truncate by rewriting only the tail.
+    // Use fd-based read to avoid loading entire file into V8 heap.
     try {
       const stats = fs.statSync(logPath);
       if (stats.size > 512_000) {
-        const content = fs.readFileSync(logPath, 'utf-8');
-        const truncated = content.slice(content.length - 256_000);
-        // Start from first newline to avoid partial line
-        const firstNewline = truncated.indexOf('\n');
-        fs.writeFileSync(logPath, firstNewline >= 0 ? truncated.slice(firstNewline + 1) : truncated, 'utf-8');
+        const KEEP_BYTES = 256_000;
+        const fd = fs.openSync(logPath, 'r');
+        const buf = Buffer.alloc(KEEP_BYTES);
+        fs.readSync(fd, buf, 0, KEEP_BYTES, stats.size - KEEP_BYTES);
+        fs.closeSync(fd);
+        const tail = buf.toString('utf-8');
+        const firstNewline = tail.indexOf('\n');
+        fs.writeFileSync(logPath, firstNewline >= 0 ? tail.slice(firstNewline + 1) : tail, 'utf-8');
       }
     } catch { /* best effort rotation */ }
   } catch {
@@ -395,28 +451,47 @@ export function debugLog(cwd: string, source: string, message: string): void {
 
 /**
  * Check if debug mode is enabled (global or project-level).
- * Extracted to avoid duplicating the config-read logic.
+ * CACHED per process — reads config files at most once per cwd to eliminate
+ * ~18 redundant readFileSync calls per tool call.
  */
-export function isDebugMode(cwd?: string): boolean {
-  try {
-    const configPath = normalizePath(path.join(
-      process.env.OML_HOME || path.join(os.homedir(), '.oh-my-link'),
-      'config.json'
-    ));
-    try {
-      const raw = fs.readFileSync(configPath, 'utf-8');
-      if (JSON.parse(raw).debug_mode === true) return true;
-    } catch { /* config unreadable */ }
+const _debugModeCache = new Map<string, boolean>();
+let _debugModeGlobal: boolean | undefined;
 
-    if (cwd) {
-      try {
-        const projectConfigPath = normalizePath(path.join(cwd, '.oh-my-link', 'config.json'));
-        const raw = fs.readFileSync(projectConfigPath, 'utf-8');
-        if (JSON.parse(raw).debug_mode === true) return true;
-      } catch { /* no project config */ }
-    }
-  } catch { /* safety net */ }
+export function isDebugMode(cwd?: string): boolean {
+  // Check global config (cached per process)
+  if (_debugModeGlobal === undefined) {
+    _debugModeGlobal = false;
+    try {
+      const configPath = normalizePath(path.join(
+        process.env.OML_HOME || path.join(os.homedir(), '.oh-my-link'),
+        'config.json'
+      ));
+      const raw = fs.readFileSync(configPath, 'utf-8');
+      _debugModeGlobal = JSON.parse(raw).debug_mode === true;
+    } catch { /* config unreadable */ }
+  }
+  if (_debugModeGlobal) return true;
+
+  // Check project-level config (cached per cwd)
+  if (cwd) {
+    const cached = _debugModeCache.get(cwd);
+    if (cached !== undefined) return cached;
+    let result = false;
+    try {
+      const projectConfigPath = normalizePath(path.join(cwd, '.oh-my-link', 'config.json'));
+      const raw = fs.readFileSync(projectConfigPath, 'utf-8');
+      result = JSON.parse(raw).debug_mode === true;
+    } catch { /* no project config */ }
+    _debugModeCache.set(cwd, result);
+    return result;
+  }
   return false;
+}
+
+/** Reset isDebugMode cache — for testing only. */
+export function _resetDebugModeCache(): void {
+  _debugModeGlobal = undefined;
+  _debugModeCache.clear();
 }
 
 /**

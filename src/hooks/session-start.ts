@@ -84,14 +84,17 @@ async function main(): Promise<void> {
     const { wakeUp } = require('../memory/memory-stack') as { wakeUp: (cwd: string, taskHint?: string) => string | null };
     const session = readJson<SessionState>(getSessionPath(cwd));
     const taskHint = session?.feature_slug || '';
+    debugLog(cwd, 'mem:wakeup', `calling wakeUp(taskHint="${taskHint}")`);
     const memoryBlock = wakeUp(cwd, taskHint);
     if (memoryBlock) {
       parts.push(`[Memory]\n${memoryBlock}`);
-      debugLog(cwd, 'session-start', `injected: layered memory stack (${memoryBlock.length} chars)`);
+      debugLog(cwd, 'mem:wakeup', `injected layered memory stack: ${memoryBlock.length} chars`);
       memoryInjected = true;
+    } else {
+      debugLog(cwd, 'mem:wakeup', 'wakeUp returned null — falling back to flat injection');
     }
   } catch (err) {
-    debugLog(cwd, 'session-start', `memory-stack failed, falling back to flat injection: ${err}`);
+    debugLog(cwd, 'mem:wakeup', `FAILED, falling back to flat injection: ${(err as Error)?.message || err}`);
   }
 
   // Fallback: original flat injection if memory stack returned null or threw
@@ -108,7 +111,7 @@ async function main(): Promise<void> {
       const memorySummary = formatSummary(memory, 650);
       if (memorySummary) {
         projectMemoryPart = `[Project Memory]\n${memorySummary}`;
-        debugLog(cwd, 'session-start', `injected: project-memory (${memorySummary.length} chars)`);
+        debugLog(cwd, 'mem:flat', `injected project-memory: ${memorySummary.length} chars`);
       }
     } catch { /* best effort */ }
 
@@ -118,24 +121,21 @@ async function main(): Promise<void> {
       try {
         const content = fs.readFileSync(priorityPath, 'utf-8').trim();
         if (content) {
-          const capped = content.length > 500 ? content.substring(0, 500) : content;
-          priorityContextPart = `[Priority Context]\n${capped}`;
-          debugLog(cwd, 'session-start', `injected: priority-context`);
+          priorityContextPart = `[Priority Context]\n${content}`;
+          debugLog(cwd, 'mem:flat', 'injected priority-context');
         }
       } catch { /* ignore */ }
     }
 
-    // 4. Inject working memory (last 5 entries)
+    // 4. Inject working memory (all entries)
     const workingPath = getWorkingMemoryPath(cwd);
     if (fs.existsSync(workingPath)) {
       try {
         const content = fs.readFileSync(workingPath, 'utf-8').trim();
         if (content) {
-          const entries = content.split(/\n---\n/).filter(e => e.trim());
-          const recent = entries.slice(-5).join('\n---\n');
-          const capped = recent.length > 800 ? recent.substring(recent.length - 800) : recent;
-          workingMemoryPart = `[Working Memory (Recent)]\n${capped}`;
-          debugLog(cwd, 'session-start', `injected: working-memory (${entries.length} entries)`);
+          workingMemoryPart = `[Working Memory]\n${content}`;
+          const entryCount = content.split(/\n---\n/).filter(e => e.trim()).length;
+          debugLog(cwd, 'mem:flat', `injected working-memory: ${entryCount} entries`);
         }
       } catch { /* ignore */ }
     }

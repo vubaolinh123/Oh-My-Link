@@ -114,6 +114,17 @@ function writeHandoff(cwd: string, session: SessionState, trigger: string): void
       `3. Continue from the phase indicated above`,
     ].join('\n');
     fs.writeFileSync(handoffPath, content, 'utf-8');
+    // Cleanup old handoffs — keep only the last 10
+    try {
+      const allHandoffs = fs.readdirSync(handoffsDir)
+        .filter(f => f.endsWith('.md'))
+        .sort();
+      if (allHandoffs.length > 10) {
+        for (const old of allHandoffs.slice(0, allHandoffs.length - 10)) {
+          try { fs.unlinkSync(path.join(handoffsDir, old)); } catch { /* best effort */ }
+        }
+      }
+    } catch { /* best effort */ }
   } catch { /* best effort */ }
 }
 

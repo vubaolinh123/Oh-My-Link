@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, logError, debugLog } from '../helpers';
+import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, logError, debugLog, normalizeToolOutput } from '../helpers';
 import { getProjectStateRoot, getSessionPath, normalizePath } from '../state';
 import { HookInput, SessionState } from '../types';
 import { detectMcpTool } from '../mcp-config';
@@ -37,7 +37,8 @@ async function main(): Promise<void> {
   const input = await parseHookInput() as HookInput;
   const cwd = getCwd(input as Record<string, unknown>);
   const toolName = input.tool_name || 'unknown';
-  const toolError = (input.tool_error || input.tool_output || '') as string;
+  // PostToolUseFailure receives tool_error; fall back to tool_response/tool_output via normalizer
+  const toolError = (input.tool_error as string) || normalizeToolOutput(input as Record<string, unknown>) || '';
 
   // Path containment guard — verify stateDir is under known roots
   const stateDir = getProjectStateRoot(cwd);

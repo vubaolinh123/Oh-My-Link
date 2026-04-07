@@ -27,7 +27,7 @@ const BM25_B = 0.75;
 // ── Capacity ───────────────────────────────────────────────────────
 
 /** Maximum documents in the index (LRU eviction above this) */
-const MAX_DOCUMENTS = 500;
+// No document cap — allow full growth for large projects
 
 // ── Tokenizer ──────────────────────────────────────────────────────
 
@@ -85,7 +85,7 @@ export function saveIndex(cwd: string, index: VectorIndex): void {
 
 /**
  * Add a document to the vector index.
- * Deduplicates by id. Enforces MAX_DOCUMENTS with LRU eviction
+ * Deduplicates by id.
  * (removes oldest by added_at). Returns the document id.
  */
 export function addDocument(
@@ -111,14 +111,6 @@ export function addDocument(
   };
 
   index.documents.push(doc);
-
-  // LRU eviction: keep newest documents
-  if (index.documents.length > MAX_DOCUMENTS) {
-    index.documents.sort(
-      (a, b) => new Date(a.added_at).getTime() - new Date(b.added_at).getTime(),
-    );
-    index.documents = index.documents.slice(index.documents.length - MAX_DOCUMENTS);
-  }
 
   saveIndex(cwd, index);
   return id;

@@ -12,14 +12,7 @@ import { getMcpGuidanceForRole } from '../mcp-config';
 // The heart of file-based agent coordination
 // ============================================================
 
-/** Cap tracking array to 200 entries, keeping running agents + most recent stopped ones. */
-function trimTracking(arr: SubagentRecord[]): SubagentRecord[] {
-  if (arr.length <= 200) return arr;
-  const running = arr.filter(a => a.status === 'running');
-  const stopped = arr.filter(a => a.status !== 'running');
-  const keep = Math.max(200 - running.length, 50);
-  return [...running, ...stopped.slice(-keep)];
-}
+// (trimTracking removed — allow full tracking history for large projects)
 
 // ── Auto Phase Tracking ─────────────────────────────────────
 // Phase ordering for forward-only advancement
@@ -321,7 +314,7 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
         // Dedup: remove existing entry with same ID (handles retries)
         const dedupedTracking = tracking.filter(a => a.agent_id !== agentId);
         dedupedTracking.push(record);
-        writeJsonAtomic(trackingPath, trimTracking(dedupedTracking));
+        writeJsonAtomic(trackingPath, dedupedTracking);
         hookOutput('SubagentStart', context);
         return;
       }
@@ -331,7 +324,7 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
   // Dedup: remove existing entry with same ID (handles retries)
   const dedupedTracking = tracking.filter(a => a.agent_id !== agentId);
   dedupedTracking.push(record);
-  writeJsonAtomic(trackingPath, trimTracking(dedupedTracking));
+  writeJsonAtomic(trackingPath, dedupedTracking);
 
   if (quiet < 2) {
     let context = `[oh-my-link] ${role} agent started (${agentId}).`;
@@ -375,7 +368,7 @@ async function handleStop(input: HookInput, cwd: string): Promise<void> {
       );
     }
 
-    writeJsonAtomic(trackingPath, trimTracking(tracking));
+    writeJsonAtomic(trackingPath, tracking);
 
     // ── AUTO PHASE ADVANCEMENT ON STOP ──
     // When the master agent stops after P7, auto-mark session as complete.

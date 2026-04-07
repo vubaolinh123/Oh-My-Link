@@ -103,6 +103,18 @@ async function main(): Promise<void> {
   ].join('\n');
   try { fs.writeFileSync(handoffPath, handoff, 'utf-8'); } catch { /* ignore */ }
 
+  // Cleanup old handoffs — keep only the last 10
+  try {
+    const allHandoffs = fs.readdirSync(handoffDir)
+      .filter(f => f.endsWith('.md'))
+      .sort();
+    if (allHandoffs.length > 10) {
+      for (const old of allHandoffs.slice(0, allHandoffs.length - 10)) {
+        try { fs.unlinkSync(path.join(handoffDir, old)); } catch { /* best effort */ }
+      }
+    }
+  } catch { /* best effort */ }
+
   // 3. Update session state
   session.last_checked_at = now;
   try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* ignore */ }

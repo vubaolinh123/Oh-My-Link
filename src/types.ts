@@ -12,6 +12,9 @@ export interface HookInput {
   tool_name?: string;
   tool_input?: Record<string, unknown>;
   tool_output?: string;
+  /** Claude Code sends tool output as `tool_response` (object or string), not `tool_output`.
+   *  Discovered via raw payload capture: PostToolUse contains tool_response with stdout/stderr fields. */
+  tool_response?: string | Record<string, unknown>;
   tool_error?: string;
   // Claude Code SubagentStart fields — both snake_case and camelCase variants
   agent_type?: string;

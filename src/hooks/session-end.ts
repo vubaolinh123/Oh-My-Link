@@ -42,9 +42,10 @@ async function main(): Promise<void> {
   // Consolidate working-memory into vector index before session ends
   try {
     const { consolidateSession } = require('../memory/memory-stack') as { consolidateSession: (cwd: string) => void };
+    debugLog(cwd, 'mem:consolidate', 'starting session-end memory consolidation');
     consolidateSession(cwd);
-    debugLog(cwd, 'session-end', 'memory consolidated to vector index');
-  } catch { /* best effort — memory modules may not exist */ }
+    debugLog(cwd, 'mem:consolidate', 'memory consolidated to vector index');
+  } catch (err) { debugLog(cwd, 'mem:consolidate', `FAILED: ${(err as Error)?.message || err}`); }
 
   // Clear transient state files (write markers instead of deleting for audit trail)
   const stateRoot = getProjectStateRoot(cwd);

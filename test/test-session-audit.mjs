@@ -107,7 +107,7 @@ writeGlobalConfig({ debug_mode: true });
 
 // Load module
 const helpers = require(path.join(DIST, 'helpers.js'));
-const { writeJsonAtomic, readJson, isDebugMode, sessionWriteAudit } = helpers;
+const { writeJsonAtomic, readJson, isDebugMode, sessionWriteAudit, _resetDebugModeCache } = helpers;
 
 console.log('Oh-My-Link — Session Audit & Hardening Tests');
 console.log(`TEMP_ROOT: ${TEMP_ROOT}`);
@@ -352,24 +352,28 @@ suite('parseHookInput raw payload capture', () => {
 suite('isDebugMode helper', () => {
 
   test('With global config debug_mode: true — should return true', () => {
+    _resetDebugModeCache();
     writeGlobalConfig({ debug_mode: true });
     const result = isDebugMode();
     assertEqual(result, true, 'isDebugMode should return true');
   });
 
   test('With global config debug_mode: false — should return false', () => {
+    _resetDebugModeCache();
     writeGlobalConfig({ debug_mode: false });
     const result = isDebugMode();
     assertEqual(result, false, 'isDebugMode should return false');
   });
 
   test('With no config file — should return false', () => {
+    _resetDebugModeCache();
     removeGlobalConfig();
     const result = isDebugMode();
     assertEqual(result, false, 'isDebugMode should return false when no config');
   });
 
   test('With project-level config debug_mode: true and no global — should return true', () => {
+    _resetDebugModeCache();
     removeGlobalConfig();
     // Create project-level config
     const projectOml = path.join(TEMP_PROJECT, '.oh-my-link');
@@ -386,6 +390,71 @@ suite('isDebugMode helper', () => {
     // Cleanup project config
     try { fs.rmSync(projectOml, { recursive: true, force: true }); } catch { /* ignore */ }
   });
+});
+
+// ============================================================
+// normalizeToolOutput tests
+// ============================================================
+
+console.log('\n--- normalizeToolOutput —  tool_response normalization ---');
+
+const { normalizeToolOutput } = require(path.join(DIST, 'helpers.js'));
+
+test('normalizeToolOutput returns stdout from tool_response object', () => {
+  const result = normalizeToolOutput({
+    tool_response: { stdout: 'hello world', stderr: '' }
+  });
+  assertEqual(result, 'hello world', 'stdout extraction');
+});
+
+test('normalizeToolOutput concatenates stdout + stderr', () => {
+  const result = normalizeToolOutput({
+    tool_response: { stdout: 'output line', stderr: 'warning line' }
+  });
+  assertEqual(result, 'output line\nwarning line', 'stdout+stderr concat');
+});
+
+test('normalizeToolOutput handles tool_response as string', () => {
+  const result = normalizeToolOutput({ tool_response: 'plain string output' });
+  assertEqual(result, 'plain string output', 'string tool_response');
+});
+
+test('normalizeToolOutput falls back to tool_output for backward compat', () => {
+  const result = normalizeToolOutput({ tool_output: 'legacy output' });
+  assertEqual(result, 'legacy output', 'tool_output fallback');
+});
+
+test('normalizeToolOutput prefers tool_response over tool_output', () => {
+  const result = normalizeToolOutput({
+    tool_response: { stdout: 'from response' },
+    tool_output: 'from output'
+  });
+  assertEqual(result, 'from response', 'tool_response takes priority');
+});
+
+test('normalizeToolOutput returns empty string when neither present', () => {
+  const result = normalizeToolOutput({ tool_name: 'Bash' });
+  assertEqual(result, '', 'empty when no output fields');
+});
+
+test('normalizeToolOutput JSON-stringifies non-stdout response objects', () => {
+  const result = normalizeToolOutput({
+    tool_response: { filePath: '/a/b.ts', oldString: 'x', newString: 'y' }
+  });
+  assert(result.includes('filePath'), 'should contain filePath key');
+  assert(result.includes('/a/b.ts'), 'should contain path value');
+});
+
+test('normalizeToolOutput handles null tool_response gracefully', () => {
+  const result = normalizeToolOutput({ tool_response: null });
+  assertEqual(result, '', 'null tool_response → empty');
+});
+
+test('normalizeToolOutput handles stderr-only response', () => {
+  const result = normalizeToolOutput({
+    tool_response: { stdout: '', stderr: 'error: something failed' }
+  });
+  assertEqual(result, 'error: something failed', 'stderr-only');
 });
 
 // ============================================================

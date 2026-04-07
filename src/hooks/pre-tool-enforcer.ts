@@ -141,13 +141,15 @@ async function main(): Promise<void> {
       if (filePath) {
         const basename = require('path').basename(filePath);
         const results = searchDocuments(cwd, basename, 3);
+        debugLog(cwd, 'mem:search', `query="${basename}" results=${results.length} tool=${toolName} file=${filePath}`);
         if (results.length > 0) {
-          const memBlock = results.map((r: { document: { text: string } }) => r.document.text).join(' | ').slice(0, 300);
+          const memBlock = results.map((r: { document: { text: string }; score: number }) => r.document.text).join(' | ').slice(0, 300);
+          debugLog(cwd, 'mem:inject', `pre-tool file memory for ${basename}: ${memBlock.length} chars, top_scores=[${results.slice(0, 3).map((r: { score: number }) => r.score.toFixed(2)).join(',')}]`);
           hookOutput('PreToolUse', `[File Memory: ${basename}] ${memBlock}`);
           return;
         }
       }
-    } catch { /* best effort — memory modules may not be compiled yet */ }
+    } catch (err) { debugLog(cwd, 'mem:search', `FAILED: ${(err as Error)?.message || err}`); }
   }
 
   hookOutput('PreToolUse');

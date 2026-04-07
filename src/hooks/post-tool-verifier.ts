@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, getCwd, getQuietLevel, readJson, writeJsonAtomic, debugLog } from '../helpers';
+import { parseHookInput, hookOutput, getCwd, getQuietLevel, readJson, writeJsonAtomic, debugLog, normalizeToolOutput } from '../helpers';
 import { loadMemory, saveMemory, recordHotPath } from '../project-memory';
 import { getSessionPath, getProjectStateRoot, getWorkingMemoryPath,
          getPriorityContextPath, ensureDir, normalizePath } from '../state';
@@ -65,14 +65,14 @@ async function main(): Promise<void> {
   if (!session?.active) { hookOutput('PostToolUse'); return; }
 
   const toolName = input.tool_name || '';
-  const toolOutput = (input.tool_output || '') as string;
+  const toolOutput = normalizeToolOutput(input as Record<string, unknown>);
   const toolInput = (input.tool_input || {}) as Record<string, unknown>;
 
   // Raw key diagnostic — log ALL keys Claude Code sends so we know the actual schema
   const rawKeys = Object.keys(input).sort().join(',');
-  debugLog(cwd, 'post-tool-raw', `keys=[${rawKeys}] tool=${toolName} output_len=${toolOutput?.length || 0} has_tool_output=${'tool_output' in input}`);
+  debugLog(cwd, 'post-tool-raw', `keys=[${rawKeys}] tool=${toolName} output_len=${toolOutput.length} has_tool_response=${'tool_response' in input} has_tool_output=${'tool_output' in input}`);
 
-  debugLog(cwd, 'post-tool', `tool=${toolName} output_len=${toolOutput?.length || 0}`);
+  debugLog(cwd, 'post-tool', `tool=${toolName} output_len=${toolOutput.length}`);
 
   // MCP detection with result status
   const mcpInfo = detectMcpTool(toolName, cwd);
@@ -81,7 +81,7 @@ async function main(): Promise<void> {
       ? toolOutput.slice(0, OUTPUT_CLIP_LIMIT)
       : toolOutput;
     const success = !FAILURE_PATTERNS.some(p => p.test(clippedForMcp || ''));
-    debugLog(cwd, 'mcp-result', `provider=${mcpInfo.providerId} tool=${toolName} success=${success} output_len=${toolOutput?.length || 0}`);
+    debugLog(cwd, 'mcp-result', `provider=${mcpInfo.providerId} tool=${toolName} success=${success} output_len=${toolOutput.length}`);
   }
 
   // Clip overly long outputs to prevent oversized analysis
@@ -135,12 +135,7 @@ async function main(): Promise<void> {
         timestamp: new Date().toISOString(),
         snippet: clippedOutput.slice(0, 500),
       });
-      // Cap failures to prevent unbounded growth
-      if (failures.length > 100) {
-        tracking.failures = failures.slice(-100);
-      } else {
-        tracking.failures = failures;
-      }
+      tracking.failures = failures;
       writeJsonAtomic(trackPath, tracking);
     } catch { /* best effort */ }
   }
@@ -182,12 +177,7 @@ async function main(): Promise<void> {
       for (const fp of targetPaths) {
         if (!files.includes(fp)) files.push(fp);
       }
-      // Cap files_modified to prevent unbounded growth
-      if (files.length > 500) {
-        tracking.files_modified = files.slice(-500);
-      } else {
-        tracking.files_modified = files;
-      }
+      tracking.files_modified = files;
     }
     writeJsonAtomic(trackPath, tracking);
   } catch { /* best effort */ }
@@ -252,6 +242,8 @@ async function main(): Promise<void> {
       const sanitized = sanitizeExpressions(toolOutput);
       const memories = extractMemories(sanitized, 0.4);  // slightly higher threshold for auto-extraction
 
+      debugLog(cwd, 'mem:extract', `tool=${toolName} input_len=${sanitized.length} candidates=${memories.length} threshold=0.4`);
+
       if (memories.length > 0) {
         const dialect = new Dialect();
         // Limit extractions per tool call to cap file I/O
@@ -262,17 +254,18 @@ async function main(): Promise<void> {
             room: mem.memory_type,
             date: new Date().toISOString().slice(0, 10),
           });
-          addDocument(cwd, compressed, {
+          const docId = addDocument(cwd, compressed, {
             raw: mem.content.slice(0, 500),
             room: mem.memory_type,
             source: toolName,
             importance: mem.confidence >= 0.7 ? 4 : 3,
             timestamp: new Date().toISOString(),
           });
+          debugLog(cwd, 'mem:store', `id=${docId} room=${mem.memory_type} conf=${mem.confidence.toFixed(2)} importance=${mem.confidence >= 0.7 ? 4 : 3} aaak_len=${compressed.length} raw="${mem.content.slice(0, 60).replace(/\n/g, ' ')}"`);
         }
-        debugLog(cwd, 'post-tool', `auto-extracted ${memories.length} memories (stored top ${Math.min(memories.length, extractionCap)})`);
+        debugLog(cwd, 'mem:extract', `stored=${Math.min(memories.length, extractionCap)}/${memories.length} cap=${extractionCap}`);
       }
-    } catch { /* best effort — memory modules may not exist yet */ }
+    } catch (err) { debugLog(cwd, 'mem:extract', `FAILED: ${(err as Error)?.message || err}`); }
   }
 
   // Process <remember> tags (sanitize expressions to prevent CC evaluator crashes)
@@ -306,6 +299,7 @@ function processRememberTags(output: string, cwd: string, toolName?: string): st
   // <remember>content</remember> → append to working-memory.md with timestamp and --- separator
   const rememberMatches = output.match(/<remember>(?![\s]*priority)([\s\S]*?)<\/remember>/g);
   if (rememberMatches) {
+    debugLog(cwd, 'mem:remember', `found ${rememberMatches.length} <remember> tag(s) from tool=${toolName || 'unknown'}`);
     const memPath = getWorkingMemoryPath(cwd);
     ensureDir(path.dirname(memPath));
     for (const match of rememberMatches) {
@@ -316,16 +310,9 @@ function processRememberTags(output: string, cwd: string, toolName?: string): st
         const entry = `\n---\n**${timestamp}**\n${content}\n`;
         try {
           const existing = fs.existsSync(memPath) ? fs.readFileSync(memPath, 'utf-8') : '';
-          // Cap working-memory.md at 50KB — trim oldest entries (separated by ---)
-          let combined = existing + entry;
-          if (combined.length > 50_000) {
-            const sections = combined.split('\n---\n');
-            while (sections.join('\n---\n').length > 50_000 && sections.length > 1) {
-              sections.shift();
-            }
-            combined = sections.join('\n---\n');
-          }
+          const combined = existing + entry;
           fs.writeFileSync(memPath, combined, 'utf-8');
+          debugLog(cwd, 'mem:remember', `written to working-memory.md (${combined.length} bytes) content="${content.slice(0, 80).replace(/\n/g, ' ')}"`);
         } catch { /* ignore */ }
         // Memory system: AAAK compress + vector store write (best effort)
         try {
@@ -336,14 +323,15 @@ function processRememberTags(output: string, cwd: string, toolName?: string): st
             room: 'remember',
             date: new Date().toISOString().slice(0, 10),
           });
-          addDocument(cwd, compressed, {
+          const docId = addDocument(cwd, compressed, {
             raw: content.slice(0, 500),
             room: 'remember',
             source: toolName || 'unknown',
             importance: 3,
             timestamp,
           });
-        } catch { /* best effort — memory modules may not be compiled yet */ }
+          debugLog(cwd, 'mem:store', `id=${docId} room=remember importance=3 aaak_len=${compressed.length} source=${toolName || 'unknown'}`);
+        } catch (err) { debugLog(cwd, 'mem:remember', `vector-store FAILED: ${(err as Error)?.message || err}`); }
       }
     }
   }
@@ -351,6 +339,7 @@ function processRememberTags(output: string, cwd: string, toolName?: string): st
   // <remember priority>content</remember> → write to priority-context.md with dedup
   const priorityMatches = output.match(/<remember\s+priority>([\s\S]*?)<\/remember>/g);
   if (priorityMatches) {
+    debugLog(cwd, 'mem:priority', `found ${priorityMatches.length} <remember priority> tag(s) from tool=${toolName || 'unknown'}`);
     const priPath = getPriorityContextPath(cwd);
     ensureDir(path.dirname(priPath));
     for (const match of priorityMatches) {
@@ -365,17 +354,15 @@ function processRememberTags(output: string, cwd: string, toolName?: string): st
             const contentPart = entry.replace(/^\[[^\]]*\]\s*/, '');
             return contentPart === newContent;
           });
-          if (!isDuplicate) {
+          if (isDuplicate) {
+            debugLog(cwd, 'mem:priority', `DEDUP skipped: "${newContent.slice(0, 60).replace(/\n/g, ' ')}"`);
+          } else {
             const ts = new Date().toISOString().substring(0, 16);
             const newEntry = `[${ts}] ${newContent}`;
-            let entries = [...existingEntries, newEntry];
-            // Enforce 500 char budget
-            while (entries.join('\n').length > 500 && entries.length > 1) {
-              entries.shift();
-            }
-            let final = entries.join('\n');
-            if (final.length > 500) final = final.substring(0, 500);
+            const entries = [...existingEntries, newEntry];
+            const final = entries.join('\n');
             fs.writeFileSync(priPath, final, 'utf-8');
+            debugLog(cwd, 'mem:priority', `written to priority-context.md (${final.length} chars) entries=${entries.length} content="${newContent.slice(0, 60).replace(/\n/g, ' ')}"`);
             // Memory system: AAAK compress + vector store write (best effort)
             try {
               const { Dialect } = require('../memory/aaak-dialect') as { Dialect: new () => { compress: (text: string, metadata?: Record<string, string>) => string } };
@@ -385,14 +372,15 @@ function processRememberTags(output: string, cwd: string, toolName?: string): st
                 room: 'priority',
                 date: new Date().toISOString().slice(0, 10),
               });
-              addDocument(cwd, compressed, {
+              const docId = addDocument(cwd, compressed, {
                 raw: newContent.slice(0, 500),
                 room: 'priority',
                 source: toolName || 'unknown',
                 importance: 5,
                 timestamp: new Date().toISOString(),
               });
-            } catch { /* best effort — memory modules may not be compiled yet */ }
+              debugLog(cwd, 'mem:store', `id=${docId} room=priority importance=5 aaak_len=${compressed.length} source=${toolName || 'unknown'}`);
+            } catch (err) { debugLog(cwd, 'mem:priority', `vector-store FAILED: ${(err as Error)?.message || err}`); }
           }
         } catch { /* ignore */ }
       }
