@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, simpleOutput, readJson, writeJsonAtomic, getCwd, isCriticalPhase } from '../helpers';
+import { parseHookInput, simpleOutput, readJson, writeJsonAtomic, getCwd, isCriticalPhase, debugLog } from '../helpers';
 import { getSessionPath, getProjectStateRoot, normalizePath } from '../state';
 import { SessionState, HookInput } from '../types';
 import { cleanExpiredLocks } from '../task-engine';
@@ -17,6 +17,8 @@ const CRITICAL_PHASES = [
 async function main(): Promise<void> {
   const input = await parseHookInput() as HookInput;
   const cwd = getCwd(input as Record<string, unknown>);
+
+  debugLog(cwd, 'session-end', 'session cleanup');
 
   // Clean expired locks
   try { cleanExpiredLocks(cwd); } catch { /* ignore */ }

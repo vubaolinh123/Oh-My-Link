@@ -1,4 +1,4 @@
-import { parseHookInput, hookOutput, toolDenyOutput, getCwd } from '../helpers';
+import { parseHookInput, hookOutput, toolDenyOutput, getCwd, debugLog } from '../helpers';
 import { getSessionPath } from '../state';
 import { readJson } from '../helpers';
 import { SessionState, HookInput } from '../types';
@@ -93,6 +93,8 @@ async function main(): Promise<void> {
   // Normalize: lowercase, replace _ with - (e.g. FAST_SCOUT -> fast-scout)
   const role = rawRole.toLowerCase().replace(/_/g, '-');
 
+  debugLog(cwd, 'pre-tool', `tool=${toolName} role=${role || 'none'}`);
+
   // SAFETY FIRST: Check Bash commands regardless of role/session.
   // This prevents destructive commands from being run by ANY user,
   // even outside an OML session.
@@ -100,6 +102,7 @@ async function main(): Promise<void> {
     const command = (toolInput.command as string) || '';
     const blocked = BASH_HARD_BLOCK.find(pattern => pattern.test(command));
     if (blocked) {
+      debugLog(cwd, 'pre-tool', `BASH BLOCKED: dangerous command`);
       toolDenyOutput(`[oh-my-link] Dangerous Bash command blocked for safety.`);
       return;
     }
@@ -123,6 +126,7 @@ async function main(): Promise<void> {
 
   // Check tool denial
   if (restrictions.deny.includes(toolName)) {
+    debugLog(cwd, 'pre-tool', `DENIED: ${toolName} for role ${role}`);
     toolDenyOutput(`[oh-my-link] Role "${role}" cannot use tool "${toolName}".`);
     return;
   }

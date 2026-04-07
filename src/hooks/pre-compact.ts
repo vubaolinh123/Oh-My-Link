@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd } from '../helpers';
+import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, debugLog } from '../helpers';
 import { getSessionPath, getCheckpointPath, getHandoffsDir,
          getProjectMemoryPath, getSubagentTrackingPath, getToolTrackingPath,
          ensureDir, normalizePath } from '../state';
@@ -73,6 +73,8 @@ async function main(): Promise<void> {
     path.join(handoffDir, `pre-compact-${Date.now()}.md`)
   );
   const filesModified = (tracking as any).files_modified || [];
+
+  debugLog(cwd, 'pre-compact', `phase=${phase} files_modified=${filesModified.length}`);
   const handoff = [
     `## Handoff: Pre-Compaction Checkpoint`,
     ``,

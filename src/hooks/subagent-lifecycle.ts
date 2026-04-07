@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { parseHookInput, readJson, writeJsonAtomic, hookOutput, simpleOutput,
-         getCwd, logError, getQuietLevel } from '../helpers';
+         getCwd, logError, getQuietLevel, debugLog } from '../helpers';
 import { getProjectStateRoot, getSubagentTrackingPath, getSessionPath, normalizePath } from '../state';
 import { HookInput, SubagentRecord, TaskAssignment, SessionState, Phase } from '../types';
 import { readTask, updateTaskStatus, releaseAllLocks, listTasks } from '../task-engine';
@@ -193,6 +193,8 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
   // Detect role from agent_type or description + prompt
   const role = detectRole(agentType, description + ' ' + prompt);
 
+  debugLog(cwd, 'agent-start', `id=${agentId} role=${role} type=${agentType}`);
+
   // Record in subagent tracking
   const trackingPath = getSubagentTrackingPath(cwd);
   const tracking = readJson<SubagentRecord[]>(trackingPath) || [];
@@ -216,6 +218,7 @@ async function handleStart(input: HookInput, cwd: string): Promise<void> {
     if (targetPhase) {
       phaseAdvanced = maybeAdvancePhase(session, targetPhase);
       if (phaseAdvanced) {
+        debugLog(cwd, 'agent-start', `phase-advance → ${session!.current_phase}`);
         try { writeJsonAtomic(sessionPath, session); } catch { /* best effort */ }
       }
     }
@@ -260,6 +263,8 @@ async function handleStop(input: HookInput, cwd: string): Promise<void> {
   const agentId = input.agent_id || (input as any).agentId || (input as any).id || '';
   const exitCode = input.exit_code ?? (input as any).exitCode ?? 0;
   const quiet = getQuietLevel();
+
+  debugLog(cwd, 'agent-stop', `id=${agentId} exit=${exitCode}`);
 
   // Update tracking record
   const trackingPath = getSubagentTrackingPath(cwd);
@@ -328,6 +333,7 @@ async function handleStop(input: HookInput, cwd: string): Promise<void> {
 
       // General completion detection: all tasks done, no running agents
       if (!sessionDirty && detectCompletion(cwd, session, tracking)) {
+        debugLog(cwd, 'agent-stop', 'completion detected → session ending');
         const completionPhase = session.mode === 'mylight' ? 'light_complete' as Phase : 'complete' as Phase;
         session.current_phase = completionPhase;
         session.active = false;

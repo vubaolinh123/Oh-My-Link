@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel } from '../helpers';
+import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel, debugLog } from '../helpers';
 import { loadMemory, saveMemory, addDirective } from '../project-memory';
 import { loadConfig, DEFAULT_MODELS, saveConfigField, isAlwaysOn } from '../config';
 import { generateFramework, formatFramework } from '../prompt-leverage';
@@ -25,6 +25,8 @@ const KEYWORDS: KeywordRule[] = [
   { patterns: ['setup oml', 'oml setup', 'setup oh-my-link', 'oh-my-link setup', 'install oh-my-link', 'install oml', 'cai dat oh-my-link', 'cai dat oml'], action: 'setup', skill: 'oh-my-link:setup' },
   { patterns: ['doctor oml', 'oml doctor', 'doctor oh-my-link'], action: 'doctor', skill: 'oh-my-link:doctor' },
   { patterns: ['oml list', 'list oml', 'oml projects', 'list projects oml'], action: 'list-projects', skill: 'oh-my-link:list-projects' },
+  { patterns: ['oml debug on', 'debug on oml', 'oml debug'], action: 'debug-on', skill: undefined },
+  { patterns: ['oml debug off', 'debug off oml'], action: 'debug-off', skill: undefined },
   { patterns: ['oml on', 'always on oml', 'bat oml', 'bật oml'], action: 'always-on', skill: undefined },
   { patterns: ['oml off', 'always off oml', 'tat oml', 'tắt oml'], action: 'always-off', skill: undefined },
   { patterns: ['update oml', 'oml update', 'upgrade oml', 'oml upgrade'], action: 'update', skill: 'oh-my-link:update-plugin' },
@@ -137,14 +139,18 @@ async function main(): Promise<void> {
   // Sanitize prompt to avoid false-trigger from code/URLs/paths
   const cleanPrompt = sanitize(prompt).toLowerCase();
 
+  debugLog(cwd, 'keyword', `prompt="${cleanPrompt.slice(0, 80)}"`);
+
   // Detect and save user directives ("always use X", "never modify Y")
   detectAndSaveDirectives(prompt, cwd);
 
   // Find matching keyword
   let match = findKeywordMatch(cleanPrompt);
+
+  debugLog(cwd, 'keyword', `match=${match ? match.action : 'none'}`);
   
   // Always-On: if no keyword matched but always_on is enabled,
-  // auto-trigger Start Link for every prompt
+  // auto-classify task complexity and trigger the appropriate mode
   if (!match && isAlwaysOn(cwd)) {
     // Check if there's already an active session — if so, let it continue naturally
     const existingSession = readJson<SessionState>(getSessionPath(cwd));
@@ -153,8 +159,17 @@ async function main(): Promise<void> {
       hookOutput('UserPromptSubmit');
       return;
     }
-    // Auto-trigger Start Link
-    match = { patterns: ['always-on'], action: 'invoke', skill: 'oh-my-link:master' };
+    // Auto-classify: use the same intent classifier that Start Fast uses
+    const autoIntent = classifyMylightIntent(prompt);
+    if (autoIntent === 'complex') {
+      // Complex task → Start Link (full 7-phase pipeline)
+      match = { patterns: ['always-on'], action: 'invoke', skill: 'oh-my-link:master' };
+      debugLog(cwd, 'keyword', 'always-on auto-trigger → invoke');
+    } else {
+      // Turbo or Standard → Start Fast (lightweight workflow)
+      match = { patterns: ['always-on'], action: 'invoke-light', skill: 'oh-my-link:mr-light' };
+      debugLog(cwd, 'keyword', `always-on auto-trigger → invoke-light (intent=${autoIntent})`);
+    }
   }
   
   if (!match) {
@@ -212,6 +227,24 @@ async function main(): Promise<void> {
       '[oh-my-link] Always-On mode DISABLED.\n' +
       'OML will only activate when you say "start link" or "start fast".\n' +
       'Say "oml on" to re-enable.');
+    return;
+  }
+
+  // Handle debug mode toggle
+  if (match.action === 'debug-on') {
+    saveConfigField('debug_mode', true);
+    hookOutput('UserPromptSubmit',
+      '[oh-my-link] Debug mode ENABLED.\n' +
+      'Hook traces will be logged to ~/.oh-my-link/projects/{hash}/debug.log\n' +
+      'Say "oml debug off" to disable.');
+    return;
+  }
+
+  if (match.action === 'debug-off') {
+    saveConfigField('debug_mode', false);
+    hookOutput('UserPromptSubmit',
+      '[oh-my-link] Debug mode DISABLED.\n' +
+      'Debug logging stopped.');
     return;
   }
 
@@ -308,6 +341,9 @@ async function main(): Promise<void> {
 
   // Inject skill instructions directly (no dependency on Skill tool registration)
   const skillContent = effectiveSkill ? loadSkillContent(effectiveSkill) : null;
+
+  debugLog(cwd, 'keyword', `action=${match.action} skill=${effectiveSkill || match.skill || 'none'}`);
+
   if (skillContent) {
     context += `--- SKILL INSTRUCTIONS ---\n${skillContent}\n--- END SKILL INSTRUCTIONS ---\n`;
     if (quiet < 2) {

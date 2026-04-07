@@ -259,6 +259,14 @@ export function getErrorLogPath(): string {
 }
 
 /**
+ * Get debug log file path.
+ * ~/.oh-my-link/projects/{hash}/debug.log
+ */
+export function getDebugLogPath(cwd: string): string {
+  return normalizePath(path.join(getProjectStateRoot(cwd), 'debug.log'));
+}
+
+/**
  * Get config file path.
  * ~/.oh-my-link/config.json
  */

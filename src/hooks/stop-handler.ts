@@ -10,6 +10,7 @@ import {
   isTerminalPhase,
   getElapsed,
   logError,
+  debugLog,
 } from '../helpers';
 import {
   getSessionPath,
@@ -123,8 +124,11 @@ async function main(): Promise<void> {
   // Read session state
   const session = readJson<SessionState>(getSessionPath(cwd));
 
+  debugLog(cwd, 'stop', `phase=${session?.current_phase || 'none'} active=${session?.active}`);
+
   // 1. No active session → allow stop
   if (!session?.active) {
+    debugLog(cwd, 'stop', 'ALLOW: no-session');
     stopOutput('allow');
     return;
   }
@@ -309,6 +313,8 @@ async function main(): Promise<void> {
 
   const continuation = PHASE_CONTINUATIONS[phase] || `Continue working on phase: ${phase}.`;
   const feature = session.feature_slug ? ` Feature: ${session.feature_slug}.` : '';
+
+  debugLog(cwd, 'stop', `BLOCK: phase=${phase} reinforcement=${session.reinforcement_count}`);
 
   const quiet = getQuietLevel();
   let guidance = `[${modeLabel} — Phase: ${phase} | Reinforcement ${session.reinforcement_count}/${MAX_REINFORCEMENTS}] `;

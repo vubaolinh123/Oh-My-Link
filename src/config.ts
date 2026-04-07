@@ -29,6 +29,7 @@ const DEFAULT_CONFIG: OmlConfig = {
   models: {},
   quiet_level: 0,
   always_on: false,
+  debug_mode: false,
 };
 
 /**
@@ -57,6 +58,7 @@ export function loadConfig(cwd?: string): OmlConfig {
     },
     quiet_level: projectConfig?.quiet_level ?? globalConfig?.quiet_level ?? DEFAULT_CONFIG.quiet_level,
     always_on: projectConfig?.always_on ?? globalConfig?.always_on ?? DEFAULT_CONFIG.always_on,
+    debug_mode: projectConfig?.debug_mode ?? globalConfig?.debug_mode ?? DEFAULT_CONFIG.debug_mode,
   };
 
   return merged;
@@ -93,4 +95,11 @@ export function saveConfigField(field: string, value: unknown): void {
  */
 export function isAlwaysOn(cwd?: string): boolean {
   return loadConfig(cwd).always_on;
+}
+
+/**
+ * Check if debug mode is enabled (global or project-level).
+ */
+export function isDebugMode(cwd?: string): boolean {
+  return loadConfig(cwd).debug_mode;
 }

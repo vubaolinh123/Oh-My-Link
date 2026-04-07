@@ -1,6 +1,7 @@
+import * as os from 'os';
 import * as fs from 'fs';
 import * as path from 'path';
-import { getErrorLogPath, ensureDir, normalizePath } from './state';
+import { getErrorLogPath, getDebugLogPath, ensureDir, normalizePath } from './state';
 
 // ============================================================
 // Oh-My-Link — Helper Utilities
@@ -196,6 +197,62 @@ export function logError(source: string, message: string): void {
     fs.appendFileSync(logPath, entry, 'utf-8');
   } catch {
     // Cannot log the logging error — silent fail is acceptable here
+  }
+}
+
+/**
+ * Write a debug trace entry if debug_mode is enabled.
+ * Format: [timestamp] [role] [source] message
+ * Checks debug_mode by reading config directly (avoids circular dependency with config.ts).
+ */
+export function debugLog(cwd: string, source: string, message: string): void {
+  try {
+    // Check debug_mode without importing config.ts (circular dep prevention)
+    const configPath = normalizePath(path.join(
+      process.env.OML_HOME || path.join(os.homedir(), '.oh-my-link'),
+      'config.json'
+    ));
+    let debugEnabled = false;
+    try {
+      const raw = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(raw);
+      debugEnabled = config.debug_mode === true;
+    } catch { /* config unreadable = debug off */ }
+
+    // Also check project-level config
+    if (!debugEnabled) {
+      try {
+        const projectConfigPath = normalizePath(path.join(cwd, '.oh-my-link', 'config.json'));
+        const raw = fs.readFileSync(projectConfigPath, 'utf-8');
+        const config = JSON.parse(raw);
+        debugEnabled = config.debug_mode === true;
+      } catch { /* no project config */ }
+    }
+
+    if (!debugEnabled) return;
+
+    const logPath = getDebugLogPath(cwd);
+    ensureDir(path.dirname(logPath));
+
+    const timestamp = new Date().toISOString().substring(11, 23); // HH:mm:ss.sss
+    const role = process.env.OML_AGENT_ROLE || 'host';
+    const entry = `[${timestamp}] [${role}] [${source}] ${message}\n`;
+
+    fs.appendFileSync(logPath, entry, 'utf-8');
+
+    // Rotate: if file exceeds 500KB, truncate to last 250KB
+    try {
+      const stats = fs.statSync(logPath);
+      if (stats.size > 512_000) {
+        const content = fs.readFileSync(logPath, 'utf-8');
+        const truncated = content.slice(content.length - 256_000);
+        // Start from first newline to avoid partial line
+        const firstNewline = truncated.indexOf('\n');
+        fs.writeFileSync(logPath, firstNewline >= 0 ? truncated.slice(firstNewline + 1) : truncated, 'utf-8');
+      }
+    } catch { /* best effort rotation */ }
+  } catch {
+    // Debug logging must never throw
   }
 }
 

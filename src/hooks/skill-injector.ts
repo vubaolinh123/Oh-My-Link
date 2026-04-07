@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, getCwd, getQuietLevel, readJson } from '../helpers';
+import { parseHookInput, hookOutput, getCwd, getQuietLevel, readJson, debugLog } from '../helpers';
 import { getSkillsDir, getSystemRoot, getProjectStateRoot, normalizePath } from '../state';
 import { HookInput, LearnedSkill } from '../types';
 
@@ -144,6 +144,8 @@ async function main(): Promise<void> {
   }
 
   if (scored.length === 0) { hookOutput('UserPromptSubmit'); return; }
+
+  debugLog(cwd, 'skill-inject', `matched=${scored.length} skills: ${scored.map(s=>s.name).join(',')}`);
 
   // Sort by score descending, then project skills before global
   scored.sort((a, b) => {

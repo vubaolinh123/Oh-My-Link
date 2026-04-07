@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, getCwd, getQuietLevel, readJson, writeJsonAtomic } from '../helpers';
+import { parseHookInput, hookOutput, getCwd, getQuietLevel, readJson, writeJsonAtomic, debugLog } from '../helpers';
 import { loadMemory, saveMemory, recordHotPath } from '../project-memory';
 import { getSessionPath, getProjectStateRoot, getWorkingMemoryPath,
          getPriorityContextPath, ensureDir, normalizePath } from '../state';
@@ -67,6 +67,8 @@ async function main(): Promise<void> {
   const toolOutput = (input.tool_output || '') as string;
   const toolInput = (input.tool_input || {}) as Record<string, unknown>;
 
+  debugLog(cwd, 'post-tool', `tool=${toolName} output_len=${toolOutput?.length || 0}`);
+
   // Clip overly long outputs to prevent oversized analysis
   const clippedOutput = toolOutput && toolOutput.length > OUTPUT_CLIP_LIMIT
     ? toolOutput.slice(0, OUTPUT_CLIP_LIMIT) + `\n\n[... clipped ${toolOutput.length - OUTPUT_CLIP_LIMIT} chars]`
@@ -76,6 +78,10 @@ async function main(): Promise<void> {
 
   // Failure detection — only for Bash output (reading files with error strings is not a failure)
   if (toolName === 'Bash' && clippedOutput && FAILURE_PATTERNS.some(p => p.test(clippedOutput))) {
+    const matchedPattern = FAILURE_PATTERNS.find(p => p.test(clippedOutput));
+    const matchedError = matchedPattern ? (clippedOutput.match(matchedPattern)?.[0] || 'unknown') : 'unknown';
+    debugLog(cwd, 'post-tool', `FAILURE in ${toolName}: ${matchedError}`);
+
     if (quiet < 2) {
       parts.push(`[oh-my-link] Possible failure detected in ${toolName} output.`);
     }
@@ -121,6 +127,7 @@ async function main(): Promise<void> {
 
   // Output clipping warning
   if (toolOutput && toolOutput.length > OUTPUT_CLIP_LIMIT) {
+    debugLog(cwd, 'post-tool', `output clipped: ${toolOutput.length} chars`);
     if (quiet < 1) {
       parts.push(`[oh-my-link] Output clipped (${toolOutput.length} chars > ${OUTPUT_CLIP_LIMIT}).`);
     }

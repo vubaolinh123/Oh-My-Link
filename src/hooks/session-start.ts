@@ -1,6 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
-import { parseHookInput, hookOutput, readJson, getCwd, getQuietLevel, getElapsed } from '../helpers';
+import { parseHookInput, hookOutput, readJson, getCwd, getQuietLevel, getElapsed, debugLog } from '../helpers';
 import {
   ensureRuntimeDirs, ensureArtifactDirs, getSessionPath,
   getProjectMemoryPath, getPriorityContextPath, getWorkingMemoryPath,
@@ -40,6 +40,8 @@ async function main(): Promise<void> {
   // 1. Ensure all directories exist
   ensureRuntimeDirs(cwd, sessionId);
   ensureArtifactDirs(cwd);
+
+  debugLog(cwd, 'session-start', 'session initialized');
 
   // 1b. Register this workspace in the global project registry
   try { registerProject(cwd); } catch { /* best effort */ }

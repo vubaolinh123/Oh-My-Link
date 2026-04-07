@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, logError } from '../helpers';
+import { parseHookInput, hookOutput, readJson, writeJsonAtomic, getCwd, logError, debugLog } from '../helpers';
 import { getProjectStateRoot, getSessionPath, normalizePath } from '../state';
 import { HookInput, SessionState } from '../types';
 
@@ -59,6 +59,8 @@ async function main(): Promise<void> {
   const tracker = readJson<ToolFailureTracker>(trackPath);
   const now = new Date().toISOString();
   const maxRetries = getMaxRetries(toolName);
+
+  debugLog(cwd, 'tool-fail', `tool=${toolName} attempt=${tracker?.count || 1}/${maxRetries}`);
 
   // Capture error snippet (first 500 chars)
   const errorSnippet = toolError ? toolError.slice(0, 500) : undefined;
