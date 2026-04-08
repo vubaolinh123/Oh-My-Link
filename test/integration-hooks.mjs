@@ -268,11 +268,20 @@ suite('stop-handler — phase-based blocking', () => {
     writeSession({
       active: true, mode: 'mylink', current_phase: 'phase_5_execution',
     });
+    // Create a fake in-progress task so orphan detection doesn't auto-complete
+    const tasksDir = path.join(TEMP_PROJECT, '.oh-my-link', 'tasks');
+    fs.mkdirSync(tasksDir, { recursive: true });
+    fs.writeFileSync(path.join(tasksDir, 'task-1.json'), JSON.stringify({
+      link_id: 'task-1', title: 'Test task', status: 'in_progress',
+      description: 'test', file_scope: [], acceptance_criteria: [],
+    }));
     const result = runHook('stop-handler', {
       hook: 'Stop',
       session_id: 'test',
       cwd: TEMP_PROJECT,
     });
+    // Clean up fake task
+    try { fs.rmSync(tasksDir, { recursive: true, force: true }); } catch {}
     assert(result.decision === 'block', 'should block stop during execution');
     assert(result.reason.includes('START LINK'), `reason should include START LINK, got: ${result.reason}`);
   });
