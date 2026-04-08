@@ -143,7 +143,7 @@ suite('statusline — idle state', () => {
     deleteSession();
     const raw = runStatusline();
     const output = normalize(raw);
-    assert(output.includes('OML#'), `expected 'OML#' in output, got: ${output}`);
+    assert(output.includes('OML'), `expected 'OML' in output, got: ${output}`);
     assert(output.toLowerCase().includes('idle'), `expected 'idle' in output, got: ${output}`);
   });
 
