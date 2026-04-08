@@ -101,9 +101,13 @@ async function main(): Promise<void> {
 
   // AUTO FILE LOCKING
   // When an agent edits a file during an active session, auto-acquire a lock.
-  // Use agent_id from hook input (not env var — env vars don't persist in CC's hook model).
+  // Holder identity: prefer agent_id (subagent), then session_id (same CC session
+  // across hook invocations — each hook is a separate process with different PID),
+  // then fallback to hook-{PID}.
   if (session?.active && isWriteOperation(toolName)) {
-    const agentId = (input as any).agent_id || (input as any).agentId || `hook-${process.pid}`;
+    const agentId = (input as any).agent_id || (input as any).agentId
+      || (input as any).session_id || (input as any).sessionId
+      || `hook-${process.pid}`;
     const targetPaths = extractTargetPaths(toolName, toolInput);
     const acquired: string[] = [];
 

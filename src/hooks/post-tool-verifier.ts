@@ -6,6 +6,7 @@ import { getSessionPath, getProjectStateRoot, getWorkingMemoryPath,
          getPriorityContextPath, ensureDir, normalizePath } from '../state';
 import { SessionState, HookInput } from '../types';
 import { detectMcpTool } from '../mcp-config';
+import { releaseLock } from '../task-engine';
 
 const FAILURE_PATTERNS = [
   /\berror TS\d+\b/i,           // TypeScript errors
@@ -184,6 +185,23 @@ async function main(): Promise<void> {
           if (fp) trackFile(fp, cwd);
         }
       }
+    }
+  }
+
+  // AUTO RELEASE LOCKS after Edit/Write/MultiEdit completes
+  // Locks are acquired in pre-tool-enforcer; they MUST be released here or they
+  // block subsequent edits to the same file (each hook invocation is a different PID).
+  // Use the same holder identity logic as pre-tool-enforcer.
+  if (['Edit', 'Write', 'MultiEdit'].includes(toolName)) {
+    const holderId = (input as any).agent_id || (input as any).agentId
+      || (input as any).session_id || (input as any).sessionId
+      || `hook-${process.pid}`;
+    const filePaths = extractFilePaths(toolName, toolInput);
+    for (const fp of filePaths) {
+      try {
+        releaseLock(cwd, fp, holderId);
+        debugLog(cwd, 'post-tool', `lock-released: ${fp} by ${holderId}`);
+      } catch { /* best effort — never block tool completion */ }
     }
   }
 

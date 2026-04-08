@@ -180,7 +180,7 @@ export function acquireLock(
   cwd: string,
   filePath: string,
   holder: string,
-  ttlSeconds: number = 600
+  ttlSeconds: number = 60
 ): LockResult {
   ensureDir(getLocksDir(cwd));
   const lockPath = getLockPath(cwd, filePath);
