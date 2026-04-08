@@ -270,20 +270,21 @@ suite('Remember Tags (extended)', () => {
       `working-memory.md should contain 'Second insight', got: ${content}`);
   });
 
-  test('<remember priority> caps at 500 chars', () => {
+  test('<remember priority> writes to priority-context.md', () => {
     writeSession({ active: true });
     const priPath = state.getPriorityContextPath(TEMP_PROJECT);
     try { fs.unlinkSync(priPath); } catch { /* ignore */ }
 
-    // Generate a >500 char priority remember
     const longContent = 'A'.repeat(600);
     runVerifier('Bash', { command: 'echo test' },
       `<remember priority>${longContent}</remember>`);
 
     assert(fs.existsSync(priPath), 'priority-context.md should exist');
     const content = fs.readFileSync(priPath, 'utf-8');
-    assert(content.length <= 500,
-      `priority-context.md should be capped at 500 chars, got ${content.length}`);
+    assert(content.includes('AAAA'), 'priority-context.md should contain the content');
+    // Content includes timestamp prefix [YYYY-MM-DDTHH:MM]
+    assert(/^\[\d{4}-\d{2}-\d{2}T\d{2}:\d{2}\]/.test(content),
+      'priority-context.md should have timestamp prefix');
   });
 });
 
