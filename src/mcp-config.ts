@@ -550,11 +550,24 @@ export function getMcpGuidanceForRole(role: AgentRole, cwd?: string): string {
 
   // Build the tool-name mapping so agents know exact invocation syntax
   const toolNameExamples: string[] = [];
+  // Known example methods for common providers
+  const EXAMPLE_METHODS: Record<string, string> = {
+    'augment-context-engine': 'codebase-retrieval',
+    'context7': 'resolve-library-id',
+    'grep_app': 'searchGitHub',
+    'playwright': 'navigate',
+    'browser-use': 'browser_navigate',
+  };
+  const exampleCalls: string[] = [];
   for (const mcpId of mapping.mcps) {
     const provider = config.providers[mcpId];
     if (!provider || !provider.installed) continue;
     // Claude Code uses the mcp__<provider>__<method> format
     toolNameExamples.push(`  mcp__${mcpId}__<method>`);
+    const exMethod = EXAMPLE_METHODS[mcpId];
+    if (exMethod) {
+      exampleCalls.push(`\`mcp__${mcpId}__${exMethod}\``);
+    }
   }
 
   let text = '\n**⚡ PREFER MCP TOOLS — use these FIRST, fall back to Read/Grep/Glob only if MCP fails:**\n';
@@ -562,7 +575,9 @@ export function getMcpGuidanceForRole(role: AgentRole, cwd?: string): string {
   if (toolNameExamples.length > 0) {
     text += '\n\n**Tool invocation names** (use these exact prefixes in tool calls):\n';
     text += toolNameExamples.join('\n');
-    text += '\n\nExamples: `mcp__augment-context-engine__codebase-retrieval`, `mcp__context7__resolve-library-id`, `mcp__context7__query-docs`, `mcp__grep_app__searchGitHub`';
+    if (exampleCalls.length > 0) {
+      text += `\n\nExamples: ${exampleCalls.join(', ')}`;
+    }
   }
   text += '\n';
   return text;
