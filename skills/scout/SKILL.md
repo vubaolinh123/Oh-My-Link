@@ -106,6 +106,12 @@ Write to `.oh-my-link/history/{slug}/CONTEXT.md`:
 ```markdown
 # Feature Context: {slug}
 
+## Summary
+{Concise overview for user and downstream agents: what the user wants,
+key constraints discovered, and the most impactful decisions needed.
+Scale depth with request complexity — simple requests get 2-3 sentences,
+complex features get thorough analysis.}
+
 ## Request Summary
 {1–2 sentence summary of what the user wants}
 

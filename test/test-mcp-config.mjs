@@ -716,6 +716,112 @@ suite('autoSyncMcpProviders', () => {
 });
 
 // ============================================================
+// Suite 10: detectMcpTool coverage
+// ============================================================
+
+suite('detectMcpTool coverage', () => {
+  test('new CC format: augment-context-engine', () => {
+    cleanGlobalConfig();
+    const result = mcpConfig.detectMcpTool('mcp__augment-context-engine__codebase-retrieval');
+    assert(result !== null, 'should not be null');
+    assertEqual(result.providerId, 'augment-context-engine', 'providerId');
+    assertEqual(result.method, 'codebase-retrieval', 'method');
+    assert(typeof result.providerName === 'string' && result.providerName.length > 0, 'providerName should be non-empty string');
+  });
+
+  test('new CC format: context7 query-docs', () => {
+    cleanGlobalConfig();
+    const result = mcpConfig.detectMcpTool('mcp__context7__query-docs');
+    assert(result !== null, 'should not be null');
+    assertEqual(result.providerId, 'context7', 'providerId');
+    assertEqual(result.method, 'query-docs', 'method');
+    assert(typeof result.providerName === 'string' && result.providerName.length > 0, 'providerName should be non-empty string');
+  });
+
+  test('new CC format: grep_app searchGitHub', () => {
+    cleanGlobalConfig();
+    const result = mcpConfig.detectMcpTool('mcp__grep_app__searchGitHub');
+    assert(result !== null, 'should not be null');
+    assertEqual(result.providerId, 'grep_app', 'providerId');
+    assertEqual(result.method, 'searchGitHub', 'method');
+    assert(typeof result.providerName === 'string' && result.providerName.length > 0, 'providerName should be non-empty string');
+  });
+
+  test('legacy format: context7_query-docs', () => {
+    cleanGlobalConfig();
+    const result = mcpConfig.detectMcpTool('context7_query-docs');
+    assert(result !== null, 'should not be null');
+    assertEqual(result.providerId, 'context7', 'providerId');
+    assertEqual(result.method, 'query-docs', 'method');
+  });
+
+  test('legacy format: augment-context-engine_codebase-retrieval', () => {
+    cleanGlobalConfig();
+    const result = mcpConfig.detectMcpTool('augment-context-engine_codebase-retrieval');
+    assert(result !== null, 'should not be null');
+    assertEqual(result.providerId, 'augment-context-engine', 'providerId');
+    assertEqual(result.method, 'codebase-retrieval', 'method');
+  });
+
+  test('non-MCP tool returns null', () => {
+    cleanGlobalConfig();
+    const result = mcpConfig.detectMcpTool('Read');
+    assertEqual(result, null, 'Read should return null');
+  });
+
+  test('non-MCP tool with underscore returns null (no matching provider)', () => {
+    cleanGlobalConfig();
+    const result = mcpConfig.detectMcpTool('some_random_tool');
+    assertEqual(result, null, 'some_random_tool should return null');
+  });
+
+  test('empty string returns null', () => {
+    cleanGlobalConfig();
+    const result = mcpConfig.detectMcpTool('');
+    assertEqual(result, null, 'empty string should return null');
+  });
+});
+
+// ============================================================
+// Suite 11: getMcpGuidanceForRole enhanced output
+// ============================================================
+
+suite('getMcpGuidanceForRole enhanced output', () => {
+  test('guidance includes PREFER MCP text when providers installed', () => {
+    cleanGlobalConfig();
+    mcpConfig.setProviderInstalled('augment-context-engine', true);
+    mcpConfig.setProviderInstalled('context7', true);
+
+    const guidance = mcpConfig.getMcpGuidanceForRole('scout');
+    assert(guidance.includes('PREFER MCP'), 'should include "PREFER MCP" text');
+    cleanGlobalConfig();
+  });
+
+  test('guidance includes tool invocation name examples with mcp__ prefix', () => {
+    cleanGlobalConfig();
+    mcpConfig.setProviderInstalled('augment-context-engine', true);
+    mcpConfig.setProviderInstalled('context7', true);
+
+    const guidance = mcpConfig.getMcpGuidanceForRole('scout');
+    assert(guidance.includes('mcp__'), 'should include mcp__ prefix examples');
+    cleanGlobalConfig();
+  });
+
+  test('guidance includes specific example tool names', () => {
+    cleanGlobalConfig();
+    mcpConfig.setProviderInstalled('augment-context-engine', true);
+    mcpConfig.setProviderInstalled('context7', true);
+
+    const guidance = mcpConfig.getMcpGuidanceForRole('scout');
+    const hasAugmentExample = guidance.includes('mcp__augment-context-engine__codebase-retrieval');
+    const hasContext7Example = guidance.includes('mcp__context7__');
+    assert(hasAugmentExample || hasContext7Example,
+      'should include specific example strings like mcp__augment-context-engine__codebase-retrieval or mcp__context7__');
+    cleanGlobalConfig();
+  });
+});
+
+// ============================================================
 // Cleanup & Summary
 // ============================================================
 

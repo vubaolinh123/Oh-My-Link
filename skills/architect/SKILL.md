@@ -52,6 +52,8 @@ Common phase patterns:
 
 Adjust to the actual request — don't force phases that don't apply.
 
+**Self-containment rule**: Each `## Phase N` section must be fully self-contained — a Worker reading only that section should have everything needed to implement it without reading the rest of the plan.
+
 ### Step 3 — Write plan.md
 
 Write to `.oh-my-link/plans/{slug}-plan.md`:
@@ -60,28 +62,40 @@ Write to `.oh-my-link/plans/{slug}-plan.md`:
 # Plan: {slug}
 
 ## Summary
-{2–3 sentences: what will be built, approach, key tradeoffs}
+{Depth scales with project complexity. For simple tasks: 2-3 sentences.
+For large tasks: full business analysis, architecture decisions, tradeoffs,
+key technical choices and their rationale. User reads this section to
+understand and approve the plan — make it thorough enough for informed decisions.}
 
-## Risk Flags
-- {flag}: {mitigation}
+### Risk Flags
+- {risk}: {mitigation}
 
-## Phases
+### Out of Scope
+{explicit exclusions from CONTEXT.md}
 
-### Phase 1: {name}
+## Worker Assignments
+| Phase | Goal | Links | Assigned Files |
+|-------|------|-------|----------------|
+| 1     | {name} | 1.1, 1.2 | {files} |
+| 2     | {name} | 2.1 | {files} |
+
+### Dependencies
+{mermaid graph or bullet list of phase/link dependencies}
+
+---
+
+## Phase 1: {name}
 **Goal**: {one sentence}
 **Links**:
 - Link 1.1: {title} — {files affected}
+  - What: {detailed description — length scales with complexity}
+  - Acceptance: {specific verifiable criteria}
 - Link 1.2: {title} — {files affected}
-**Acceptance**: {what "done" looks like for this phase}
+  - What: ...
+  - Acceptance: ...
 
-### Phase 2: {name}
+## Phase 2: {name}
 ...
-
-## Dependencies
-{mermaid graph or bullet list of phase dependencies}
-
-## Out of Scope
-{explicit exclusions from CONTEXT.md}
 ```
 
 ### Step 4 — Return to Master

@@ -75,14 +75,36 @@ async function main(): Promise<void> {
 
   debugLog(cwd, 'post-tool', `tool=${toolName} output_len=${toolOutput.length}`);
 
-  // MCP detection with result status
+  // MCP detection with result status + tracking counters
   const mcpInfo = detectMcpTool(toolName, cwd);
   if (mcpInfo) {
     const clippedForMcp = toolOutput && toolOutput.length > OUTPUT_CLIP_LIMIT
       ? toolOutput.slice(0, OUTPUT_CLIP_LIMIT)
       : toolOutput;
     const success = !FAILURE_PATTERNS.some(p => p.test(clippedForMcp || ''));
-    debugLog(cwd, 'mcp-result', `provider=${mcpInfo.providerId} tool=${toolName} success=${success} output_len=${toolOutput.length}`);
+    debugLog(cwd, 'mcp-result', `provider=${mcpInfo.providerId} method=${mcpInfo.method} tool=${toolName} success=${success} output_len=${toolOutput.length}`);
+
+    // Persist MCP call counters to tool-tracking.json for observability
+    try {
+      const trackPath = normalizePath(path.join(getProjectStateRoot(cwd), 'tool-tracking.json'));
+      const tracking = readJson<Record<string, unknown>>(trackPath) || {};
+      const mcpStats = (tracking.mcp_stats as Record<string, { attempted: number; succeeded: number; failed: number }>) || {};
+      if (!mcpStats[mcpInfo.providerId]) {
+        mcpStats[mcpInfo.providerId] = { attempted: 0, succeeded: 0, failed: 0 };
+      }
+      mcpStats[mcpInfo.providerId].attempted++;
+      if (success) {
+        mcpStats[mcpInfo.providerId].succeeded++;
+      } else {
+        mcpStats[mcpInfo.providerId].failed++;
+      }
+      tracking.mcp_stats = mcpStats;
+      // Also track aggregate
+      tracking.mcp_total_attempted = ((tracking.mcp_total_attempted as number) || 0) + 1;
+      tracking.mcp_total_succeeded = ((tracking.mcp_total_succeeded as number) || 0) + (success ? 1 : 0);
+      tracking.mcp_total_failed = ((tracking.mcp_total_failed as number) || 0) + (success ? 0 : 1);
+      writeJsonAtomic(trackPath, tracking);
+    } catch { /* best effort — never block tool flow */ }
   }
 
   // Clip overly long outputs to prevent oversized analysis

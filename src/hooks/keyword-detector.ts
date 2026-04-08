@@ -791,8 +791,9 @@ function buildTurboPrompt(userRequest: string, skillContent: string | null, mode
   p += `2. Wait for the Executor to finish\n`;
   p += `3. Report the Executor's result to the user\n\n`;
   if (executorMcp) {
-    p += `## MCP TOOLS FOR EXECUTOR\n`;
-    p += `Include the following MCP guidance in the Executor's prompt so it uses semantic search and docs:\n`;
+    p += `## MCP TOOLS FOR EXECUTOR (MANDATORY)\n`;
+    p += `IMPORTANT: Include the following MCP guidance verbatim in the Executor's prompt.\n`;
+    p += `The Executor MUST try MCP tools FIRST before falling back to Read/Grep/Glob.\n`;
     p += executorMcp + `\n\n`;
   }
   p += `## IF EXECUTOR FAILS\n`;
@@ -858,8 +859,9 @@ function buildStandardFastPrompt(userRequest: string, skillContent: string | nul
   p += `### Step 4: Report\n`;
   p += `After Executor finishes, summarize to the user: what was changed, files affected, verification result.\n\n`;
   if (scoutMcp || executorMcp) {
-    p += `## MCP TOOLS FOR AGENTS\n`;
-    p += `Include the relevant MCP guidance in each agent's prompt so they use semantic search and docs:\n`;
+    p += `## MCP TOOLS FOR AGENTS (MANDATORY)\n`;
+    p += `IMPORTANT: Include the relevant MCP guidance verbatim in each agent's prompt.\n`;
+    p += `Agents MUST try MCP tools FIRST before falling back to Read/Grep/Glob.\n`;
     if (scoutMcp) p += `\n**Fast Scout:**\n${scoutMcp}\n`;
     if (executorMcp) p += `\n**Executor:**\n${executorMcp}\n`;
     p += `\n`;
@@ -876,6 +878,21 @@ function buildStandardFastPrompt(userRequest: string, skillContent: string | nul
   p += `- You are the orchestrator: your tools are Agent/Task (to spawn), Read (to check artifacts), and reporting\n\n`;
   if (modelConfig) p += modelConfig + '\n\n';
   return p;
+}
+
+/**
+ * Extract the ## Summary section from plan.md content.
+ * Returns everything from the "## Summary" line up to (but not including)
+ * the next "## " heading. Falls back to the first 2000 chars if no
+ * ## Summary heading is found.
+ */
+function extractPlanSummary(planContent: string): string {
+  const lines = planContent.split('\n');
+  const summaryStart = lines.findIndex(l => /^## Summary/.test(l));
+  if (summaryStart === -1) return planContent.slice(0, 2000);
+  const nextH2 = lines.findIndex((l, i) => i > summaryStart && /^## (?!#)/.test(l));
+  const end = nextH2 === -1 ? lines.length : nextH2;
+  return lines.slice(summaryStart, end).join('\n').trimEnd();
 }
 
 function buildStartLinkPrompt(userRequest: string, skillContent: string | null, modelConfig: string | null, cwd?: string): string {
@@ -924,7 +941,8 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   p += `- Pass CONTEXT.md + locked decisions\n`;
   p += `- Architect writes plan.md to .oh-my-link/plans/plan.md\n\n`;
   p += `### Gate 2: User Approval\n`;
-  p += `Present plan summary to user. **END YOUR RESPONSE IMMEDIATELY after presenting.**\n`;
+  p += `Read .oh-my-link/plans/plan.md and extract ONLY the ## Summary section (from "## Summary" up to but not including the next "## " heading). Present that Summary to the user — do NOT dump the full plan.\n`;
+  p += `**END YOUR RESPONSE IMMEDIATELY after presenting the Summary.**\n`;
   p += `The user will type approval or feedback. On next turn, if approved proceed to Phase 3; if feedback, loop.\n`;
   p += `End your Gate 2 message with: "⏳ Approve this plan? (yes/approve, or provide feedback)"\n\n`;
   p += `### Phase 3-4: Decomposition & Validation\n`;
@@ -938,7 +956,8 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   p += `1. Write worker-{link-id}.md with task details\n`;
   p += `2. Use the **Agent tool** to spawn a Worker subagent (description: "[OML:worker] Implement task-{id}") with the task\n`;
   if (workerModel) p += `   ${workerModel}`;
-  p += `3. Worker implements within file_scope, self-verifies, updates task status\n\n`;
+  p += `3. In each Worker's prompt, specify which \`## Phase N\` section of plan.md to read (e.g., "Read ONLY the ## Phase 2 section of plan.md — do not read the full plan"). Workers should read ONLY their assigned Phase section.\n`;
+  p += `4. Worker implements within file_scope, self-verifies, updates task status\n\n`;
   p += `### Phase 6: Spawn Reviewer\n`;
   p += `After each Worker completes, spawn a Reviewer (description: "[OML:reviewer] Review task-{id}") to verify the implementation.\n`;
   if (reviewerModel) p += `${reviewerModel}`;
@@ -964,8 +983,9 @@ function buildStartLinkPrompt(userRequest: string, skillContent: string | null, 
   if (workerMcp) mcpParts.push(`**Worker:**\n${workerMcp}`);
   if (reviewerMcp) mcpParts.push(`**Reviewer:**\n${reviewerMcp}`);
   if (mcpParts.length > 0) {
-    p += `## MCP TOOLS FOR AGENTS\n`;
-    p += `Include the relevant MCP guidance in each agent's prompt so they use semantic search, docs, and code examples:\n\n`;
+    p += `## MCP TOOLS FOR AGENTS (MANDATORY)\n`;
+    p += `IMPORTANT: Include the relevant MCP guidance verbatim in each agent's prompt.\n`;
+    p += `Agents MUST try MCP tools FIRST for code search and docs. Fall back to Read/Grep/Glob only if MCP fails.\n\n`;
     p += mcpParts.join('\n\n') + '\n\n';
   }
   if (modelConfig) p += modelConfig + '\n\n';

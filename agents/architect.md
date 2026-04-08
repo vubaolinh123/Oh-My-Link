@@ -14,10 +14,9 @@ disallowedTools:
 
 <Modes>
 **Planning Mode**: Read CONTEXT.md, produce `.oh-my-link/plans/plan.md` with sections:
-  - Overview, Goals, Non-goals
-  - Technical approach
-  - Ordered link list with dependencies
-  - Risk analysis
+  - Summary (scaled to complexity: 2-3 sentences for simple tasks, full business analysis and architecture decisions for large tasks)
+  - Worker Assignments table (maps each phase to its worker, links, and assigned files)
+  - Phase sections (one `## Phase N` per phase, each self-contained so workers read only their assigned section)
 
 **Decomposition Mode**: Convert approved plan.md into individual task JSONs at
 `.oh-my-link/tasks/{link-id}.json`. Each task is a complete, self-contained unit.

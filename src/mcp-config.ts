@@ -548,8 +548,22 @@ export function getMcpGuidanceForRole(role: AgentRole, cwd?: string): string {
 
   if (lines.length === 0) return '';
 
-  let text = '\n**MCP Tools (use automatically when available):**\n';
+  // Build the tool-name mapping so agents know exact invocation syntax
+  const toolNameExamples: string[] = [];
+  for (const mcpId of mapping.mcps) {
+    const provider = config.providers[mcpId];
+    if (!provider || !provider.installed) continue;
+    // Claude Code uses the mcp__<provider>__<method> format
+    toolNameExamples.push(`  mcp__${mcpId}__<method>`);
+  }
+
+  let text = '\n**⚡ PREFER MCP TOOLS — use these FIRST, fall back to Read/Grep/Glob only if MCP fails:**\n';
   text += lines.join('\n');
+  if (toolNameExamples.length > 0) {
+    text += '\n\n**Tool invocation names** (use these exact prefixes in tool calls):\n';
+    text += toolNameExamples.join('\n');
+    text += '\n\nExamples: `mcp__augment-context-engine__codebase-retrieval`, `mcp__context7__resolve-library-id`, `mcp__context7__query-docs`, `mcp__grep_app__searchGitHub`';
+  }
   text += '\n';
   return text;
 }
@@ -564,19 +578,42 @@ export function isMcpInstalled(id: string, cwd?: string): boolean {
 
 /**
  * Detect if a tool_name belongs to an MCP provider.
- * MCP tools in Claude Code are named like "providerId_methodName".
+ *
+ * Claude Code names MCP tools in two formats:
+ *   - New format: "mcp__providerId__methodName" (double underscore, mcp__ prefix)
+ *   - Legacy format: "providerId_methodName" (single underscore)
+ *
  * Returns { providerId, method, providerName } if detected, null otherwise.
  */
 export function detectMcpTool(toolName: string, cwd?: string): { providerId: string; method: string; providerName: string } | null {
   if (!toolName || !toolName.includes('_')) return null;
 
+  // --- New CC format: mcp__providerId__methodName ---
+  // e.g. "mcp__augment-context-engine__codebase-retrieval"
+  //      "mcp__context7__query-docs"
+  const mcpPrefixMatch = toolName.match(/^mcp__(.+?)__(.+)$/);
+  if (mcpPrefixMatch) {
+    const [, providerId, method] = mcpPrefixMatch;
+    // Try to find provider name from config
+    try {
+      const config = loadMcpConfig(cwd);
+      const provider = config.providers[providerId];
+      return {
+        providerId,
+        method,
+        providerName: provider?.name || providerId,
+      };
+    } catch {
+      return { providerId, method, providerName: providerId };
+    }
+  }
+
+  // --- Legacy format: providerId_methodName ---
   // Try matching provider IDs from config
   try {
     const config = loadMcpConfig(cwd);
     for (const [id, provider] of Object.entries(config.providers)) {
       if (!provider) continue;
-      // Check if toolName starts with providerId_ (handles "context7_query-docs", "grep_app_searchGitHub")
-      // Also handle hyphenated IDs like "augment-context-engine" → tool "augment-context-engine_codebase-retrieval"
       const prefix = id + '_';
       if (toolName.startsWith(prefix)) {
         return {
