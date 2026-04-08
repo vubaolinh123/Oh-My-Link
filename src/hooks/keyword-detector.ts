@@ -198,20 +198,36 @@ async function main(): Promise<void> {
   // Always-On: if no keyword matched but always_on is enabled,
   // auto-classify task complexity and trigger the appropriate mode
   if (!match && isAlwaysOn(cwd)) {
-    // Check if there's already an active session — if so, check for gate continuation
+    // Check if there's already an active session — if so, check for continuation
     const existingSession = readJson<SessionState>(getSessionPath(cwd));
     if (existingSession?.active) {
-      // Check if we're at a HITL gate — inject continuation context
-      if (existingSession.awaiting_confirmation && isGatePhase(existingSession.current_phase)) {
-        const gateContext = buildGateContinuationContext(existingSession, prompt);
-        debugLog(cwd, 'keyword', `gate-continuation: phase=${existingSession.current_phase}`);
-        // Clear awaiting_confirmation so the orchestrator proceeds
-        existingSession.awaiting_confirmation = false;
-        try { writeJsonAtomic(getSessionPath(cwd), existingSession); } catch { /* best effort */ }
-        promptContextOutput(gateContext);
-        return;
+      // Check if we're awaiting user input — inject continuation context.
+      // This handles BOTH Start Link HITL gates (gate_1/2/3_pending) AND
+      // Start Fast awaiting_confirmation at light_scout/light_execution.
+      // Without this, the second user prompt in always-on mode gets NO imperative
+      // prompt and Claude falls back to vanilla CC behavior (Plan Mode, etc.).
+      if (existingSession.awaiting_confirmation) {
+        if (isGatePhase(existingSession.current_phase)) {
+          // Start Link gate — build structured gate continuation
+          const gateContext = buildGateContinuationContext(existingSession, prompt);
+          debugLog(cwd, 'keyword', `gate-continuation: phase=${existingSession.current_phase}`);
+          existingSession.awaiting_confirmation = false;
+          try { writeJsonAtomic(getSessionPath(cwd), existingSession); } catch { /* best effort */ }
+          promptContextOutput(gateContext);
+          return;
+        } else {
+          // Non-gate awaiting (e.g. light_scout, light_execution) — build
+          // a continuation prompt that re-injects the orchestrator instructions
+          // so Claude continues the OML workflow instead of going vanilla.
+          debugLog(cwd, 'keyword', `awaiting-continuation: phase=${existingSession.current_phase} mode=${existingSession.mode}`);
+          existingSession.awaiting_confirmation = false;
+          try { writeJsonAtomic(getSessionPath(cwd), existingSession); } catch { /* best effort */ }
+          const continuationPrompt = buildAwaitingContinuationPrompt(existingSession, prompt, cwd);
+          promptContextOutput(continuationPrompt);
+          return;
+        }
       }
-      // Session already running — don't re-trigger, just pass through
+      // Session already running, not awaiting — don't re-trigger, just pass through
       hookOutput('UserPromptSubmit');
       return;
     }
@@ -229,15 +245,25 @@ async function main(): Promise<void> {
   }
   
   if (!match) {
-    // Check if there's an active session at a HITL gate — user input is the gate answer
+    // Check if there's an active session awaiting user input — the user's prompt is the answer
     const activeSession = readJson<SessionState>(getSessionPath(cwd));
-    if (activeSession?.active && activeSession.awaiting_confirmation && isGatePhase(activeSession.current_phase)) {
-      const gateContext = buildGateContinuationContext(activeSession, prompt);
-      debugLog(cwd, 'keyword', `gate-continuation (no-match): phase=${activeSession.current_phase}`);
-      activeSession.awaiting_confirmation = false;
-      try { writeJsonAtomic(getSessionPath(cwd), activeSession); } catch { /* best effort */ }
-      promptContextOutput(gateContext);
-      return;
+    if (activeSession?.active && activeSession.awaiting_confirmation) {
+      if (isGatePhase(activeSession.current_phase)) {
+        const gateContext = buildGateContinuationContext(activeSession, prompt);
+        debugLog(cwd, 'keyword', `gate-continuation (no-match): phase=${activeSession.current_phase}`);
+        activeSession.awaiting_confirmation = false;
+        try { writeJsonAtomic(getSessionPath(cwd), activeSession); } catch { /* best effort */ }
+        promptContextOutput(gateContext);
+        return;
+      } else {
+        // Non-gate awaiting (Start Fast light_scout, etc.)
+        debugLog(cwd, 'keyword', `awaiting-continuation (no-match): phase=${activeSession.current_phase}`);
+        activeSession.awaiting_confirmation = false;
+        try { writeJsonAtomic(getSessionPath(cwd), activeSession); } catch { /* best effort */ }
+        const continuationPrompt = buildAwaitingContinuationPrompt(activeSession, prompt, cwd);
+        promptContextOutput(continuationPrompt);
+        return;
+      }
     }
     hookOutput('UserPromptSubmit');
     return;
@@ -567,6 +593,85 @@ function buildGateContinuationContext(session: SessionState, userAnswer: string)
   ctx += `## REMINDER: You are the ORCHESTRATOR\n`;
   ctx += `- Do NOT implement code yourself\n`;
   ctx += `- Use the Task tool to spawn agents for each phase\n`;
+  ctx += `- Include [OML:role-name] in agent descriptions\n`;
+
+  return ctx;
+}
+
+/**
+ * Build continuation prompt for non-gate awaiting phases (e.g., light_scout, light_execution).
+ *
+ * When always-on mode auto-triggers Start Fast and the session is left awaiting_confirmation
+ * at a non-gate phase, the user's next prompt needs to re-inject the OML orchestrator
+ * instructions. Without this, Claude sees no imperative prompt and falls back to vanilla
+ * CC behavior (Plan Mode, etc.).
+ *
+ * This essentially re-builds the appropriate imperative prompt (Turbo or Standard Fast)
+ * with the user's new prompt as the request, so Claude continues the OML pipeline.
+ */
+function buildAwaitingContinuationPrompt(session: SessionState, userPrompt: string, cwd: string): string {
+  const mode = session.mode === 'mylink' ? 'Start Link' : 'Start Fast';
+  const phase = session.current_phase as string;  // cast to string for legacy phase names
+
+  let ctx = `[OML ${mode.toUpperCase()} — CONTINUATION]\n\n`;
+  ctx += `An OML ${mode} session is active (phase: ${phase}). The user has provided additional input:\n\n`;
+  ctx += `---\n${userPrompt}\n---\n\n`;
+
+  if (session.mode === 'mylight') {
+    if (phase === 'light_scout' || phase === 'fast_scout') {
+      ctx += `## NEXT STEPS\n`;
+      ctx += `You are the Oh-My-Link orchestrator. Continue the Start Fast workflow:\n\n`;
+      ctx += `1. If you haven't spawned a Fast Scout yet, spawn one now:\n`;
+      ctx += `   - Use the Task tool with description: "[OML:fast-scout] Analyze: ${userPrompt.slice(0, 60)}"\n`;
+      ctx += `   - The Fast Scout should analyze the request and write .oh-my-link/plans/BRIEF.md\n\n`;
+      ctx += `2. If Fast Scout already finished, read .oh-my-link/plans/BRIEF.md then spawn an Executor:\n`;
+      ctx += `   - Use the Task tool with description: "[OML:executor] Implement fix from BRIEF.md"\n\n`;
+      ctx += `3. After Executor finishes, report the result to the user\n\n`;
+    } else if (phase === 'light_turbo' || phase === 'fast_turbo') {
+      ctx += `## NEXT STEPS\n`;
+      ctx += `Spawn an Executor to handle this directly:\n`;
+      ctx += `- Use the Task tool with description: "[OML:executor] Execute: ${userPrompt.slice(0, 60)}"\n\n`;
+    } else if (phase === 'light_execution' || phase === 'fast_execution') {
+      ctx += `## NEXT STEPS\n`;
+      ctx += `The execution phase is active. Spawn an Executor if needed:\n`;
+      ctx += `- Use the Task tool with description: "[OML:executor] Continue execution"\n`;
+      ctx += `- Pass the user's input above as additional context\n\n`;
+    } else {
+      ctx += `## NEXT STEPS\n`;
+      ctx += `Continue the ${mode} workflow at phase: ${phase}.\n\n`;
+    }
+  } else {
+    // Start Link — provide generic continuation guidance based on phase
+    const PHASE_CONTINUATIONS_MAP: Record<string, string> = {
+      bootstrap: 'Spawn a Scout agent: "[OML:scout] Explore codebase"',
+      phase_1_scout: 'Scout is working. Wait for CONTEXT.md, then present findings to user.',
+      phase_2_planning: 'Spawn Architect: "[OML:architect] Design plan"',
+      phase_3_decomposition: 'Spawn Architect: "[OML:architect] Decompose plan into tasks"',
+      phase_5_execution: 'Spawn Worker(s) for ready tasks: "[OML:worker] Implement task-{id}"',
+      phase_6_review: 'Spawn Reviewer: "[OML:reviewer] Review task-{id}"',
+    };
+    const nextStep = PHASE_CONTINUATIONS_MAP[phase] || `Continue working on phase: ${phase}`;
+    ctx += `## NEXT STEPS\n`;
+    ctx += `${nextStep}\n\n`;
+  }
+
+  // Inject MCP guidance if available
+  try {
+    const rolesToCheck = session.mode === 'mylight'
+      ? ['fast-scout', 'executor'] as const
+      : ['scout', 'architect', 'worker'] as const;
+    for (const role of rolesToCheck) {
+      const guidance = getMcpGuidanceForRole(role as AgentRole, cwd);
+      if (guidance) {
+        ctx += `**MCP tools for ${role}:**\n${guidance}\n`;
+        break; // Only include the most relevant role's guidance
+      }
+    }
+  } catch { /* best effort */ }
+
+  ctx += `## RULES\n`;
+  ctx += `- You are the ORCHESTRATOR — do NOT implement code yourself\n`;
+  ctx += `- Use the Task tool to spawn agents\n`;
   ctx += `- Include [OML:role-name] in agent descriptions\n`;
 
   return ctx;
