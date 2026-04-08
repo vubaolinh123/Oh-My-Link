@@ -317,6 +317,30 @@ async function main(): Promise<void> {
     return;
   }
 
+  // --- ORPHAN DETECTION ---
+  // Before blocking, check if there are actually any agents running or tasks pending.
+  // If not, the session is orphaned (executor crashed/finished but lifecycle hook didn't
+  // mark the session complete). Allow stop and auto-complete rather than spinning 50 times.
+  {
+    const tracking = readJson<SubagentRecord[]>(getSubagentTrackingPath(cwd)) || [];
+    const runningAgents = tracking.filter(a => a.status === 'running');
+    const tasks = listTasks(cwd);
+    const pendingOrRunningTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
+
+    if (runningAgents.length === 0 && pendingOrRunningTasks.length === 0) {
+      debugLog(cwd, 'stop', `ORPHAN: phase=${session.current_phase} no running agents, no pending/in_progress tasks → auto-completing`);
+
+      const completionPhase = session.mode === 'mylight' ? 'light_complete' : 'complete';
+      session.current_phase = completionPhase as any;
+      session.active = false;
+      session.session_ended_at = new Date().toISOString();
+      session.deactivated_reason = 'orphan_auto_completed';
+      try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* best effort */ }
+      stopOutput('allow', 'Session auto-completed (no agents running, no tasks pending).');
+      return;
+    }
+  }
+
   // --- BLOCK STOP ---
   // Increment reinforcement counter
   session.reinforcement_count = (session.reinforcement_count || 0) + 1;
