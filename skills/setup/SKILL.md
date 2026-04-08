@@ -50,7 +50,7 @@ node "D:/Oh-My-Link/dist/hooks/keyword-detector.js"
 
 Example (Unix):
 ```
-node "/home/user/Oh-My-Link/dist/hooks/keyword-detector.js"
+node "/path/to/oh-my-link/dist/hooks/keyword-detector.js"
 ```
 
 The setup wizard MUST:
@@ -299,7 +299,7 @@ Report: FIXED TypeScript build ... compiled successfully
 Build the hook configuration using **absolute paths** to `PLUGIN_ROOT/dist/hooks/`.
 
 **CRITICAL:** Use forward slashes in paths even on Windows (Node.js handles them correctly).
-Convert backslashes: `D:\Oh-My-Link` -> `D:/Oh-My-Link`.
+Convert backslashes: `C:\path\to\plugin` -> `C:/path/to/plugin`.
 
 The hooks configuration to write/merge into `.claude/settings.json`:
 
