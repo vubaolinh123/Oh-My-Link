@@ -336,6 +336,19 @@ suite('stop-handler — advanced behavior', () => {
     try { fs.unlinkSync(state.getCancelSignalPath(TEMP_PROJECT)); } catch {}
   }
 
+  // Create a fake in-progress task so orphan detection doesn't auto-complete
+  function ensureFakeTask() {
+    const tasksDir = path.join(TEMP_PROJECT, '.oh-my-link', 'tasks');
+    fs.mkdirSync(tasksDir, { recursive: true });
+    fs.writeFileSync(path.join(tasksDir, 'fake-task.json'), JSON.stringify({
+      link_id: 'fake-task', title: 'Fake', status: 'in_progress',
+      description: 'test', file_scope: [], acceptance_criteria: [],
+    }));
+  }
+  function cleanFakeTask() {
+    try { fs.unlinkSync(path.join(TEMP_PROJECT, '.oh-my-link', 'tasks', 'fake-task.json')); } catch {}
+  }
+
   function writeSession(data) {
     const sessionPath = state.getSessionPath(TEMP_PROJECT);
     state.ensureDir(path.dirname(sessionPath));
@@ -390,11 +403,13 @@ suite('stop-handler — advanced behavior', () => {
 
   test('increments reinforcement_count on block', () => {
     cleanSession();
+    ensureFakeTask();
     writeSession({
       current_phase: 'phase_5_execution',
       reinforcement_count: 5,
     });
     const parsed = runStop('increment-reinf');
+    cleanFakeTask();
     assertEqual(parsed.decision, 'block', 'should block stop during execution');
     const session = helpers.readJson(state.getSessionPath(TEMP_PROJECT));
     assertEqual(session.reinforcement_count, 6, 'reinforcement_count should be incremented to 6');
