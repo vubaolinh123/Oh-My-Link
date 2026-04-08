@@ -321,8 +321,32 @@ async function main(): Promise<void> {
   // Before blocking, check if there are actually any agents running or tasks pending.
   // If not, the session is orphaned (executor crashed/finished but lifecycle hook didn't
   // mark the session complete). Allow stop and auto-complete rather than spinning 50 times.
+  //
+  // STALE AGENT HANDLING: SubagentStop hooks can fail to fire (CC kills the process,
+  // crash, network timeout, etc.), leaving tracking records with status="running" forever.
+  // Treat any agent that started >5 minutes ago AND has no stop record as dead.
   {
+    const STALE_AGENT_MS = 5 * 60 * 1000; // 5 minutes
+    const now = Date.now();
     const tracking = readJson<SubagentRecord[]>(getSubagentTrackingPath(cwd)) || [];
+
+    // Clean up stale "running" agents in-place
+    let staleCleaned = 0;
+    for (const agent of tracking) {
+      if (agent.status !== 'running') continue;
+      const startedAt = agent.started_at ? new Date(agent.started_at).getTime() : 0;
+      if (now - startedAt > STALE_AGENT_MS) {
+        agent.status = 'stopped';
+        agent.stopped_at = new Date().toISOString();
+        (agent as any).stale_cleaned = true;
+        staleCleaned++;
+      }
+    }
+    if (staleCleaned > 0) {
+      debugLog(cwd, 'stop', `stale-cleanup: marked ${staleCleaned} agent(s) as stopped (>5min with no SubagentStop)`);
+      try { writeJsonAtomic(getSubagentTrackingPath(cwd), tracking); } catch { /* best effort */ }
+    }
+
     const runningAgents = tracking.filter(a => a.status === 'running');
     const tasks = listTasks(cwd);
     const pendingOrRunningTasks = tasks.filter(t => t.status === 'pending' || t.status === 'in_progress');
