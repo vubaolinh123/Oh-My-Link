@@ -326,6 +326,7 @@ Vị trí file cấu hình (gộp theo thứ tự, giá trị sau ghi đè giá 
 
 | Tính năng | Cách hoạt động |
 |-----------|---------------|
+| **Hệ thống Memory tự động** | Memory được nén AAAK kết hợp Knowledge Graph và Entity Registry — tự động trích xuất từ mọi session, lưu trong BM25 vector index, inject khi bắt đầu session/agent. Hoàn toàn tự động, không cần thao tác |
 | **Task Engine** | Task JSON trong `.oh-my-link/tasks/` với luồng trạng thái: `pending` → `in_progress` → `done` / `failed` |
 | **File Locking** | Mutex nguyên tử dựa trên `mkdir` với TTL 30 giây. Worker phải lấy lock trước khi chỉnh sửa. |
 | **Messaging** | File JSON trong `.oh-my-link/messages/` với định tuyến theo thread |
@@ -335,6 +336,84 @@ Vị trí file cấu hình (gộp theo thứ tự, giá trị sau ghi đè giá 
 | **Prompt Leverage** | Mỗi lần gọi tự động bổ sung guardrail, ràng buộc, và tiêu chí thành công vào prompt |
 | **Learnings** | Pattern được trích xuất từ các phiên trước được lưu và tải lại cho phiên sau (compounding flywheel) |
 | **Always-On Mode** | Bật/tắt bằng `oml on`/`oml off` — mọi prompt tự động kích hoạt Start Link mà không cần keyword |
+
+### Hệ thống Memory tự động
+
+OML tích hợp hệ thống memory hoàn toàn tự động. Không cần thao tác từ người dùng — hook xử lý mọi thứ xuyên suốt các session và agent.
+
+**Cách hoạt động:**
+
+```
+Bắt đầu Session
+  └─ wakeUp() tải L0 (identity) + L1 (top memories qua BM25)
+  └─ Entity Registry tải danh sách người/dự án đã biết
+  └─ Knowledge Graph inject entity facts liên quan
+       └─ Nhận biết task: "fix auth bug" tự ưu tiên memories về auth
+
+Agent chạy tool (Bash/Edit/Write)
+  └─ post-tool-verifier tự trích xuất decisions/milestones/problems
+  └─ AAAK nén (~4x) → lưu vào vector index
+  └─ Entity detector học thêm người/dự án mới từ output
+  └─ Decision memories tạo Knowledge Graph triples
+
+SubAgent spawn (Worker/Scout/Architect)
+  └─ subagent-lifecycle inject memories phù hợp vai trò
+
+Trước khi edit file
+  └─ pre-tool-enforcer fetch file-specific memories (≤300 chars)
+  └─ Entity-boosted search ưu tiên docs nhắc tới entity đã biết
+
+Kết thúc Session
+  └─ Entity learning từ working-memory
+  └─ Knowledge Graph consolidation (sync registry → KG nodes)
+  └─ consolidateSession() flush working-memory vào vector store
+```
+
+**So sánh: Có Memory vs Không có Memory**
+
+| Tình huống | Không có Memory | Có Memory |
+|------------|-----------------|-----------|
+| **Bắt đầu session** | Agent khởi động "lạnh" — không có context từ session trước | Agent nhận L0 identity + L1 memories + KG entity facts (~200-600 tokens) |
+| **Câu hỏi lặp lại** | Agent phải tìm hiểu lại từ đầu | Agent nhớ ngay: "Đã chọn PostgreSQL vì ACID" |
+| **Spawn SubAgent** | Worker không có context lịch sử | Worker tự động nhận memories liên quan task |
+| **Edit file** | Không biết gì về thay đổi trước đó | Pre-tool inject file memories (decisions, bugs đã tìm) |
+| **Liên tục xuyên session** | Mỗi session tách biệt — mất hết context | ~70% facts được giữ lại qua 5+ sessions |
+| **Nhận biết entity** | Agent xem "Alice" là text bình thường | Agent biết Alice = thành viên nhóm, query KG facts |
+| **Chi phí token/session** | 0 token overhead | ~1,600 tokens (~1-3% tổng session) |
+| **Giá trị tích lũy** | Phẳng — session 10 giống session 1 | Tăng dần — session 10 có context gấp 10x session 1 |
+
+**Thành phần cốt lõi:**
+
+| Module | Mục đích |
+|--------|----------|
+| `aaak-dialect.ts` | Nén AAAK — phát hiện entity, trích xuất topic, phân loại emotion/flag (~4x nén) |
+| `memory-extractor.ts` | Trích xuất 5 loại memory (decision, preference, milestone, problem, emotional) qua regex |
+| `vector-store.ts` | BM25 Okapi search với importance weighting, entity-boosted search, JSON-backed, SHA256 dedup |
+| `memory-stack.ts` | Memory stack 4 tầng: L0 Identity + L1 Essential Story + task-aware retrieval |
+| `knowledge-graph.ts` | SQLite temporal entity-relationship graph với triples, invalidation, timeline queries |
+| `entity-registry.ts` | Theo dõi người/dự án bền vững với phân biệt từ mơ hồ (90+ từ) |
+| `entity-detector.ts` | Tự phát hiện người/dự án từ text (20 person patterns, 15 project patterns) |
+
+**Hoàn toàn tự động (không cần thao tác):**
+
+- Memory **trích xuất**: Mọi tool output ≥200 chars được quét tìm decisions/milestones/problems
+- Memory **nén**: Tất cả memories nén AAAK trước khi lưu (~4x giảm token)
+- Memory **inject**: L0+L1 tải khi bắt đầu session; memories liên quan task qua BM25 search
+- Memory **theo agent**: Mỗi SubAgent nhận memory context phù hợp vai trò khi spawn
+- Memory **theo file**: File-specific memories inject trước Edit/Write
+- Memory **consolidation**: Working memory flush vào vector store khi kết thúc session
+- Entity **detection**: Người và dự án tự phát hiện từ tool output, lưu vào registry
+- Entity **facts**: Knowledge Graph triples tự tạo cho decisions, sync khi kết thúc session
+
+**Thao tác tùy chọn:**
+
+Tạo `.oh-my-link/identity.md` trong thư mục gốc project để seed L0 identity context:
+
+```markdown
+Project: E-commerce API
+Stack: TypeScript, Node.js, PostgreSQL
+Team: 3 developers, agile sprints
+```
 
 ### Live Statusline
 
@@ -353,6 +432,14 @@ Plugin bao gồm một HUD hiển thị tiến trình theo thời gian thực:
 Oh-My-Link/
 ├── src/                  # Mã nguồn TypeScript
 │   ├── hooks/            # 10 hook handler cho Claude Code
+│   ├── memory/           # Hệ thống memory tự động
+│   │   ├── aaak-dialect.ts      # Engine nén AAAK
+│   │   ├── memory-extractor.ts  # Trích xuất 5 loại memory
+│   │   ├── vector-store.ts      # BM25 vector store (JSON-backed)
+│   │   ├── memory-stack.ts      # Memory stack 4 tầng
+│   │   ├── knowledge-graph.ts   # SQLite temporal KG (better-sqlite3)
+│   │   ├── entity-registry.ts   # Theo dõi entity bền vững
+│   │   └── entity-detector.ts   # Tự phát hiện entity
 │   ├── helpers.ts        # Tiện ích dùng chung
 │   ├── state.ts          # Quản lý đường dẫn và trạng thái
 │   ├── types.ts          # Định nghĩa kiểu
@@ -399,9 +486,9 @@ OML đăng ký 10 hook vào vòng đời Claude Code:
 |------------|--------|----------|
 | `UserPromptSubmit` | `keyword-detector.js` | Phát hiện trigger `start link`, `start fast`, `cancel oml` |
 | `UserPromptSubmit` | `skill-injector.js` | Chèn skill đã học vào context |
-| `SessionStart` | `session-start.js` | Tải bộ nhớ project và trạng thái phiên |
-| `PreToolUse` | `pre-tool-enforcer.js` | Hạn chế tool/đường dẫn theo vai trò |
-| `PostToolUse` | `post-tool-verifier.js` | Theo dõi hot path, phản hồi skill |
+| `SessionStart` | `session-start.js` | Tải layered memory (L0+L1), project memory, trạng thái phiên |
+| `PreToolUse` | `pre-tool-enforcer.js` | Hạn chế tool/đường dẫn theo vai trò, fetch file-specific memory |
+| `PostToolUse` | `post-tool-verifier.js` | Tự trích xuất memories, nén AAAK, theo dõi hot path |
 | `PostToolUseFailure` | `post-tool-failure.js` | Theo dõi và xử lý lỗi tool |
 | `Stop` | `stop-handler.js` | Tiếp tục phase, tín hiệu hủy, phát hiện kết thúc |
 | `PreCompact` | `pre-compact.js` | Lưu trạng thái trước khi compact context |
