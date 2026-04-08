@@ -942,6 +942,19 @@ suite('keyword-detector — sanitization and augmentation', () => {
 });
 
 suite('stop-handler — phase continuations', () => {
+  // Create a fake in-progress task so orphan detection doesn't auto-complete
+  const fakeTaskDir = path.join(TEMP_PROJECT, '.oh-my-link', 'tasks');
+  function ensureFakeTask() {
+    fs.mkdirSync(fakeTaskDir, { recursive: true });
+    fs.writeFileSync(path.join(fakeTaskDir, 'fake-task.json'), JSON.stringify({
+      link_id: 'fake-task', title: 'Fake', status: 'in_progress',
+      description: 'test', file_scope: [], acceptance_criteria: [],
+    }));
+  }
+  function cleanFakeTask() {
+    try { fs.unlinkSync(path.join(fakeTaskDir, 'fake-task.json')); } catch {}
+  }
+
   test('stop-handler blocks with phase-specific guidance', () => {
     const sessionPath = state.getSessionPath(TEMP_PROJECT);
     state.ensureDir(path.dirname(sessionPath));
@@ -950,6 +963,7 @@ suite('stop-handler — phase continuations', () => {
       started_at: new Date().toISOString(), reinforcement_count: 0,
       failure_count: 0, revision_count: 0,
     });
+    ensureFakeTask();
     const hookPath = path.join(DIST, 'hooks', 'stop-handler.js');
     const inputFile = path.join(TEMP_ROOT, 'stop-phase.json');
     fs.writeFileSync(inputFile, JSON.stringify({ session_id: 'test', cwd: TEMP_PROJECT }));
@@ -958,6 +972,7 @@ suite('stop-handler — phase continuations', () => {
       cwd: TEMP_PROJECT, timeout: 10000,
       env: { ...process.env, OML_HOME: process.env.OML_HOME }, shell: true,
     }).toString().trim();
+    cleanFakeTask();
     const parsed = JSON.parse(output);
     assert(parsed.decision === 'block', 'should block stop');
     assert(parsed.reason.includes('Workers are implementing'), 'should include phase_5 continuation');
@@ -1014,6 +1029,7 @@ suite('stop-handler — phase continuations', () => {
       started_at: new Date().toISOString(), reinforcement_count: 0,
       failure_count: 0, revision_count: 0,
     });
+    ensureFakeTask();
     const hookPath = path.join(DIST, 'hooks', 'stop-handler.js');
     const inputFile = path.join(TEMP_ROOT, 'stop-fast.json');
     fs.writeFileSync(inputFile, JSON.stringify({ session_id: 'test', cwd: TEMP_PROJECT }));
@@ -1022,6 +1038,7 @@ suite('stop-handler — phase continuations', () => {
       cwd: TEMP_PROJECT, timeout: 10000,
       env: { ...process.env, OML_HOME: process.env.OML_HOME }, shell: true,
     }).toString().trim();
+    cleanFakeTask();
     const parsed = JSON.parse(output);
     assert(parsed.decision === 'block', 'should block stop for light_execution');
     assert(parsed.reason.includes('START FAST'), 'should include Start Fast label');

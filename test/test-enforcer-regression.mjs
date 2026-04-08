@@ -281,6 +281,13 @@ suite('enforcer — Path Restriction Variants', () => {
 
 suite('stop-handler — Phase Renumbering Regression', () => {
   test('stop-handler blocks during bootstrap phase', () => {
+    // Create a fake in-progress task so orphan detection doesn't auto-complete
+    const tasksDir = path.join(TEMP_PROJECT, '.oh-my-link', 'tasks');
+    fs.mkdirSync(tasksDir, { recursive: true });
+    fs.writeFileSync(path.join(tasksDir, 'fake-task.json'), JSON.stringify({
+      link_id: 'fake-task', title: 'Fake', status: 'in_progress',
+      description: 'test', file_scope: [], acceptance_criteria: [],
+    }));
     writeSession({
       active: true,
       mode: 'mylink',
@@ -288,6 +295,8 @@ suite('stop-handler — Phase Renumbering Regression', () => {
       reinforcement_count: 0,
     });
     const parsed = runStopHandler();
+    // Clean up fake task
+    try { fs.unlinkSync(path.join(tasksDir, 'fake-task.json')); } catch {}
     // bootstrap is NOT in the idle phases list, so stop-handler should block
     assertEqual(parsed.decision, 'block',
       'stop-handler should block during bootstrap phase');
