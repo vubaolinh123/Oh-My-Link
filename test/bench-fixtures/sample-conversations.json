@@ -1,0 +1,162 @@
+[
+  {
+    "id": "arch-decision-1",
+    "text": "We decided to use GraphQL instead of REST because our frontend needs flexible querying across multiple entity types. The tradeoff is more complexity on the server side, but the N+1 query pattern was killing our REST endpoints. Alice proposed this approach after benchmarking both options last week.",
+    "expectedEntities": ["Alice"],
+    "expectedTopics": ["graphql", "rest", "frontend"],
+    "expectedEmotions": ["determ"],
+    "expectedFlags": ["DECISION", "TECHNICAL"]
+  },
+  {
+    "id": "bug-report-1",
+    "text": "There's a critical bug in the authentication middleware. When the JWT token expires, instead of returning 401, it crashes the entire Node process with an unhandled promise rejection. The root cause is that the verify() callback throws synchronously inside an async handler. Bob found this after the production outage on Friday.",
+    "expectedEntities": ["Bob"],
+    "expectedTopics": ["authentication", "middleware", "token"],
+    "expectedEmotions": [],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "preference-1",
+    "text": "I prefer using functional components with hooks over class components. Always use TypeScript strict mode. Never use any type unless absolutely necessary. My convention is to use barrel exports in each feature folder.",
+    "expectedEntities": [],
+    "expectedTopics": ["typescript", "components", "hooks"],
+    "expectedEmotions": ["convict"],
+    "expectedFlags": ["CORE"]
+  },
+  {
+    "id": "milestone-1",
+    "text": "Finally got the CI pipeline working! After three days of debugging Docker layer caching issues, the build time went from 12 minutes down to 3 minutes. That's a 75% reduction. Shipped the v2.1 release with all green checks.",
+    "expectedEntities": ["Docker"],
+    "expectedTopics": ["pipeline", "docker", "caching"],
+    "expectedEmotions": ["excite"],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "code-review-1",
+    "text": "Looking at the payment processing module, I noticed we're not handling the Stripe webhook idempotency correctly. If the same event gets delivered twice, we'll charge the customer twice. The fix is to store processed event IDs in Redis with a TTL of 24 hours. Charlie mentioned this pattern works well in their billing service.",
+    "expectedEntities": ["Charlie", "Stripe", "Redis"],
+    "expectedTopics": ["payment", "stripe", "webhook"],
+    "expectedEmotions": [],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "architecture-1",
+    "text": "The microservices approach isn't scaling well for our team size. We have 4 developers maintaining 12 services. Decided to consolidate into a modular monolith with clear domain boundaries. The key insight was that network latency between services was causing more problems than the coupling we were trying to avoid.",
+    "expectedEntities": [],
+    "expectedTopics": ["microservices", "monolith", "architecture"],
+    "expectedEmotions": ["determ"],
+    "expectedFlags": ["DECISION", "TECHNICAL"]
+  },
+  {
+    "id": "emotional-1",
+    "text": "I'm really worried about the deadline. The client demo is next Tuesday and we still have 3 critical features unfinished. I love this project but the scope keeps growing. I'm scared we'll disappoint the stakeholders.",
+    "expectedEntities": [],
+    "expectedTopics": ["deadline", "client", "demo"],
+    "expectedEmotions": ["anx", "love", "fear"],
+    "expectedFlags": []
+  },
+  {
+    "id": "problem-fix-1",
+    "text": "The database migration was failing because we had a circular foreign key reference between the users and organizations tables. The fix was to create organizations first without the owner_id column, then add it in a separate migration step. Turns out this is a common pattern with self-referencing entities.",
+    "expectedEntities": [],
+    "expectedTopics": ["database", "migration", "foreign"],
+    "expectedEmotions": [],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "tech-decision-2",
+    "text": "Switched from webpack to Vite for the development server. The hot module replacement is almost instant now compared to the 8-second rebuild cycle we had before. The configuration is also much simpler. Dave discovered that our custom webpack plugins were causing most of the slowdown.",
+    "expectedEntities": ["Dave"],
+    "expectedTopics": ["webpack", "vite", "development"],
+    "expectedEmotions": [],
+    "expectedFlags": ["DECISION", "TECHNICAL"]
+  },
+  {
+    "id": "deployment-1",
+    "text": "Successfully deployed the new API gateway to production. All health checks passing, latency is under 50ms at p99. The blue-green deployment strategy worked perfectly. Zero downtime for the first time in our release history.",
+    "expectedEntities": [],
+    "expectedTopics": ["deployed", "gateway", "production"],
+    "expectedEmotions": [],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "learning-1",
+    "text": "Today I realized that our caching strategy was fundamentally wrong. We were caching at the API layer when we should have been caching at the query layer. Moving the cache closer to the database reduced our response times by 60% and simplified the invalidation logic dramatically.",
+    "expectedEntities": [],
+    "expectedTopics": ["caching", "strategy", "database"],
+    "expectedEmotions": [],
+    "expectedFlags": ["PIVOT", "TECHNICAL"]
+  },
+  {
+    "id": "team-update-1",
+    "text": "Elena joined the backend team last Monday. She has 5 years of experience with distributed systems at her previous company. She'll be taking over the event sourcing implementation that Frank started before he moved to the platform team.",
+    "expectedEntities": ["Elena", "Frank"],
+    "expectedTopics": ["backend", "distributed", "event"],
+    "expectedEmotions": [],
+    "expectedFlags": []
+  },
+  {
+    "id": "security-1",
+    "text": "Found a potential SQL injection vulnerability in the search endpoint. The user input was being concatenated directly into the query string instead of using parameterized queries. Fixed it immediately and added input validation. This is why we should always use prepared statements.",
+    "expectedEntities": [],
+    "expectedTopics": ["injection", "vulnerability", "search"],
+    "expectedEmotions": [],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "refactor-1",
+    "text": "Refactored the entire notification system from a synchronous approach to an event-driven architecture using RabbitMQ. The old system was blocking the main request thread for up to 2 seconds while sending emails. Now notifications are processed asynchronously with retry logic and dead letter queues.",
+    "expectedEntities": ["RabbitMQ"],
+    "expectedTopics": ["notification", "event-driven", "architecture"],
+    "expectedEmotions": [],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "debugging-1",
+    "text": "Spent 4 hours tracking down a memory leak in the WebSocket server. The issue was that event listeners were being added on every reconnection but never cleaned up. The fix was simple: call removeAllListeners() before re-attaching handlers. Node process memory usage dropped from 2GB back to 200MB.",
+    "expectedEntities": ["WebSocket", "Node"],
+    "expectedTopics": ["memory", "websocket", "leak"],
+    "expectedEmotions": [],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "config-decision-1",
+    "text": "Set the max connection pool size to 20 for PostgreSQL. Default was 10 but we were seeing connection timeouts under load. Configure the idle timeout to 30 seconds to prevent stale connections. The database team recommended these settings based on our traffic patterns.",
+    "expectedEntities": ["PostgreSQL"],
+    "expectedTopics": ["connection", "postgresql", "pool"],
+    "expectedEmotions": [],
+    "expectedFlags": ["DECISION", "TECHNICAL"]
+  },
+  {
+    "id": "testing-1",
+    "text": "Discovered that our integration tests were passing because the mock database was too lenient. Switched to using a real PostgreSQL container in CI. The tests now catch schema mismatches that were invisible before. Three existing tests broke and revealed actual bugs.",
+    "expectedEntities": ["PostgreSQL"],
+    "expectedTopics": ["integration", "tests", "postgresql"],
+    "expectedEmotions": [],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "performance-1",
+    "text": "Optimized the dashboard query from 4.2 seconds to 180ms by adding a composite index on (user_id, created_at) and switching from COUNT(*) to a materialized view that refreshes every 5 minutes. The breakthrough was realizing the query planner was doing a sequential scan because of the missing index.",
+    "expectedEntities": [],
+    "expectedTopics": ["dashboard", "query", "index"],
+    "expectedEmotions": [],
+    "expectedFlags": ["TECHNICAL"]
+  },
+  {
+    "id": "api-design-1",
+    "text": "Decided to implement cursor-based pagination instead of offset-based for the timeline API. Because our dataset grows rapidly and users frequently insert new items, offset-based pagination was showing duplicate items when pages shifted. Cursor pagination using the created_at timestamp solves this elegantly.",
+    "expectedEntities": [],
+    "expectedTopics": ["pagination", "cursor", "timeline"],
+    "expectedEmotions": ["determ"],
+    "expectedFlags": ["DECISION", "TECHNICAL"]
+  },
+  {
+    "id": "infrastructure-1",
+    "text": "Migrated the entire staging environment from AWS EC2 to Kubernetes on EKS. The infrastructure-as-code approach with Terraform and Helm charts means we can now spin up a complete environment in 15 minutes instead of 2 days. Grace wrote most of the Helm charts during the hackathon.",
+    "expectedEntities": ["Grace"],
+    "expectedTopics": ["kubernetes", "terraform", "infrastructure"],
+    "expectedEmotions": [],
+    "expectedFlags": ["DECISION", "TECHNICAL"]
+  }
+]

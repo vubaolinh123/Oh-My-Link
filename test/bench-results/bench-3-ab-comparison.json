@@ -1,0 +1,144 @@
+{
+  "tier": "3",
+  "name": "A/B Comparison",
+  "tests": {
+    "3A": {
+      "name": "Context Size Comparison",
+      "baseline": {
+        "tokens": 8,
+        "context": "No memory"
+      },
+      "withMemory": {
+        "wakeUpTokens": 174,
+        "preToolTokens": 30,
+        "totalTokens": 204,
+        "wakeUpChars": 524
+      },
+      "documentsStored": 4,
+      "storageCompressionPct": "76.8%",
+      "withinBudget": true,
+      "passed": true
+    },
+    "3B": {
+      "name": "Memory Retention Test",
+      "totalQueries": 10,
+      "hits": 7,
+      "retentionRate": "70.0%",
+      "details": [
+        {
+          "query": "What architecture did we choose?",
+          "session": 1,
+          "hit": true,
+          "expectedKeywords": [
+            "monolith",
+            "modular"
+          ],
+          "topResult": "0:EXP|postgresql_acid_api|\"We decided to use a modular monolith architecture in...\"|determ|DECISION+",
+          "score": "1.233"
+        },
+        {
+          "query": "What database are we using?",
+          "session": 1,
+          "hit": true,
+          "expectedKeywords": [
+            "postgresql",
+            "postgres"
+          ],
+          "topResult": "(none)",
+          "score": 0
+        },
+        {
+          "query": "What coding style does the user prefer?",
+          "session": 2,
+          "hit": true,
+          "expectedKeywords": [
+            "functional",
+            "immutable"
+          ],
+          "topResult": "0:ALW+NEV+PLE|oop_always_never|\"I prefer functional programming patterns over OOP\"|convict+rage|CORE",
+          "score": "1.076"
+        },
+        {
+          "query": "What was the critical bug?",
+          "session": 3,
+          "hit": true,
+          "expectedKeywords": [
+            "concurrent",
+            "overselling",
+            "inventory"
+          ],
+          "topResult": "0:ROO+FIX|postgresql_select_update|\"Found a critical bug in the order processing pipeline\"",
+          "score": "2.466"
+        },
+        {
+          "query": "How was the inventory bug fixed?",
+          "session": 3,
+          "hit": true,
+          "expectedKeywords": [
+            "advisory",
+            "lock",
+            "select"
+          ],
+          "topResult": "0:ROO+FIX|postgresql_select_update|\"Found a critical bug in the order processing pipeline\"",
+          "score": "1.233"
+        },
+        {
+          "query": "What version was shipped?",
+          "session": 4,
+          "hit": true,
+          "expectedKeywords": [
+            "3.0",
+            "shipped",
+            "version"
+          ],
+          "topResult": "(none)",
+          "score": 0
+        },
+        {
+          "query": "What search technology do we use?",
+          "session": 4,
+          "hit": false,
+          "expectedKeywords": [
+            "elasticsearch"
+          ],
+          "topResult": "(none)",
+          "score": 0
+        },
+        {
+          "query": "How is the app deployed?",
+          "session": 4,
+          "hit": false,
+          "expectedKeywords": [
+            "kubernetes",
+            "rolling"
+          ],
+          "topResult": "(none)",
+          "score": 0
+        },
+        {
+          "query": "What real-time system was built?",
+          "session": 4,
+          "hit": true,
+          "expectedKeywords": [
+            "websocket",
+            "notification"
+          ],
+          "topResult": "(none)",
+          "score": 0
+        },
+        {
+          "query": "What was the breakthrough in session 4?",
+          "session": 4,
+          "hit": false,
+          "expectedKeywords": [
+            "event",
+            "sourcing"
+          ],
+          "topResult": "(none)",
+          "score": 0
+        }
+      ],
+      "passed": true
+    }
+  }
+}

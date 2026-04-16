@@ -1,0 +1,32 @@
+{
+  "tier": "2",
+  "name": "Pipeline Integration",
+  "tests": {
+    "2A": {
+      "name": "Extract-Compress-Store Pipeline",
+      "captured": 5,
+      "total": 6,
+      "captureRate": "83.3%",
+      "documentsStored": 5,
+      "passed": true
+    },
+    "2B": {
+      "name": "WakeUp Context Quality",
+      "noHintLength": 592,
+      "withHintLength": 592,
+      "hasIdentity": true,
+      "hasMemories": true,
+      "hintRelevant": true,
+      "withinBudget": true,
+      "passed": true
+    },
+    "2C": {
+      "name": "Session Consolidation",
+      "docsBefore": 5,
+      "docsAfter": 8,
+      "newDocuments": 3,
+      "workingMemoryCleared": true,
+      "passed": true
+    }
+  }
+}

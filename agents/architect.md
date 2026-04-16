@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:architect
 description: Implementation Planner — produces plan.md and decomposes into task JSONs
-model: glm-5.1
+model: glm-5:cloud
 level: 3
 disallowedTools:
   - Edit

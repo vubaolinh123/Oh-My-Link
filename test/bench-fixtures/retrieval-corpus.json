@@ -1,0 +1,431 @@
+{
+  "documents": [
+    {
+      "id": "doc-redis-caching",
+      "text": "We implemented Redis caching for the user session data. The cache TTL is set to 3600 seconds. Sessions are stored with the pattern user:{userId}:session. On cache miss, we fall back to the PostgreSQL database and populate the cache on read.",
+      "tags": ["redis", "caching", "session", "postgresql"]
+    },
+    {
+      "id": "doc-auth-jwt",
+      "text": "The authentication system uses JWT tokens with RS256 signing. Access tokens expire after 15 minutes, refresh tokens after 7 days. The public key is distributed to all microservices for token verification without hitting the auth service.",
+      "tags": ["authentication", "jwt", "token", "security"]
+    },
+    {
+      "id": "doc-deploy-k8s",
+      "text": "Kubernetes deployment configuration uses rolling updates with maxSurge of 1 and maxUnavailable of 0. Health checks run every 10 seconds with a 30 second initial delay. The liveness probe hits /health and the readiness probe hits /ready.",
+      "tags": ["kubernetes", "deployment", "health-check"]
+    },
+    {
+      "id": "doc-db-migration",
+      "text": "Database migration 042 added a composite index on the orders table for (customer_id, created_at). This reduced the dashboard query time from 4.2 seconds to 180 milliseconds. The migration also added a partial index for active orders only.",
+      "tags": ["database", "migration", "index", "performance"]
+    },
+    {
+      "id": "doc-api-graphql",
+      "text": "The GraphQL API uses Apollo Server v4 with DataLoader for N+1 query prevention. Schema is defined using code-first approach with TypeGraphQL decorators. Rate limiting is applied at the resolver level with a sliding window of 100 requests per minute.",
+      "tags": ["graphql", "apollo", "api", "rate-limiting"]
+    },
+    {
+      "id": "doc-testing-strategy",
+      "text": "Our testing strategy follows the test pyramid: 70% unit tests, 20% integration tests, 10% end-to-end tests. Integration tests use TestContainers for spinning up real PostgreSQL and Redis instances. E2E tests run with Playwright against the staging environment.",
+      "tags": ["testing", "integration", "e2e", "strategy"]
+    },
+    {
+      "id": "doc-ci-pipeline",
+      "text": "The CI pipeline runs on GitHub Actions with three stages: lint, test, and deploy. The lint stage runs ESLint and Prettier checks. Test stage runs unit and integration tests in parallel. Deploy stage uses blue-green deployment to AWS ECS.",
+      "tags": ["ci", "pipeline", "github-actions", "deploy"]
+    },
+    {
+      "id": "doc-error-handling",
+      "text": "Error handling follows a centralized middleware pattern. All errors extend a base AppError class with status code and error code. Unhandled promise rejections are caught globally and logged to Datadog. Client-facing errors never expose internal details.",
+      "tags": ["error-handling", "middleware", "logging"]
+    },
+    {
+      "id": "doc-websocket",
+      "text": "WebSocket connections are managed by Socket.io with Redis adapter for multi-server support. Each user can have up to 5 concurrent connections. Heartbeat interval is 25 seconds with a timeout of 60 seconds. Reconnection uses exponential backoff.",
+      "tags": ["websocket", "socket.io", "redis", "real-time"]
+    },
+    {
+      "id": "doc-payment-stripe",
+      "text": "Payment processing uses Stripe API v2024-01. Webhook events are verified using the signing secret. Idempotency keys are stored in Redis with 24 hour TTL. Failed payments trigger automatic retry with exponential backoff up to 3 attempts.",
+      "tags": ["payment", "stripe", "webhook", "idempotency"]
+    },
+    {
+      "id": "doc-search-elastic",
+      "text": "Full-text search is powered by Elasticsearch with custom analyzers for English and Vietnamese text. Indexing happens asynchronously via a RabbitMQ queue. Search results include highlighting and faceted filtering by category, date range, and status.",
+      "tags": ["search", "elasticsearch", "rabbitmq", "indexing"]
+    },
+    {
+      "id": "doc-monitoring",
+      "text": "Application monitoring uses Datadog for metrics and traces, PagerDuty for alerting, and Grafana for dashboards. Key metrics tracked: p99 latency, error rate, throughput, and database connection pool utilization. Alerts fire when error rate exceeds 1%.",
+      "tags": ["monitoring", "datadog", "alerting", "metrics"]
+    },
+    {
+      "id": "doc-user-prefs",
+      "text": "Alice prefers dark mode for all editor themes. She uses Vim keybindings in VS Code. Her convention is to use 2-space indentation for TypeScript and 4-space for Python. She always runs tests locally before pushing.",
+      "tags": ["preference", "editor", "convention"]
+    },
+    {
+      "id": "doc-bob-decision",
+      "text": "Bob decided to switch the notification service from SendGrid to AWS SES because of cost. The migration took two weeks. He chose to keep the SendGrid integration as a fallback in case SES has delivery issues in certain regions.",
+      "tags": ["notification", "email", "migration", "decision"]
+    },
+    {
+      "id": "doc-performance-opt",
+      "text": "Performance optimization: replaced the lodash deep clone with structuredClone for 3x speedup. Removed unnecessary JSON.parse(JSON.stringify()) patterns. Added request deduplication using a Map with 5 second TTL to prevent duplicate API calls.",
+      "tags": ["performance", "optimization", "lodash"]
+    },
+    {
+      "id": "doc-docker-config",
+      "text": "Docker configuration uses multi-stage builds to reduce image size from 1.2GB to 180MB. The build stage compiles TypeScript and runs tests. The production stage copies only the dist folder and node_modules. Alpine base image is used for minimal attack surface.",
+      "tags": ["docker", "build", "optimization", "security"]
+    },
+    {
+      "id": "doc-cqrs-pattern",
+      "text": "CQRS implementation separates read and write models. Write model uses PostgreSQL with strict consistency. Read model uses Elasticsearch for fast queries. Events are published via Kafka to keep read models in sync. Eventually consistent with sub-second lag.",
+      "tags": ["cqrs", "architecture", "kafka", "postgresql"]
+    },
+    {
+      "id": "doc-react-patterns",
+      "text": "Frontend uses React 18 with Server Components for the dashboard pages. State management through Zustand for client state and React Query for server state. Code splitting with dynamic imports reduces initial bundle from 2MB to 400KB.",
+      "tags": ["react", "frontend", "state-management", "performance"]
+    },
+    {
+      "id": "doc-security-audit",
+      "text": "Security audit findings: found SQL injection in the search endpoint, XSS vulnerability in the comment rendering, and missing CSRF protection on the settings page. All three were classified as high severity. Patches deployed within 24 hours.",
+      "tags": ["security", "vulnerability", "sql-injection", "xss"]
+    },
+    {
+      "id": "doc-terraform-infra",
+      "text": "Infrastructure defined in Terraform with modules for VPC, EKS cluster, RDS, and ElastiCache. State stored in S3 with DynamoDB locking. Changes require PR review and plan output approval before apply. Production and staging share module definitions but use separate state files.",
+      "tags": ["terraform", "infrastructure", "aws", "iac"]
+    },
+    {
+      "id": "doc-cache-invalidation",
+      "text": "Cache invalidation strategy uses event-driven approach. When data changes in PostgreSQL, a trigger publishes to a Redis Pub/Sub channel. Cache workers listen and invalidate specific keys. Pattern: entity:{type}:{id}. Bulk invalidation supported via wildcard patterns.",
+      "tags": ["cache", "invalidation", "redis", "postgresql"]
+    },
+    {
+      "id": "doc-feature-flags",
+      "text": "Feature flags managed through LaunchDarkly with local fallback configuration. Flags are evaluated at the edge using a CDN worker. New features are rolled out progressively: 1% canary, 10% beta, 50% gradual, 100% GA. Metrics are tracked per flag variant.",
+      "tags": ["feature-flags", "rollout", "launchdarkly"]
+    },
+    {
+      "id": "doc-logging-config",
+      "text": "Logging uses structured JSON format with Winston. Log levels: error, warn, info, debug. Request correlation IDs are injected via middleware. Logs are shipped to Elasticsearch via Filebeat. Sensitive fields like passwords and tokens are automatically redacted.",
+      "tags": ["logging", "winston", "elasticsearch", "structured"]
+    },
+    {
+      "id": "doc-api-versioning",
+      "text": "API versioning uses URL path prefix: /api/v1/, /api/v2/. Breaking changes increment the major version. Deprecated endpoints return a Sunset header with the removal date. Clients have 6 months to migrate. Version compatibility is tested in CI.",
+      "tags": ["api", "versioning", "deprecation", "migration"]
+    },
+    {
+      "id": "doc-microservices",
+      "text": "The order service communicates with inventory service via gRPC for low-latency checks. Payment service uses REST webhooks for asynchronous payment confirmations. Service discovery through Consul with health checks every 15 seconds.",
+      "tags": ["microservices", "grpc", "service-discovery", "consul"]
+    }
+  ],
+  "queries": [
+    {
+      "id": "q1",
+      "query": "How does the caching work?",
+      "expectedDocIds": ["doc-redis-caching", "doc-cache-invalidation"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q2",
+      "query": "What authentication method do we use?",
+      "expectedDocIds": ["doc-auth-jwt"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q3",
+      "query": "How is the application deployed?",
+      "expectedDocIds": ["doc-deploy-k8s", "doc-ci-pipeline"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q4",
+      "query": "database performance optimization",
+      "expectedDocIds": ["doc-db-migration"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q5",
+      "query": "GraphQL API configuration",
+      "expectedDocIds": ["doc-api-graphql"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q6",
+      "query": "How do we test the application?",
+      "expectedDocIds": ["doc-testing-strategy"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q7",
+      "query": "payment processing Stripe",
+      "expectedDocIds": ["doc-payment-stripe"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q8",
+      "query": "WebSocket real-time connections",
+      "expectedDocIds": ["doc-websocket"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q9",
+      "query": "search functionality elasticsearch",
+      "expectedDocIds": ["doc-search-elastic"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q10",
+      "query": "monitoring and alerting setup",
+      "expectedDocIds": ["doc-monitoring"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q11",
+      "query": "error handling middleware",
+      "expectedDocIds": ["doc-error-handling"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q12",
+      "query": "Docker image optimization",
+      "expectedDocIds": ["doc-docker-config"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q13",
+      "query": "What does Alice prefer for coding?",
+      "expectedDocIds": ["doc-user-prefs"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q14",
+      "query": "notification email service decision",
+      "expectedDocIds": ["doc-bob-decision"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q15",
+      "query": "performance lodash clone",
+      "expectedDocIds": ["doc-performance-opt"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q16",
+      "query": "CQRS event sourcing architecture",
+      "expectedDocIds": ["doc-cqrs-pattern"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q17",
+      "query": "React frontend state management",
+      "expectedDocIds": ["doc-react-patterns"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q18",
+      "query": "security vulnerabilities found",
+      "expectedDocIds": ["doc-security-audit"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q19",
+      "query": "Terraform infrastructure setup",
+      "expectedDocIds": ["doc-terraform-infra"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q20",
+      "query": "feature flag rollout strategy",
+      "expectedDocIds": ["doc-feature-flags"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q21",
+      "query": "logging format and configuration",
+      "expectedDocIds": ["doc-logging-config"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q22",
+      "query": "API version deprecation",
+      "expectedDocIds": ["doc-api-versioning"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q23",
+      "query": "Redis session storage",
+      "expectedDocIds": ["doc-redis-caching"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q24",
+      "query": "CI CD pipeline stages",
+      "expectedDocIds": ["doc-ci-pipeline"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q25",
+      "query": "microservices communication gRPC",
+      "expectedDocIds": ["doc-microservices"],
+      "expectedAtK": 5
+    },
+    {
+      "id": "q26",
+      "query": "Kubernetes health check configuration",
+      "expectedDocIds": ["doc-deploy-k8s"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q27",
+      "query": "database index migration orders",
+      "expectedDocIds": ["doc-db-migration"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q28",
+      "query": "Bob notification SendGrid SES",
+      "expectedDocIds": ["doc-bob-decision"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q29",
+      "query": "how do we handle cache misses",
+      "expectedDocIds": ["doc-redis-caching"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q30",
+      "query": "SQL injection vulnerability fix",
+      "expectedDocIds": ["doc-security-audit"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q31",
+      "query": "bundle size reduction React",
+      "expectedDocIds": ["doc-react-patterns"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q32",
+      "query": "structured logging JSON redaction",
+      "expectedDocIds": ["doc-logging-config"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q33",
+      "query": "token expiration refresh",
+      "expectedDocIds": ["doc-auth-jwt"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q34",
+      "query": "exponential backoff retry payment",
+      "expectedDocIds": ["doc-payment-stripe"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q35",
+      "query": "Kafka event CQRS consistency",
+      "expectedDocIds": ["doc-cqrs-pattern"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q36",
+      "query": "PostgreSQL connection cache invalidation",
+      "expectedDocIds": ["doc-cache-invalidation"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q37",
+      "query": "Consul service discovery health",
+      "expectedDocIds": ["doc-microservices"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q38",
+      "query": "what is Alice's indentation convention",
+      "expectedDocIds": ["doc-user-prefs"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q39",
+      "query": "Elasticsearch Filebeat log shipping",
+      "expectedDocIds": ["doc-logging-config"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q40",
+      "query": "Playwright end-to-end testing",
+      "expectedDocIds": ["doc-testing-strategy"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q41",
+      "query": "Apollo DataLoader N+1 query",
+      "expectedDocIds": ["doc-api-graphql"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q42",
+      "query": "Socket.io heartbeat reconnection",
+      "expectedDocIds": ["doc-websocket"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q43",
+      "query": "ECS blue green deployment",
+      "expectedDocIds": ["doc-ci-pipeline"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q44",
+      "query": "multi-stage Docker Alpine",
+      "expectedDocIds": ["doc-docker-config"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q45",
+      "query": "S3 DynamoDB Terraform state",
+      "expectedDocIds": ["doc-terraform-infra"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q46",
+      "query": "LaunchDarkly canary beta rollout",
+      "expectedDocIds": ["doc-feature-flags"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q47",
+      "query": "RabbitMQ async indexing queue",
+      "expectedDocIds": ["doc-search-elastic"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q48",
+      "query": "PagerDuty Datadog error rate alert",
+      "expectedDocIds": ["doc-monitoring"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q49",
+      "query": "Sunset header API deprecation 6 months",
+      "expectedDocIds": ["doc-api-versioning"],
+      "expectedAtK": 10
+    },
+    {
+      "id": "q50",
+      "query": "XSS CSRF security patches",
+      "expectedDocIds": ["doc-security-audit"],
+      "expectedAtK": 10
+    }
+  ]
+}

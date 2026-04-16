@@ -1,0 +1,746 @@
+{
+  "tier": "4",
+  "name": "MemPalace Comparison",
+  "timestamp": "2026-04-08T10:48:16.645Z",
+  "corpus": {
+    "sessions": 132,
+    "questions": 145,
+    "categories": {
+      "single-session-user": 36,
+      "temporal-reasoning": 23,
+      "single-session-preference": 18,
+      "single-session-assistant": 24,
+      "multi-session": 20,
+      "knowledge-update": 24
+    }
+  },
+  "results": {
+    "raw": {
+      "r5": 0.7172413793103448,
+      "r10": 0.9103448275862069,
+      "ndcg10": 0.6551842322197352,
+      "tokensPerQuery": 176,
+      "compressionRatio": 1,
+      "perCategory": {
+        "single-session-user": {
+          "total": 36,
+          "r5": 22,
+          "r10": 32,
+          "ndcg10": 18.979907936891063
+        },
+        "temporal-reasoning": {
+          "total": 23,
+          "r5": 3,
+          "r10": 16,
+          "ndcg10": 6.178149373330207
+        },
+        "single-session-preference": {
+          "total": 18,
+          "r5": 18,
+          "r10": 18,
+          "ndcg10": 17.261859507142916
+        },
+        "single-session-assistant": {
+          "total": 24,
+          "r5": 24,
+          "r10": 24,
+          "ndcg10": 20.67836778214312
+        },
+        "multi-session": {
+          "total": 20,
+          "r5": 14,
+          "r10": 19,
+          "ndcg10": 12.225061290211313
+        },
+        "knowledge-update": {
+          "total": 24,
+          "r5": 23,
+          "r10": 23,
+          "ndcg10": 19.67836778214312
+        }
+      },
+      "ingestTimeMs": 215,
+      "queryTimeMs": 190
+    },
+    "extractedAaak": {
+      "r5": 0.593103448275862,
+      "r10": 0.7586206896551724,
+      "ndcg10": 0.5342712488910563,
+      "tokensPerQuery": 45,
+      "compressionRatio": 3.9068805230627777,
+      "perCategory": {
+        "single-session-user": {
+          "total": 36,
+          "r5": 21,
+          "r10": 31,
+          "ndcg10": 18.479907936891063
+        },
+        "temporal-reasoning": {
+          "total": 23,
+          "r5": 5,
+          "r10": 17,
+          "ndcg10": 6.799422936762453
+        },
+        "single-session-preference": {
+          "total": 18,
+          "r5": 18,
+          "r10": 18,
+          "ndcg10": 17.261859507142916
+        },
+        "single-session-assistant": {
+          "total": 24,
+          "r5": 13,
+          "r10": 13,
+          "ndcg10": 11.523719014285831
+        },
+        "multi-session": {
+          "total": 20,
+          "r5": 6,
+          "r10": 8,
+          "ndcg10": 3.7260539119778233
+        },
+        "knowledge-update": {
+          "total": 24,
+          "r5": 23,
+          "r10": 23,
+          "ndcg10": 19.67836778214312
+        }
+      },
+      "ingestTimeMs": 205,
+      "queryTimeMs": 144
+    },
+    "mempalaceClaimed": {
+      "raw": {
+        "r5": 0.966,
+        "r10": 0.99,
+        "ndcg10": 0.889
+      },
+      "hybridRerank": {
+        "r5": 0.984,
+        "r10": 0.998,
+        "ndcg10": 0.938
+      }
+    }
+  },
+  "misses": {
+    "raw": [
+      {
+        "id": "q009",
+        "question": "Which database was chosen for the new service and why?",
+        "category": "single-session-user",
+        "expected": "s009",
+        "retrieved": [
+          "s002",
+          "s004",
+          "s005",
+          "s007",
+          "s011"
+        ]
+      },
+      {
+        "id": "q010",
+        "question": "Which database was chosen for the new service and why?",
+        "category": "single-session-user",
+        "expected": "s010",
+        "retrieved": [
+          "s002",
+          "s004",
+          "s005",
+          "s007",
+          "s011"
+        ]
+      },
+      {
+        "id": "q016",
+        "question": "What bug was found around 2025-09-10 and how was it fixed?",
+        "category": "temporal-reasoning",
+        "expected": "s028",
+        "retrieved": [
+          "s026",
+          "s034",
+          "s097",
+          "s103",
+          "s029"
+        ]
+      },
+      {
+        "id": "q019",
+        "question": "What bug was found around 2025-12-09 and how was it fixed?",
+        "category": "temporal-reasoning",
+        "expected": "s031",
+        "retrieved": [
+          "s026",
+          "s034",
+          "s088",
+          "s094",
+          "s097"
+        ]
+      },
+      {
+        "id": "q020",
+        "question": "What bug was found around 2026-01-15 and how was it fixed?",
+        "category": "temporal-reasoning",
+        "expected": "s032",
+        "retrieved": [
+          "s026",
+          "s034",
+          "s097",
+          "s103",
+          "s029"
+        ]
+      },
+      {
+        "id": "q021",
+        "question": "What bug was found around 2026-02-12 and how was it fixed?",
+        "category": "temporal-reasoning",
+        "expected": "s033",
+        "retrieved": [
+          "s026",
+          "s034",
+          "s088",
+          "s094",
+          "s097"
+        ]
+      },
+      {
+        "id": "q023",
+        "question": "What bug was found around 2025-01-06 and how was it fixed?",
+        "category": "temporal-reasoning",
+        "expected": "s035",
+        "retrieved": [
+          "s026",
+          "s034",
+          "s097",
+          "s103",
+          "s029"
+        ]
+      },
+      {
+        "id": "q086",
+        "question": "What security vulnerability was discovered and who found it?",
+        "category": "single-session-user",
+        "expected": "s098",
+        "retrieved": [
+          "s097",
+          "s103",
+          "s099",
+          "s105",
+          "s102"
+        ]
+      },
+      {
+        "id": "q092",
+        "question": "What security vulnerability was discovered and who found it?",
+        "category": "single-session-user",
+        "expected": "s104",
+        "retrieved": [
+          "s097",
+          "s103",
+          "s099",
+          "s105",
+          "s102"
+        ]
+      },
+      {
+        "id": "q118",
+        "question": "What technology did we switch from Jenkins to?",
+        "category": "knowledge-update",
+        "expected": "s130",
+        "retrieved": [
+          "s122",
+          "s064",
+          "s071",
+          "s124",
+          "s132"
+        ]
+      },
+      {
+        "id": "q122",
+        "question": "What was the earliest database decision made this year?",
+        "category": "temporal-reasoning",
+        "expected": "s001",
+        "retrieved": [
+          "s090",
+          "s096",
+          "s085",
+          "s091",
+          "s002"
+        ]
+      },
+      {
+        "id": "q124",
+        "question": "What was Raj Patel's first contribution that we discussed?",
+        "category": "temporal-reasoning",
+        "expected": "s002",
+        "retrieved": [
+          "s083",
+          "s045",
+          "s046",
+          "s037",
+          "s094"
+        ]
+      },
+      {
+        "id": "q129",
+        "question": "What project or task did Yuki Tanaka work on?",
+        "category": "multi-session",
+        "expected": "s130",
+        "retrieved": [
+          "s017",
+          "s114",
+          "s056",
+          "s119",
+          "s122"
+        ]
+      }
+    ],
+    "extractedAaak": [
+      {
+        "id": "q009",
+        "question": "Which database was chosen for the new service and why?",
+        "category": "single-session-user",
+        "expected": "s009",
+        "retrieved": [
+          "s002",
+          "s004",
+          "s005",
+          "s007",
+          "s011"
+        ]
+      },
+      {
+        "id": "q010",
+        "question": "Which database was chosen for the new service and why?",
+        "category": "single-session-user",
+        "expected": "s010",
+        "retrieved": [
+          "s002",
+          "s004",
+          "s005",
+          "s007",
+          "s011"
+        ]
+      },
+      {
+        "id": "q016",
+        "question": "What bug was found around 2025-09-10 and how was it fixed?",
+        "category": "temporal-reasoning",
+        "expected": "s028",
+        "retrieved": [
+          "s026",
+          "s034",
+          "s097",
+          "s103",
+          "s029"
+        ]
+      },
+      {
+        "id": "q019",
+        "question": "What bug was found around 2025-12-09 and how was it fixed?",
+        "category": "temporal-reasoning",
+        "expected": "s031",
+        "retrieved": [
+          "s026",
+          "s034",
+          "s097",
+          "s103",
+          "s029"
+        ]
+      },
+      {
+        "id": "q020",
+        "question": "What bug was found around 2026-01-15 and how was it fixed?",
+        "category": "temporal-reasoning",
+        "expected": "s032",
+        "retrieved": [
+          "s026",
+          "s034",
+          "s097",
+          "s103",
+          "s029"
+        ]
+      },
+      {
+        "id": "q023",
+        "question": "What bug was found around 2025-01-06 and how was it fixed?",
+        "category": "temporal-reasoning",
+        "expected": "s035",
+        "retrieved": [
+          "s026",
+          "s034",
+          "s097",
+          "s103",
+          "s029"
+        ]
+      },
+      {
+        "id": "q060",
+        "question": "Which cloud provider did we deploy to using Docker?",
+        "category": "single-session-user",
+        "expected": "s072",
+        "retrieved": [
+          "s065",
+          "s066",
+          "s056",
+          "s061",
+          "s064"
+        ]
+      },
+      {
+        "id": "q062",
+        "question": "How is the team planning to implement API rate limiting?",
+        "category": "single-session-assistant",
+        "expected": "s074",
+        "retrieved": [
+          "s121",
+          "s129",
+          "s085",
+          "s073",
+          "s112"
+        ]
+      },
+      {
+        "id": "q063",
+        "question": "How is the team planning to implement caching layer?",
+        "category": "single-session-assistant",
+        "expected": "s075",
+        "retrieved": [
+          "s073",
+          "s124",
+          "s132",
+          "s126",
+          "s125"
+        ]
+      },
+      {
+        "id": "q064",
+        "question": "How is the team planning to implement API rate limiting?",
+        "category": "single-session-assistant",
+        "expected": "s076",
+        "retrieved": [
+          "s121",
+          "s129",
+          "s085",
+          "s073",
+          "s112"
+        ]
+      },
+      {
+        "id": "q065",
+        "question": "How is the team planning to implement file upload?",
+        "category": "single-session-assistant",
+        "expected": "s077",
+        "retrieved": [
+          "s073",
+          "s124",
+          "s132",
+          "s126",
+          "s125"
+        ]
+      },
+      {
+        "id": "q066",
+        "question": "How is the team planning to implement billing?",
+        "category": "single-session-assistant",
+        "expected": "s078",
+        "retrieved": [
+          "s054",
+          "s073",
+          "s124",
+          "s132",
+          "s126"
+        ]
+      },
+      {
+        "id": "q067",
+        "question": "How is the team planning to implement dashboard?",
+        "category": "single-session-assistant",
+        "expected": "s079",
+        "retrieved": [
+          "s073",
+          "s124",
+          "s132",
+          "s126",
+          "s125"
+        ]
+      },
+      {
+        "id": "q068",
+        "question": "How is the team planning to implement file upload?",
+        "category": "single-session-assistant",
+        "expected": "s080",
+        "retrieved": [
+          "s073",
+          "s124",
+          "s132",
+          "s126",
+          "s125"
+        ]
+      },
+      {
+        "id": "q069",
+        "question": "How is the team planning to implement search?",
+        "category": "single-session-assistant",
+        "expected": "s081",
+        "retrieved": [
+          "s073",
+          "s097",
+          "s103",
+          "s124",
+          "s132"
+        ]
+      },
+      {
+        "id": "q070",
+        "question": "How is the team planning to implement dashboard?",
+        "category": "single-session-assistant",
+        "expected": "s082",
+        "retrieved": [
+          "s073",
+          "s124",
+          "s132",
+          "s126",
+          "s125"
+        ]
+      },
+      {
+        "id": "q071",
+        "question": "How is the team planning to implement search?",
+        "category": "single-session-assistant",
+        "expected": "s083",
+        "retrieved": [
+          "s073",
+          "s097",
+          "s103",
+          "s124",
+          "s132"
+        ]
+      },
+      {
+        "id": "q072",
+        "question": "How is the team planning to implement authentication?",
+        "category": "single-session-assistant",
+        "expected": "s084",
+        "retrieved": [
+          "s073",
+          "s124",
+          "s132",
+          "s126",
+          "s125"
+        ]
+      },
+      {
+        "id": "q074",
+        "question": "What was the improvement in page load time?",
+        "category": "multi-session",
+        "expected": "s086",
+        "retrieved": [
+          "s085",
+          "s029",
+          "s030",
+          "s025",
+          "s026"
+        ]
+      },
+      {
+        "id": "q075",
+        "question": "What was the improvement in memory usage?",
+        "category": "multi-session",
+        "expected": "s087",
+        "retrieved": [
+          "s085"
+        ]
+      },
+      {
+        "id": "q076",
+        "question": "What was the improvement in build time?",
+        "category": "multi-session",
+        "expected": "s088",
+        "retrieved": [
+          "s085",
+          "s061",
+          "s064",
+          "s065",
+          "s066"
+        ]
+      },
+      {
+        "id": "q077",
+        "question": "What was the improvement in test suite runtime?",
+        "category": "multi-session",
+        "expected": "s089",
+        "retrieved": [
+          "s085",
+          "s061",
+          "s064",
+          "s065",
+          "s066"
+        ]
+      },
+      {
+        "id": "q078",
+        "question": "What was the improvement in database query latency?",
+        "category": "multi-session",
+        "expected": "s090",
+        "retrieved": [
+          "s085",
+          "s002",
+          "s004",
+          "s005",
+          "s007"
+        ]
+      },
+      {
+        "id": "q079",
+        "question": "What was the improvement in API response time?",
+        "category": "multi-session",
+        "expected": "s091",
+        "retrieved": [
+          "s085",
+          "s098",
+          "s104",
+          "s101",
+          "s107"
+        ]
+      },
+      {
+        "id": "q080",
+        "question": "What was the improvement in page load time?",
+        "category": "multi-session",
+        "expected": "s092",
+        "retrieved": [
+          "s085",
+          "s029",
+          "s030",
+          "s025",
+          "s026"
+        ]
+      },
+      {
+        "id": "q081",
+        "question": "What was the improvement in memory usage?",
+        "category": "multi-session",
+        "expected": "s093",
+        "retrieved": [
+          "s085"
+        ]
+      },
+      {
+        "id": "q082",
+        "question": "What was the improvement in build time?",
+        "category": "multi-session",
+        "expected": "s094",
+        "retrieved": [
+          "s085",
+          "s061",
+          "s064",
+          "s065",
+          "s066"
+        ]
+      },
+      {
+        "id": "q083",
+        "question": "What was the improvement in test suite runtime?",
+        "category": "multi-session",
+        "expected": "s095",
+        "retrieved": [
+          "s085",
+          "s061",
+          "s064",
+          "s065",
+          "s066"
+        ]
+      },
+      {
+        "id": "q084",
+        "question": "What was the improvement in database query latency?",
+        "category": "multi-session",
+        "expected": "s096",
+        "retrieved": [
+          "s085",
+          "s002",
+          "s004",
+          "s005",
+          "s007"
+        ]
+      },
+      {
+        "id": "q086",
+        "question": "What security vulnerability was discovered and who found it?",
+        "category": "single-session-user",
+        "expected": "s098",
+        "retrieved": [
+          "s097",
+          "s103",
+          "s099",
+          "s105",
+          "s102"
+        ]
+      },
+      {
+        "id": "q092",
+        "question": "What security vulnerability was discovered and who found it?",
+        "category": "single-session-user",
+        "expected": "s104",
+        "retrieved": [
+          "s097",
+          "s103",
+          "s099",
+          "s105",
+          "s102"
+        ]
+      },
+      {
+        "id": "q118",
+        "question": "What technology did we switch from Jenkins to?",
+        "category": "knowledge-update",
+        "expected": "s130",
+        "retrieved": [
+          "s122",
+          "s064",
+          "s071",
+          "s124",
+          "s132"
+        ]
+      },
+      {
+        "id": "q123",
+        "question": "What performance improvement was made most recently?",
+        "category": "temporal-reasoning",
+        "expected": "s091",
+        "retrieved": [
+          "s085",
+          "s009",
+          "s125"
+        ]
+      },
+      {
+        "id": "q124",
+        "question": "What was Raj Patel's first contribution that we discussed?",
+        "category": "temporal-reasoning",
+        "expected": "s002",
+        "retrieved": [
+          "s045",
+          "s046",
+          "s037",
+          "s102",
+          "s110"
+        ]
+      },
+      {
+        "id": "q129",
+        "question": "What project or task did Yuki Tanaka work on?",
+        "category": "multi-session",
+        "expected": "s130",
+        "retrieved": [
+          "s017",
+          "s114",
+          "s056",
+          "s119",
+          "s122"
+        ]
+      }
+    ]
+  },
+  "passed": true
+}

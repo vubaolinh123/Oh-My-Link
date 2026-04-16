@@ -1,0 +1,957 @@
+{
+  "tier": "1C",
+  "name": "BM25 Retrieval Quality",
+  "summary": {
+    "totalDocuments": 25,
+    "totalQueries": 50,
+    "recall5": "96.0% (24/25)",
+    "recall10": "98.0% (49/50)",
+    "ndcg10": "0.955"
+  },
+  "queries": [
+    {
+      "id": "q1",
+      "query": "How does the caching work?",
+      "expectedDocIds": [
+        "doc-redis-caching",
+        "doc-cache-invalidation"
+      ],
+      "retrievedDocIds": [
+        "doc-redis-caching"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "2.905"
+      ]
+    },
+    {
+      "id": "q2",
+      "query": "What authentication method do we use?",
+      "expectedDocIds": [
+        "doc-auth-jwt"
+      ],
+      "retrievedDocIds": [
+        "doc-auth-jwt"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "2.955"
+      ]
+    },
+    {
+      "id": "q3",
+      "query": "How is the application deployed?",
+      "expectedDocIds": [
+        "doc-deploy-k8s",
+        "doc-ci-pipeline"
+      ],
+      "retrievedDocIds": [
+        "doc-security-audit",
+        "doc-monitoring"
+      ],
+      "hit5": false,
+      "hit10": false,
+      "ndcg10": "0.000",
+      "scores": [
+        "2.905",
+        "2.856"
+      ]
+    },
+    {
+      "id": "q4",
+      "query": "database performance optimization",
+      "expectedDocIds": [
+        "doc-db-migration"
+      ],
+      "retrievedDocIds": [
+        "doc-performance-opt",
+        "doc-db-migration",
+        "doc-redis-caching",
+        "doc-monitoring"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "0.631",
+      "scores": [
+        "5.810",
+        "2.151",
+        "2.042",
+        "2.008"
+      ]
+    },
+    {
+      "id": "q5",
+      "query": "GraphQL API configuration",
+      "expectedDocIds": [
+        "doc-api-graphql"
+      ],
+      "retrievedDocIds": [
+        "doc-api-graphql",
+        "doc-api-versioning",
+        "doc-deploy-k8s",
+        "doc-feature-flags",
+        "doc-docker-config",
+        "doc-performance-opt",
+        "doc-payment-stripe"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "4.613",
+        "2.872",
+        "2.077",
+        "1.975",
+        "1.943"
+      ]
+    },
+    {
+      "id": "q6",
+      "query": "How do we test the application?",
+      "expectedDocIds": [
+        "doc-testing-strategy"
+      ],
+      "retrievedDocIds": [
+        "doc-ci-pipeline",
+        "doc-monitoring",
+        "doc-testing-strategy"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "0.500",
+      "scores": [
+        "3.197",
+        "2.856",
+        "2.233"
+      ]
+    },
+    {
+      "id": "q7",
+      "query": "payment processing Stripe",
+      "expectedDocIds": [
+        "doc-payment-stripe"
+      ],
+      "retrievedDocIds": [
+        "doc-payment-stripe",
+        "doc-microservices"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "8.058",
+        "3.430"
+      ]
+    },
+    {
+      "id": "q8",
+      "query": "WebSocket real-time connections",
+      "expectedDocIds": [
+        "doc-websocket"
+      ],
+      "retrievedDocIds": [
+        "doc-websocket",
+        "doc-db-migration",
+        "doc-testing-strategy"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "7.236",
+        "3.060",
+        "2.721"
+      ]
+    },
+    {
+      "id": "q9",
+      "query": "search functionality elasticsearch",
+      "expectedDocIds": [
+        "doc-search-elastic"
+      ],
+      "retrievedDocIds": [
+        "doc-search-elastic",
+        "doc-security-audit",
+        "doc-logging-config",
+        "doc-cqrs-pattern"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "5.431",
+        "2.385",
+        "1.943",
+        "1.883"
+      ]
+    },
+    {
+      "id": "q10",
+      "query": "monitoring and alerting setup",
+      "expectedDocIds": [
+        "doc-monitoring"
+      ],
+      "retrievedDocIds": [
+        "doc-monitoring"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "5.713"
+      ]
+    },
+    {
+      "id": "q11",
+      "query": "error handling middleware",
+      "expectedDocIds": [
+        "doc-error-handling"
+      ],
+      "retrievedDocIds": [
+        "doc-error-handling",
+        "doc-logging-config",
+        "doc-monitoring"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "7.835",
+        "4.213",
+        "2.867"
+      ]
+    },
+    {
+      "id": "q12",
+      "query": "Docker image optimization",
+      "expectedDocIds": [
+        "doc-docker-config"
+      ],
+      "retrievedDocIds": [
+        "doc-docker-config",
+        "doc-performance-opt"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "6.749",
+        "2.905"
+      ]
+    },
+    {
+      "id": "q13",
+      "query": "What does Alice prefer for coding?",
+      "expectedDocIds": [
+        "doc-user-prefs"
+      ],
+      "retrievedDocIds": [
+        "doc-user-prefs"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "3.116"
+      ]
+    },
+    {
+      "id": "q14",
+      "query": "notification email service decision",
+      "expectedDocIds": [
+        "doc-bob-decision"
+      ],
+      "retrievedDocIds": [
+        "doc-bob-decision",
+        "doc-microservices",
+        "doc-auth-jwt"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "5.120",
+        "3.704",
+        "2.077"
+      ]
+    },
+    {
+      "id": "q15",
+      "query": "performance lodash clone",
+      "expectedDocIds": [
+        "doc-performance-opt"
+      ],
+      "retrievedDocIds": [
+        "doc-performance-opt"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "8.714"
+      ]
+    },
+    {
+      "id": "q16",
+      "query": "CQRS event sourcing architecture",
+      "expectedDocIds": [
+        "doc-cqrs-pattern"
+      ],
+      "retrievedDocIds": [
+        "doc-cqrs-pattern",
+        "doc-cache-invalidation"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "2.678",
+        "2.637"
+      ]
+    },
+    {
+      "id": "q17",
+      "query": "React frontend state management",
+      "expectedDocIds": [
+        "doc-react-patterns"
+      ],
+      "retrievedDocIds": [
+        "doc-react-patterns",
+        "doc-terraform-infra"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "13.880",
+        "3.233"
+      ]
+    },
+    {
+      "id": "q18",
+      "query": "security vulnerabilities found",
+      "expectedDocIds": [
+        "doc-security-audit"
+      ],
+      "retrievedDocIds": [
+        "doc-security-audit"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "5.810"
+      ]
+    },
+    {
+      "id": "q19",
+      "query": "Terraform infrastructure setup",
+      "expectedDocIds": [
+        "doc-terraform-infra"
+      ],
+      "retrievedDocIds": [
+        "doc-terraform-infra"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "5.441"
+      ]
+    },
+    {
+      "id": "q20",
+      "query": "feature flag rollout strategy",
+      "expectedDocIds": [
+        "doc-feature-flags"
+      ],
+      "retrievedDocIds": [
+        "doc-feature-flags",
+        "doc-testing-strategy",
+        "doc-cache-invalidation"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "5.619",
+        "2.233",
+        "2.165"
+      ]
+    },
+    {
+      "id": "q21",
+      "query": "logging format and configuration",
+      "expectedDocIds": [
+        "doc-logging-config"
+      ],
+      "retrievedDocIds": [
+        "doc-logging-config",
+        "doc-deploy-k8s",
+        "doc-feature-flags",
+        "doc-docker-config"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "5.529",
+        "2.077",
+        "1.975",
+        "1.943"
+      ]
+    },
+    {
+      "id": "q22",
+      "query": "API version deprecation",
+      "expectedDocIds": [
+        "doc-api-versioning"
+      ],
+      "retrievedDocIds": [
+        "doc-api-versioning",
+        "doc-performance-opt",
+        "doc-api-graphql",
+        "doc-payment-stripe"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "6.857",
+        "1.786",
+        "1.756",
+        "1.756"
+      ]
+    },
+    {
+      "id": "q23",
+      "query": "Redis session storage",
+      "expectedDocIds": [
+        "doc-redis-caching"
+      ],
+      "retrievedDocIds": [
+        "doc-redis-caching",
+        "doc-websocket",
+        "doc-payment-stripe",
+        "doc-testing-strategy",
+        "doc-cache-invalidation"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "5.710",
+        "1.637",
+        "1.555",
+        "1.481",
+        "1.436"
+      ]
+    },
+    {
+      "id": "q24",
+      "query": "CI CD pipeline stages",
+      "expectedDocIds": [
+        "doc-ci-pipeline"
+      ],
+      "retrievedDocIds": [
+        "doc-ci-pipeline",
+        "doc-api-versioning"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "7.555",
+        "2.269"
+      ]
+    },
+    {
+      "id": "q25",
+      "query": "microservices communication gRPC",
+      "expectedDocIds": [
+        "doc-microservices"
+      ],
+      "retrievedDocIds": [
+        "doc-auth-jwt",
+        "doc-microservices"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "0.631",
+      "scores": [
+        "2.955",
+        "2.955"
+      ]
+    },
+    {
+      "id": "q26",
+      "query": "Kubernetes health check configuration",
+      "expectedDocIds": [
+        "doc-deploy-k8s"
+      ],
+      "retrievedDocIds": [
+        "doc-deploy-k8s",
+        "doc-microservices",
+        "doc-feature-flags",
+        "doc-docker-config"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "8.462",
+        "2.426",
+        "1.975",
+        "1.943"
+      ]
+    },
+    {
+      "id": "q27",
+      "query": "database index migration orders",
+      "expectedDocIds": [
+        "doc-db-migration"
+      ],
+      "retrievedDocIds": [
+        "doc-db-migration",
+        "doc-bob-decision",
+        "doc-redis-caching",
+        "doc-monitoring"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "14.232",
+        "2.468",
+        "2.042",
+        "2.008"
+      ]
+    },
+    {
+      "id": "q28",
+      "query": "Bob notification SendGrid SES",
+      "expectedDocIds": [
+        "doc-bob-decision"
+      ],
+      "retrievedDocIds": [
+        "doc-bob-decision"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "14.473"
+      ]
+    },
+    {
+      "id": "q29",
+      "query": "how do we handle cache misses",
+      "expectedDocIds": [
+        "doc-redis-caching"
+      ],
+      "retrievedDocIds": [
+        "doc-redis-caching",
+        "doc-cache-invalidation"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "3.942",
+        "3.161"
+      ]
+    },
+    {
+      "id": "q30",
+      "query": "SQL injection vulnerability fix",
+      "expectedDocIds": [
+        "doc-security-audit"
+      ],
+      "retrievedDocIds": [
+        "doc-security-audit"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "8.714"
+      ]
+    },
+    {
+      "id": "q31",
+      "query": "bundle size reduction React",
+      "expectedDocIds": [
+        "doc-react-patterns"
+      ],
+      "retrievedDocIds": [
+        "doc-react-patterns",
+        "doc-docker-config"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "7.033",
+        "2.764"
+      ]
+    },
+    {
+      "id": "q32",
+      "query": "structured logging JSON redaction",
+      "expectedDocIds": [
+        "doc-logging-config"
+      ],
+      "retrievedDocIds": [
+        "doc-logging-config",
+        "doc-performance-opt"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "7.798",
+        "3.389"
+      ]
+    },
+    {
+      "id": "q33",
+      "query": "token expiration refresh",
+      "expectedDocIds": [
+        "doc-auth-jwt"
+      ],
+      "retrievedDocIds": [
+        "doc-auth-jwt"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "5.910"
+      ]
+    },
+    {
+      "id": "q34",
+      "query": "exponential backoff retry payment",
+      "expectedDocIds": [
+        "doc-payment-stripe"
+      ],
+      "retrievedDocIds": [
+        "doc-payment-stripe",
+        "doc-websocket",
+        "doc-microservices"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "9.891",
+        "4.936",
+        "3.430"
+      ]
+    },
+    {
+      "id": "q35",
+      "query": "Kafka event CQRS consistency",
+      "expectedDocIds": [
+        "doc-cqrs-pattern"
+      ],
+      "retrievedDocIds": [
+        "doc-cqrs-pattern",
+        "doc-cache-invalidation"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "8.035",
+        "2.637"
+      ]
+    },
+    {
+      "id": "q36",
+      "query": "PostgreSQL connection cache invalidation",
+      "expectedDocIds": [
+        "doc-cache-invalidation"
+      ],
+      "retrievedDocIds": [
+        "doc-cache-invalidation",
+        "doc-redis-caching",
+        "doc-monitoring",
+        "doc-testing-strategy",
+        "doc-cqrs-pattern"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "8.633",
+        "5.728",
+        "2.856",
+        "1.673",
+        "1.647"
+      ]
+    },
+    {
+      "id": "q37",
+      "query": "Consul service discovery health",
+      "expectedDocIds": [
+        "doc-microservices"
+      ],
+      "retrievedDocIds": [
+        "doc-microservices",
+        "doc-deploy-k8s",
+        "doc-bob-decision",
+        "doc-auth-jwt"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "12.039",
+        "3.430",
+        "2.114",
+        "2.077"
+      ]
+    },
+    {
+      "id": "q38",
+      "query": "what is Alice's indentation convention",
+      "expectedDocIds": [
+        "doc-user-prefs"
+      ],
+      "retrievedDocIds": [
+        "doc-user-prefs"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "9.347"
+      ]
+    },
+    {
+      "id": "q39",
+      "query": "Elasticsearch Filebeat log shipping",
+      "expectedDocIds": [
+        "doc-logging-config"
+      ],
+      "retrievedDocIds": [
+        "doc-logging-config",
+        "doc-search-elastic",
+        "doc-cqrs-pattern"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "7.472",
+        "2.042",
+        "1.883"
+      ]
+    },
+    {
+      "id": "q40",
+      "query": "Playwright end-to-end testing",
+      "expectedDocIds": [
+        "doc-testing-strategy"
+      ],
+      "retrievedDocIds": [
+        "doc-testing-strategy"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "13.319"
+      ]
+    },
+    {
+      "id": "q41",
+      "query": "Apollo DataLoader N+1 query",
+      "expectedDocIds": [
+        "doc-api-graphql"
+      ],
+      "retrievedDocIds": [
+        "doc-api-graphql",
+        "doc-db-migration",
+        "doc-react-patterns"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "7.721",
+        "2.151",
+        "2.042"
+      ]
+    },
+    {
+      "id": "q42",
+      "query": "Socket.io heartbeat reconnection",
+      "expectedDocIds": [
+        "doc-websocket"
+      ],
+      "retrievedDocIds": [
+        "doc-websocket"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "12.026"
+      ]
+    },
+    {
+      "id": "q43",
+      "query": "ECS blue green deployment",
+      "expectedDocIds": [
+        "doc-ci-pipeline"
+      ],
+      "retrievedDocIds": [
+        "doc-ci-pipeline",
+        "doc-deploy-k8s"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "10.233",
+        "2.426"
+      ]
+    },
+    {
+      "id": "q44",
+      "query": "multi-stage Docker Alpine",
+      "expectedDocIds": [
+        "doc-docker-config"
+      ],
+      "retrievedDocIds": [
+        "doc-docker-config",
+        "doc-ci-pipeline",
+        "doc-websocket"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "11.633",
+        "3.767",
+        "2.468"
+      ]
+    },
+    {
+      "id": "q45",
+      "query": "S3 DynamoDB Terraform state",
+      "expectedDocIds": [
+        "doc-terraform-infra"
+      ],
+      "retrievedDocIds": [
+        "doc-terraform-infra",
+        "doc-react-patterns"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "11.395",
+        "3.942"
+      ]
+    },
+    {
+      "id": "q46",
+      "query": "LaunchDarkly canary beta rollout",
+      "expectedDocIds": [
+        "doc-feature-flags"
+      ],
+      "retrievedDocIds": [
+        "doc-feature-flags"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "8.429"
+      ]
+    },
+    {
+      "id": "q47",
+      "query": "RabbitMQ async indexing queue",
+      "expectedDocIds": [
+        "doc-search-elastic"
+      ],
+      "retrievedDocIds": [
+        "doc-search-elastic"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "8.714"
+      ]
+    },
+    {
+      "id": "q48",
+      "query": "PagerDuty Datadog error rate alert",
+      "expectedDocIds": [
+        "doc-monitoring"
+      ],
+      "retrievedDocIds": [
+        "doc-monitoring",
+        "doc-error-handling",
+        "doc-api-graphql",
+        "doc-logging-config"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "11.417",
+        "5.070",
+        "2.345",
+        "1.943"
+      ]
+    },
+    {
+      "id": "q49",
+      "query": "Sunset header API deprecation 6 months",
+      "expectedDocIds": [
+        "doc-api-versioning"
+      ],
+      "retrievedDocIds": [
+        "doc-api-versioning",
+        "doc-performance-opt",
+        "doc-api-graphql",
+        "doc-payment-stripe"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "11.166",
+        "1.786",
+        "1.756",
+        "1.756"
+      ]
+    },
+    {
+      "id": "q50",
+      "query": "XSS CSRF security patches",
+      "expectedDocIds": [
+        "doc-security-audit"
+      ],
+      "retrievedDocIds": [
+        "doc-security-audit"
+      ],
+      "hit5": true,
+      "hit10": true,
+      "ndcg10": "1.000",
+      "scores": [
+        "11.619"
+      ]
+    }
+  ]
+}

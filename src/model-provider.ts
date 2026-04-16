@@ -33,7 +33,7 @@ export const DEFAULT_PROVIDERS: ModelProvider[] = [
   {
     id: 'ollama',
     name: 'Ollama Cloud (Primary)',
-    description: 'Ollama cloud API — glm-5.1, kimi-k2.5, qwen3-coder, nemotron, deepseek models. Primary API key.',
+    description: 'Ollama cloud API — glm-5:cloud, kimi-k2.5:cloud, qwen3-coder, nemotron, deepseek models. Primary API key.',
     base_url: 'https://ollama.com/v1',
     api_key_env: 'ANTHROPIC_API_KEY',
     installed: true,
@@ -56,24 +56,24 @@ export const DEFAULT_PROVIDERS: ModelProvider[] = [
  * Default per-role model bindings using "provider_id:model_name" format.
  * Ollama Cloud models assigned by role based on task characteristics:
  *
- * - Orchestrator/planning roles (master, architect) → glm-5.1 (strongest all-around)
- * - Reasoning/analysis roles (scout, code-reviewer) → kimi-k2.5 (strong reasoning)
+ * - Orchestrator/planning roles (master, architect) → glm-5:cloud (strongest all-around)
+ * - Reasoning/analysis roles (scout, code-reviewer) → kimi-k2.5:cloud (strong reasoning)
  * - Implementation/code roles (worker, executor) → qwen3-coder:480b (best for code)
  * - Fast-lookup roles (fast-scout, explorer) → nemotron-3-super (fast, lightweight)
- * - Verification/review roles (reviewer, verifier) → minimax-m2.7 (balanced)
- * - Security/deep-analysis (security-reviewer) → deepseek-v3.2 (strong code analysis)
+ * - Verification/review roles (reviewer, verifier) → minimax-m2.7:cloud (balanced)
+ * - Security/deep-analysis (security-reviewer) → deepseek-v3.2:cloud (strong code analysis)
  * - Testing (test-engineer) → qwen3.5:397b (code understanding + speed)
  */
 const DEFAULT_MODEL_BINDINGS: Partial<Record<AgentRole, string>> = {
-  master: 'ollama:glm-5.1',
-  scout: 'ollama:kimi-k2.5',
-  architect: 'ollama:glm-5.1',
-  'code-reviewer': 'ollama:kimi-k2.5',
+  master: 'ollama:glm-5:cloud',
+  scout: 'ollama:kimi-k2.5:cloud',
+  architect: 'ollama:glm-5:cloud',
+  'code-reviewer': 'ollama:kimi-k2.5:cloud',
   worker: 'ollama:qwen3-coder:480b',
   executor: 'ollama:qwen3-coder:480b',
-  reviewer: 'ollama:minimax-m2.7',
-  verifier: 'ollama:minimax-m2.7',
-  'security-reviewer': 'ollama:deepseek-v3.2',
+  reviewer: 'ollama:minimax-m2.7:cloud',
+  verifier: 'ollama:minimax-m2.7:cloud',
+  'security-reviewer': 'ollama:deepseek-v3.2:cloud',
   'test-engineer': 'ollama:qwen3.5:397b',
   'fast-scout': 'ollama:nemotron-3-super',
   explorer: 'ollama:nemotron-3-super',
@@ -195,7 +195,7 @@ export function getResolvedModelForRole(
   }
 
   // Last resort: ollama primary
-  return { providerId: 'ollama', modelName: 'glm-5.1', fullName: 'ollama:glm-5.1', provider: null };
+  return { providerId: 'ollama', modelName: 'glm-5:cloud', fullName: 'ollama:glm-5:cloud', provider: null };
 }
 
 /**
@@ -216,7 +216,7 @@ export function buildProviderAwareModelInstruction(role: string, cwd?: string): 
 
       if (provider.type === 'ollama') {
         instruction += `NOTE: This model uses Ollama's Anthropic-compatible API at ${provider.base_url}\n`;
-        instruction += `Set ANTHROPIC_BASE_URL=${provider.base_url} and ANTHROPIC_AUTH_TOKEN=ollama when using this model.\n`;
+        instruction += `Set ANTHROPIC_BASE_URL=${provider.base_url} and ANTHROPIC_AUTH_TOKEN=${process.env.ANTHROPIC_AUTH_TOKEN || '<your_ollama_api_key>'} when using this model.\n`;
       }
     }
 
@@ -438,16 +438,16 @@ const FALLBACK_MODEL_MAP: Record<string, Record<string, string>> = {
     // Same provider type — models stay the same (identity mapping)
   },
   ollama_to_anthropic: {
-    'glm-5.1': 'claude-opus-4-6',
-    'kimi-k2.5': 'claude-opus-4-6',
+    'glm-5:cloud': 'claude-opus-4-6',
+    'kimi-k2.5:cloud': 'claude-opus-4-6',
     'qwen3-coder:480b': 'claude-sonnet-4-6',
     'qwen3.5:397b': 'claude-sonnet-4-6',
     'nemotron-3-super': 'claude-haiku-4-5-20251001',
-    'minimax-m2.7': 'claude-sonnet-4-6',
-    'deepseek-v3.2': 'claude-opus-4-6',
+    'minimax-m2.7:cloud': 'claude-sonnet-4-6',
+    'deepseek-v3.2:cloud': 'claude-opus-4-6',
   },
   anthropic_to_ollama: {
-    'claude-opus-4-6': 'glm-5.1',
+    'claude-opus-4-6': 'glm-5:cloud',
     'claude-sonnet-4-6': 'qwen3-coder:480b',
     'claude-haiku-4-5-20251001': 'nemotron-3-super',
   },
@@ -520,21 +520,15 @@ export function executeProviderFallback(reason: string, cwd?: string): {
 
     env['ANTHROPIC_BASE_URL'] = nextProvider.base_url;
 
-    // Provider-specific auth token
-    if (nextProvider.type === 'ollama') {
-      env['ANTHROPIC_AUTH_TOKEN'] = 'ollama';
-    } else {
-      env['ANTHROPIC_AUTH_TOKEN'] = newApiKey;
-    }
-
-    env['ANTHROPIC_API_KEY'] = newApiKey;
+    env['ANTHROPIC_AUTH_TOKEN'] = newApiKey;
+    env['ANTHROPIC_API_KEY'] = '';
     env['OML_PRIMARY_PROVIDER'] = nextProviderId;
 
     // Map model names to the new provider's models
-    const currentOpus = env['ANTHROPIC_DEFAULT_OPUS_MODEL'] || 'glm-5.1';
-    const currentSonnet = env['ANTHROPIC_DEFAULT_SONNET_MODEL'] || 'qwen3-coder:480b';
-    const currentHaiku = env['ANTHROPIC_DEFAULT_HAIKU_MODEL'] || 'nemotron-3-super';
-    const currentSubagent = env['CLAUDE_CODE_SUBAGENT_MODEL'] || 'qwen3-coder:480b';
+    const currentOpus = env['ANTHROPIC_DEFAULT_OPUS_MODEL'] || 'glm-5:cloud';
+    const currentSonnet = env['ANTHROPIC_DEFAULT_SONNET_MODEL'] || 'kimi-k2.5:cloud';
+    const currentHaiku = env['ANTHROPIC_DEFAULT_HAIKU_MODEL'] || 'qwen3.5:cloud';
+    const currentSubagent = env['CLAUDE_CODE_SUBAGENT_MODEL'] || 'kimi-k2.5:cloud';
 
     const fromType = config.providers[currentProviderId]?.type || 'ollama';
     env['ANTHROPIC_DEFAULT_OPUS_MODEL'] = mapModelName(currentOpus, fromType, nextProvider.type);
@@ -588,15 +582,15 @@ export function restorePrimaryProvider(cwd?: string): boolean {
     const apiKey = getApiKeyForProvider(primaryId, cwd);
     if (apiKey) {
       env['ANTHROPIC_BASE_URL'] = primaryProvider.base_url;
-      env['ANTHROPIC_AUTH_TOKEN'] = 'ollama';
-      env['ANTHROPIC_API_KEY'] = apiKey;
+      env['ANTHROPIC_AUTH_TOKEN'] = apiKey;
+      env['ANTHROPIC_API_KEY'] = '';
       env['OML_PRIMARY_PROVIDER'] = primaryId;
 
       // Map models back from fallback provider type to primary provider type
-      const currentOpus = env['ANTHROPIC_DEFAULT_OPUS_MODEL'] || 'glm-5.1';
-      const currentSonnet = env['ANTHROPIC_DEFAULT_SONNET_MODEL'] || 'qwen3-coder:480b';
-      const currentHaiku = env['ANTHROPIC_DEFAULT_HAIKU_MODEL'] || 'nemotron-3-super';
-      const currentSubagent = env['CLAUDE_CODE_SUBAGENT_MODEL'] || 'qwen3-coder:480b';
+      const currentOpus = env['ANTHROPIC_DEFAULT_OPUS_MODEL'] || 'glm-5:cloud';
+      const currentSonnet = env['ANTHROPIC_DEFAULT_SONNET_MODEL'] || 'kimi-k2.5:cloud';
+      const currentHaiku = env['ANTHROPIC_DEFAULT_HAIKU_MODEL'] || 'qwen3.5:cloud';
+      const currentSubagent = env['CLAUDE_CODE_SUBAGENT_MODEL'] || 'kimi-k2.5:cloud';
 
       env['ANTHROPIC_DEFAULT_OPUS_MODEL'] = mapModelName(currentOpus, fromType, primaryProvider.type);
       env['ANTHROPIC_DEFAULT_SONNET_MODEL'] = mapModelName(currentSonnet, fromType, primaryProvider.type);

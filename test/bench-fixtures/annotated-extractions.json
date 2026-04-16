@@ -1,0 +1,208 @@
+[
+  {
+    "id": "decision-text-1",
+    "text": "We decided to use Redis for session storage instead of keeping sessions in memory. The main reason is horizontal scaling — with in-memory sessions, sticky sessions were required and our load balancer couldn't distribute traffic evenly.",
+    "expected": [
+      { "type": "decision", "keywords": ["redis", "session", "storage"] }
+    ]
+  },
+  {
+    "id": "decision-text-2",
+    "text": "Let's go with PostgreSQL over MongoDB for this project. The data is highly relational and we need ACID transactions for the payment flow. The tradeoff is less flexibility in schema evolution.",
+    "expected": [
+      { "type": "decision", "keywords": ["postgresql", "mongodb"] }
+    ]
+  },
+  {
+    "id": "preference-text-1",
+    "text": "I prefer using named exports over default exports in TypeScript. Always use strict null checks. Never use the any type — it defeats the purpose of TypeScript.",
+    "expected": [
+      { "type": "preference", "keywords": ["exports", "typescript"] }
+    ]
+  },
+  {
+    "id": "preference-text-2",
+    "text": "Don't ever mock the database in integration tests. We got burned last quarter when mocked tests passed but the actual migration broke production.",
+    "expected": [
+      { "type": "preference", "keywords": ["mock", "database", "tests"] }
+    ]
+  },
+  {
+    "id": "milestone-text-1",
+    "text": "Finally got the authentication system working after a week of debugging OAuth2 flows. First time we have SSO working end-to-end with Google and GitHub providers.",
+    "expected": [
+      { "type": "milestone", "keywords": ["authentication", "oauth"] }
+    ]
+  },
+  {
+    "id": "milestone-text-2",
+    "text": "Shipped v3.0 with the new dashboard. 40% improvement in page load times. The team figured out that lazy loading the chart components was the key insight.",
+    "expected": [
+      { "type": "milestone", "keywords": ["shipped", "dashboard"] }
+    ]
+  },
+  {
+    "id": "milestone-text-3",
+    "text": "Built a prototype of the real-time collaboration feature using WebSockets. It works in the local environment. Deployed it to staging for the first time today.",
+    "expected": [
+      { "type": "milestone", "keywords": ["prototype", "websockets", "deployed"] }
+    ]
+  },
+  {
+    "id": "problem-text-1",
+    "text": "There's a bug in the file upload handler. When the file is larger than 10MB, the server returns a 500 error instead of a proper 413 response. The error is not being caught by the error middleware.",
+    "expected": [
+      { "type": "problem", "keywords": ["bug", "upload", "error"] }
+    ]
+  },
+  {
+    "id": "problem-text-2",
+    "text": "The API keeps crashing every 6 hours. Root cause was a connection pool leak in the database driver. The fix was to properly close connections in the finally block instead of only in the success path.",
+    "expected": [
+      { "type": "problem", "keywords": ["crashing", "root cause", "fix"] }
+    ]
+  },
+  {
+    "id": "problem-fix-text-1",
+    "text": "Found the bug! The pagination was off by one because we were using zero-indexed page numbers in the query but the frontend sends one-indexed pages. Fixed by subtracting 1 before the database query. It works now.",
+    "expected": [
+      { "type": "milestone", "keywords": ["fixed", "pagination", "works"] }
+    ]
+  },
+  {
+    "id": "emotional-text-1",
+    "text": "I'm so proud of what we built this quarter. The team worked incredibly hard. I love how everyone stepped up during the crunch. This project means a lot to me.",
+    "expected": [
+      { "type": "emotional", "keywords": ["proud", "love"] }
+    ]
+  },
+  {
+    "id": "emotional-text-2",
+    "text": "I'm worried about technical debt. We've been cutting corners to meet deadlines and I feel like it's going to catch up with us. I'm scared the codebase will become unmaintainable.",
+    "expected": [
+      { "type": "emotional", "keywords": ["worried", "scared"] }
+    ]
+  },
+  {
+    "id": "mixed-decision-preference",
+    "text": "We should use ESLint with the Airbnb config because it enforces consistent style. I always use prettier for formatting. Let's switch to pnpm instead of npm because of better disk usage.",
+    "expected": [
+      { "type": "decision", "keywords": ["eslint"] },
+      { "type": "preference", "keywords": ["prettier", "always"] }
+    ]
+  },
+  {
+    "id": "pure-code-text",
+    "text": "```\nconst express = require('express');\nconst app = express();\napp.get('/api/health', (req, res) => {\n  res.json({ status: 'ok' });\n});\napp.listen(3000);\n```",
+    "expected": []
+  },
+  {
+    "id": "short-text",
+    "text": "ok sounds good",
+    "expected": []
+  },
+  {
+    "id": "decision-architecture",
+    "text": "The approach we settled on is to use a CQRS pattern for the order processing system. The reason is that reads and writes have very different scaling requirements. Reads are 100x more frequent than writes, so separating the read model lets us optimize it independently with materialized views.",
+    "expected": [
+      { "type": "decision", "keywords": ["cqrs", "approach", "pattern"] }
+    ]
+  },
+  {
+    "id": "preference-style",
+    "text": "My rule is to always write tests before implementing the feature. I hate when people push code without tests. Please never skip the CI checks, they exist for a reason.",
+    "expected": [
+      { "type": "preference", "keywords": ["tests", "rule"] }
+    ]
+  },
+  {
+    "id": "milestone-version",
+    "text": "Released version 2.5.0 today. This version includes the complete rewrite of the search engine. 3x faster than the previous implementation and handles 10x more concurrent queries.",
+    "expected": [
+      { "type": "milestone", "keywords": ["released", "version", "faster"] }
+    ]
+  },
+  {
+    "id": "problem-crash",
+    "text": "The application keeps failing during peak hours. Every time the concurrent user count exceeds 500, the Node.js process runs out of memory and crashes. The issue is that we're loading entire user profiles into memory instead of streaming.",
+    "expected": [
+      { "type": "problem", "keywords": ["failing", "crashes", "issue"] }
+    ]
+  },
+  {
+    "id": "tech-discovery",
+    "text": "Turns out the API latency wasn't caused by the database at all. The bottleneck was DNS resolution for the external service calls. Adding a local DNS cache with TTL of 300 seconds solved it completely. Now i understand why the latency was intermittent.",
+    "expected": [
+      { "type": "milestone", "keywords": ["turns out", "solved", "understand"] }
+    ]
+  },
+  {
+    "id": "complex-multi",
+    "text": "After investigating the payment failure reports, I found a bug in the retry logic. The problem was that failed webhooks were retried with exponential backoff but the max retry count was set to 0 by default. Fixed it by changing the default to 3. We also decided to switch from polling to webhooks because the polling approach was causing too many unnecessary API calls. I prefer event-driven architectures for this kind of integration.",
+    "expected": [
+      { "type": "problem", "keywords": ["bug", "retry", "fixed"] },
+      { "type": "decision", "keywords": ["switch", "webhooks"] }
+    ]
+  },
+  {
+    "id": "infrastructure-config",
+    "text": "Configure the Kubernetes cluster with 3 nodes minimum for high availability. Set the autoscaler to scale up at 70% CPU utilization. The default memory limit per pod should be 512Mi. Because we had outages when pods were OOM-killed without proper limits.",
+    "expected": [
+      { "type": "decision", "keywords": ["configure", "kubernetes", "default"] }
+    ]
+  },
+  {
+    "id": "tool-output-like",
+    "text": "Running npm test...\n\n  PASS  src/auth/login.test.ts\n  PASS  src/auth/register.test.ts\n  FAIL  src/payments/checkout.test.ts\n\n  The checkout test keeps failing because the Stripe mock isn't returning the correct response shape. We need to update the mock fixtures to match the new Stripe API v2024-01.\n\nThe fix was to update the mock response to include the payment_method_details field that Stripe added in their latest version.",
+    "expected": [
+      { "type": "problem", "keywords": ["failing", "fix"] }
+    ]
+  },
+  {
+    "id": "no-memory-chatter",
+    "text": "Can you help me understand this code? I see there's a function called processQueue but I'm not sure what it does. Also, where is the main entry point?",
+    "expected": []
+  },
+  {
+    "id": "subtle-preference",
+    "text": "I like to keep my components small. Each component should do one thing well. When a component file exceeds 200 lines, it's time to split it. I like when the folder structure mirrors the UI hierarchy.",
+    "expected": [
+      { "type": "preference", "keywords": ["like", "components"] }
+    ]
+  },
+  {
+    "id": "milestone-breakthrough",
+    "text": "Breakthrough! The key insight was to use content-addressable storage for the build cache. Instead of invalidating the entire cache when any file changes, we hash each file independently. This reduced the average build time from 45 seconds to 8 seconds. Now i see why content-addressed systems are so popular.",
+    "expected": [
+      { "type": "milestone", "keywords": ["breakthrough", "key insight"] }
+    ]
+  },
+  {
+    "id": "decision-tradeoff",
+    "text": "The tradeoff between using a message queue versus direct HTTP calls came down to reliability. We chose RabbitMQ over direct calls because the downstream service has 99.5% uptime, which means 0.5% of our requests would fail silently. The pros and cons were clear: more complexity for better reliability.",
+    "expected": [
+      { "type": "decision", "keywords": ["tradeoff", "chose", "pros and cons"] }
+    ]
+  },
+  {
+    "id": "problem-workaround",
+    "text": "The CSS grid layout breaks on Safari 14. Doesn't work at all with the subgrid feature we're using. The workaround is to use flexbox as a fallback with an @supports query. That's why we added the polyfill.",
+    "expected": [
+      { "type": "problem", "keywords": ["breaks", "doesn't work", "workaround"] }
+    ]
+  },
+  {
+    "id": "emotional-gratitude",
+    "text": "I'm grateful for the amazing team we have. Everyone stayed late to help debug the production issue. I feel happy that we resolved it quickly. Beautiful teamwork.",
+    "expected": [
+      { "type": "emotional", "keywords": ["grateful", "happy", "beautiful"] }
+    ]
+  },
+  {
+    "id": "decision-migration",
+    "text": "We migrated from Express to Fastify because the benchmarks showed 2x better throughput for our JSON-heavy API. Replaced all the middleware with Fastify plugins. The strategy was to migrate one route file at a time over two sprints.",
+    "expected": [
+      { "type": "decision", "keywords": ["migrated", "because", "strategy"] }
+    ]
+  }
+]

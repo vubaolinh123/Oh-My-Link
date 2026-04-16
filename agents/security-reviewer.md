@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:security-reviewer
 description: Security Specialist — OWASP, secrets detection, auth review, READ-ONLY
-model: deepseek-v3.2
+model: deepseek-v3.2:cloud
 level: 2
 disallowedTools:
   - Write

@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:reviewer
 description: Quality Reviewer — per-link and full-review modes, Review-focused (writes review artifacts only)
-model: minimax-m2.7
+model: minimax-m2.7:cloud
 level: 2
 disallowedTools:
   - MultiEdit

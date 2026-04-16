@@ -1,0 +1,491 @@
+{
+  "tier": "1B",
+  "name": "Memory Extraction Quality",
+  "summary": {
+    "totalFixtures": 30,
+    "truePositives": 25,
+    "falsePositives": 0,
+    "falseNegatives": 4,
+    "precision": "100.0",
+    "recall": "86.2",
+    "f1": "92.6",
+    "typeAccuracy": "92.0",
+    "perType": {
+      "decision": {
+        "tp": 7,
+        "fn": 1,
+        "fp": 0
+      },
+      "preference": {
+        "tp": 3,
+        "fn": 2,
+        "fp": 0
+      },
+      "milestone": {
+        "tp": 7,
+        "fn": 0,
+        "fp": 0
+      },
+      "problem": {
+        "tp": 5,
+        "fn": 1,
+        "fp": 0
+      },
+      "emotional": {
+        "tp": 3,
+        "fn": 0,
+        "fp": 0
+      }
+    }
+  },
+  "samples": [
+    {
+      "id": "decision-text-1",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "decision",
+          "extractedType": "decision",
+          "confidence": 0.6,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "decision-text-2",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "decision",
+          "extractedType": "decision",
+          "confidence": 0.4,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "preference-text-1",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "preference",
+          "extractedType": "preference",
+          "confidence": 0.6,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "preference-text-2",
+      "expectedCount": 1,
+      "extractedCount": 0,
+      "matches": [],
+      "missed": [
+        {
+          "type": "preference",
+          "keywords": [
+            "mock",
+            "database",
+            "tests"
+          ]
+        }
+      ],
+      "extra": []
+    },
+    {
+      "id": "milestone-text-1",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "milestone",
+          "extractedType": "milestone",
+          "confidence": 0.4,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "milestone-text-2",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "milestone",
+          "extractedType": "milestone",
+          "confidence": 1,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "milestone-text-3",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "milestone",
+          "extractedType": "milestone",
+          "confidence": 1,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "problem-text-1",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "problem",
+          "extractedType": "problem",
+          "confidence": 0.8,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "problem-text-2",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "problem",
+          "extractedType": "milestone",
+          "confidence": 0.6,
+          "typeCorrect": false
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "problem-fix-text-1",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "milestone",
+          "extractedType": "milestone",
+          "confidence": 0.6,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "emotional-text-1",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "emotional",
+          "extractedType": "emotional",
+          "confidence": 0.4,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "emotional-text-2",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "emotional",
+          "extractedType": "emotional",
+          "confidence": 0.8,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "mixed-decision-preference",
+      "expectedCount": 2,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "decision",
+          "extractedType": "decision",
+          "confidence": 1,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [
+        {
+          "type": "preference",
+          "keywords": [
+            "prettier",
+            "always"
+          ]
+        }
+      ],
+      "extra": []
+    },
+    {
+      "id": "pure-code-text",
+      "expectedCount": 0,
+      "extractedCount": 0,
+      "matches": [],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "short-text",
+      "expectedCount": 0,
+      "extractedCount": 0,
+      "matches": [],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "decision-architecture",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "decision",
+          "extractedType": "decision",
+          "confidence": 1,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "preference-style",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "preference",
+          "extractedType": "preference",
+          "confidence": 0.6,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "milestone-version",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "milestone",
+          "extractedType": "milestone",
+          "confidence": 0.6,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "problem-crash",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "problem",
+          "extractedType": "problem",
+          "confidence": 0.8,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "tech-discovery",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "milestone",
+          "extractedType": "milestone",
+          "confidence": 0.8,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "complex-multi",
+      "expectedCount": 2,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "problem",
+          "extractedType": "decision",
+          "confidence": 1,
+          "typeCorrect": false
+        }
+      ],
+      "missed": [
+        {
+          "type": "decision",
+          "keywords": [
+            "switch",
+            "webhooks"
+          ]
+        }
+      ],
+      "extra": []
+    },
+    {
+      "id": "infrastructure-config",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "decision",
+          "extractedType": "decision",
+          "confidence": 0.8,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "tool-output-like",
+      "expectedCount": 1,
+      "extractedCount": 0,
+      "matches": [],
+      "missed": [
+        {
+          "type": "problem",
+          "keywords": [
+            "failing",
+            "fix"
+          ]
+        }
+      ],
+      "extra": []
+    },
+    {
+      "id": "no-memory-chatter",
+      "expectedCount": 0,
+      "extractedCount": 0,
+      "matches": [],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "subtle-preference",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "preference",
+          "extractedType": "preference",
+          "confidence": 0.4,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "milestone-breakthrough",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "milestone",
+          "extractedType": "milestone",
+          "confidence": 0.8,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "decision-tradeoff",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "decision",
+          "extractedType": "decision",
+          "confidence": 1,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "problem-workaround",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "problem",
+          "extractedType": "problem",
+          "confidence": 0.8,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "emotional-gratitude",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "emotional",
+          "extractedType": "emotional",
+          "confidence": 1,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    },
+    {
+      "id": "decision-migration",
+      "expectedCount": 1,
+      "extractedCount": 1,
+      "matches": [
+        {
+          "expectedType": "decision",
+          "extractedType": "decision",
+          "confidence": 0.6,
+          "typeCorrect": true
+        }
+      ],
+      "missed": [],
+      "extra": []
+    }
+  ]
+}

@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:master
 description: Master Orchestrator — manages the 7-phase Start Link workflow with HITL gates
-model: glm-5.1
+model: glm-5:cloud
 level: 4
 disallowedTools:
   - Edit

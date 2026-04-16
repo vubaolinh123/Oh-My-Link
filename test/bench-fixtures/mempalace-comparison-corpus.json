@@ -1,0 +1,2356 @@
+{
+  "metadata": {
+    "generated": "2026-04-08T10:45:47.304Z",
+    "description": "Synthetic corpus for OML vs MemPalace comparison benchmark",
+    "methodology": "Follows LongMemEval structure with 6 question categories",
+    "sessions_count": 132,
+    "questions_count": 145,
+    "categories": [
+      "single-session-user",
+      "temporal-reasoning",
+      "single-session-preference",
+      "single-session-assistant",
+      "multi-session",
+      "knowledge-update"
+    ]
+  },
+  "sessions": [
+    {
+      "session_id": "s001",
+      "timestamp": "2025-01-11",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Fatima Hassan suggested PostgreSQL but I'm not sure.\n\nAssistant: Both PostgreSQL and CockroachDB are solid choices. What are your primary concerns?\n\nUser: Fatima Hassan says PostgreSQL has native JSON support and flexible schema. We've been using CockroachDB for the legacy system and it's been painful.\n\nAssistant: Given your need for native JSON support and flexible schema, PostgreSQL makes sense. The migration path from CockroachDB to PostgreSQL is well-documented.\n\nUser: Let's go with PostgreSQL. Fatima Hassan will lead the migration effort starting next week. We decided PostgreSQL because of native JSON support and flexible schema."
+    },
+    {
+      "session_id": "s002",
+      "timestamp": "2025-02-08",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Raj Patel suggested MongoDB but I'm not sure.\n\nAssistant: Both MongoDB and SQLite are solid choices. What are your primary concerns?\n\nUser: Raj Patel says MongoDB has lower operational cost at our scale. We've been using SQLite for the legacy system and it's been painful.\n\nAssistant: Given your need for lower operational cost at our scale, MongoDB makes sense. The migration path from SQLite to MongoDB is well-documented.\n\nUser: Let's go with MongoDB. Raj Patel will lead the migration effort starting next week. We decided MongoDB because of lower operational cost at our scale."
+    },
+    {
+      "session_id": "s003",
+      "timestamp": "2025-03-07",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Zara Ahmed suggested PostgreSQL but I'm not sure.\n\nAssistant: Both PostgreSQL and Cassandra are solid choices. What are your primary concerns?\n\nUser: Zara Ahmed says PostgreSQL has strong consistency guarantees for financial data. We've been using Cassandra for the legacy system and it's been painful.\n\nAssistant: Given your need for strong consistency guarantees for financial data, PostgreSQL makes sense. The migration path from Cassandra to PostgreSQL is well-documented.\n\nUser: Let's go with PostgreSQL. Zara Ahmed will lead the migration effort starting next week. We decided PostgreSQL because of strong consistency guarantees for financial data."
+    },
+    {
+      "session_id": "s004",
+      "timestamp": "2025-04-15",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Priya Sharma suggested MongoDB but I'm not sure.\n\nAssistant: Both MongoDB and MySQL are solid choices. What are your primary concerns?\n\nUser: Priya Sharma says MongoDB has better tooling and ecosystem maturity. We've been using MySQL for the legacy system and it's been painful.\n\nAssistant: Given your need for better tooling and ecosystem maturity, MongoDB makes sense. The migration path from MySQL to MongoDB is well-documented.\n\nUser: Let's go with MongoDB. Priya Sharma will lead the migration effort starting next week. We decided MongoDB because of better tooling and ecosystem maturity."
+    },
+    {
+      "session_id": "s005",
+      "timestamp": "2025-05-04",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Marcus Johnson suggested Cassandra but I'm not sure.\n\nAssistant: Both Cassandra and Redis are solid choices. What are your primary concerns?\n\nUser: Marcus Johnson says Cassandra has lower operational cost at our scale. We've been using Redis for the legacy system and it's been painful.\n\nAssistant: Given your need for lower operational cost at our scale, Cassandra makes sense. The migration path from Redis to Cassandra is well-documented.\n\nUser: Let's go with Cassandra. Marcus Johnson will lead the migration effort starting next week. We decided Cassandra because of lower operational cost at our scale."
+    },
+    {
+      "session_id": "s006",
+      "timestamp": "2025-06-07",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Sarah Thompson suggested Cassandra but I'm not sure.\n\nAssistant: Both Cassandra and DynamoDB are solid choices. What are your primary concerns?\n\nUser: Sarah Thompson says Cassandra has strong consistency guarantees for financial data. We've been using DynamoDB for the legacy system and it's been painful.\n\nAssistant: Given your need for strong consistency guarantees for financial data, Cassandra makes sense. The migration path from DynamoDB to Cassandra is well-documented.\n\nUser: Let's go with Cassandra. Sarah Thompson will lead the migration effort starting next week. We decided Cassandra because of strong consistency guarantees for financial data."
+    },
+    {
+      "session_id": "s007",
+      "timestamp": "2025-07-16",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Zara Ahmed suggested PostgreSQL but I'm not sure.\n\nAssistant: Both PostgreSQL and SQLite are solid choices. What are your primary concerns?\n\nUser: Zara Ahmed says PostgreSQL has better tooling and ecosystem maturity. We've been using SQLite for the legacy system and it's been painful.\n\nAssistant: Given your need for better tooling and ecosystem maturity, PostgreSQL makes sense. The migration path from SQLite to PostgreSQL is well-documented.\n\nUser: Let's go with PostgreSQL. Zara Ahmed will lead the migration effort starting next week. We decided PostgreSQL because of better tooling and ecosystem maturity."
+    },
+    {
+      "session_id": "s008",
+      "timestamp": "2025-08-08",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Yuki Tanaka suggested Cassandra but I'm not sure.\n\nAssistant: Both Cassandra and CockroachDB are solid choices. What are your primary concerns?\n\nUser: Yuki Tanaka says Cassandra has strong consistency guarantees for financial data. We've been using CockroachDB for the legacy system and it's been painful.\n\nAssistant: Given your need for strong consistency guarantees for financial data, Cassandra makes sense. The migration path from CockroachDB to Cassandra is well-documented.\n\nUser: Let's go with Cassandra. Yuki Tanaka will lead the migration effort starting next week. We decided Cassandra because of strong consistency guarantees for financial data."
+    },
+    {
+      "session_id": "s009",
+      "timestamp": "2025-09-15",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Elena Popova suggested MySQL but I'm not sure.\n\nAssistant: Both MySQL and Redis are solid choices. What are your primary concerns?\n\nUser: Elena Popova says MySQL has better write performance under high concurrency. We've been using Redis for the legacy system and it's been painful.\n\nAssistant: Given your need for better write performance under high concurrency, MySQL makes sense. The migration path from Redis to MySQL is well-documented.\n\nUser: Let's go with MySQL. Elena Popova will lead the migration effort starting next week. We decided MySQL because of better write performance under high concurrency."
+    },
+    {
+      "session_id": "s010",
+      "timestamp": "2025-10-02",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Yuki Tanaka suggested MongoDB but I'm not sure.\n\nAssistant: Both MongoDB and DynamoDB are solid choices. What are your primary concerns?\n\nUser: Yuki Tanaka says MongoDB has native JSON support and flexible schema. We've been using DynamoDB for the legacy system and it's been painful.\n\nAssistant: Given your need for native JSON support and flexible schema, MongoDB makes sense. The migration path from DynamoDB to MongoDB is well-documented.\n\nUser: Let's go with MongoDB. Yuki Tanaka will lead the migration effort starting next week. We decided MongoDB because of native JSON support and flexible schema."
+    },
+    {
+      "session_id": "s011",
+      "timestamp": "2025-11-13",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Marcus Johnson suggested SQLite but I'm not sure.\n\nAssistant: Both SQLite and CockroachDB are solid choices. What are your primary concerns?\n\nUser: Marcus Johnson says SQLite has built-in replication and sharding support. We've been using CockroachDB for the legacy system and it's been painful.\n\nAssistant: Given your need for built-in replication and sharding support, SQLite makes sense. The migration path from CockroachDB to SQLite is well-documented.\n\nUser: Let's go with SQLite. Marcus Johnson will lead the migration effort starting next week. We decided SQLite because of built-in replication and sharding support."
+    },
+    {
+      "session_id": "s012",
+      "timestamp": "2025-12-06",
+      "topic": "database-migration",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We need to decide on the database for the new service. Raj Patel suggested Redis but I'm not sure.\n\nAssistant: Both Redis and MongoDB are solid choices. What are your primary concerns?\n\nUser: Raj Patel says Redis has built-in replication and sharding support. We've been using MongoDB for the legacy system and it's been painful.\n\nAssistant: Given your need for built-in replication and sharding support, Redis makes sense. The migration path from MongoDB to Redis is well-documented.\n\nUser: Let's go with Redis. Raj Patel will lead the migration effort starting next week. We decided Redis because of built-in replication and sharding support."
+    },
+    {
+      "session_id": "s013",
+      "timestamp": "2025-04-21",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Elena Popova and I have been evaluating frameworks for the internal tool. We narrowed it down to Remix.\n\nAssistant: Remix is a great choice for a internal tool. What specific features attracted you?\n\nUser: The developer experience is excellent, and Elena Popova has production experience with it. We prefer Remix for new frontend projects going forward.\n\nAssistant: That's a sound decision. Remix has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Elena Popova will set up the boilerplate this sprint. We're standardizing on Remix for all new frontend work."
+    },
+    {
+      "session_id": "s014",
+      "timestamp": "2025-05-03",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ava Williams and I have been evaluating frameworks for the analytics platform. We narrowed it down to Vue.\n\nAssistant: Vue is a great choice for a analytics platform. What specific features attracted you?\n\nUser: The developer experience is excellent, and Ava Williams has production experience with it. We prefer Vue for new frontend projects going forward.\n\nAssistant: That's a sound decision. Vue has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Ava Williams will set up the boilerplate this sprint. We're standardizing on Vue for all new frontend work."
+    },
+    {
+      "session_id": "s015",
+      "timestamp": "2025-06-11",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Priya Sharma and I have been evaluating frameworks for the marketing site. We narrowed it down to React.\n\nAssistant: React is a great choice for a marketing site. What specific features attracted you?\n\nUser: The developer experience is excellent, and Priya Sharma has production experience with it. We prefer React for new frontend projects going forward.\n\nAssistant: That's a sound decision. React has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Priya Sharma will set up the boilerplate this sprint. We're standardizing on React for all new frontend work."
+    },
+    {
+      "session_id": "s016",
+      "timestamp": "2025-07-03",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel and I have been evaluating frameworks for the internal tool. We narrowed it down to Svelte.\n\nAssistant: Svelte is a great choice for a internal tool. What specific features attracted you?\n\nUser: The developer experience is excellent, and Raj Patel has production experience with it. We prefer Svelte for new frontend projects going forward.\n\nAssistant: That's a sound decision. Svelte has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Raj Patel will set up the boilerplate this sprint. We're standardizing on Svelte for all new frontend work."
+    },
+    {
+      "session_id": "s017",
+      "timestamp": "2025-08-08",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Yuki Tanaka and I have been evaluating frameworks for the marketing site. We narrowed it down to SolidJS.\n\nAssistant: SolidJS is a great choice for a marketing site. What specific features attracted you?\n\nUser: The developer experience is excellent, and Yuki Tanaka has production experience with it. We prefer SolidJS for new frontend projects going forward.\n\nAssistant: That's a sound decision. SolidJS has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Yuki Tanaka will set up the boilerplate this sprint. We're standardizing on SolidJS for all new frontend work."
+    },
+    {
+      "session_id": "s018",
+      "timestamp": "2025-09-13",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Zara Ahmed and I have been evaluating frameworks for the internal tool. We narrowed it down to Nuxt.\n\nAssistant: Nuxt is a great choice for a internal tool. What specific features attracted you?\n\nUser: The developer experience is excellent, and Zara Ahmed has production experience with it. We prefer Nuxt for new frontend projects going forward.\n\nAssistant: That's a sound decision. Nuxt has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Zara Ahmed will set up the boilerplate this sprint. We're standardizing on Nuxt for all new frontend work."
+    },
+    {
+      "session_id": "s019",
+      "timestamp": "2025-10-09",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Sarah Thompson and I have been evaluating frameworks for the analytics platform. We narrowed it down to SolidJS.\n\nAssistant: SolidJS is a great choice for a analytics platform. What specific features attracted you?\n\nUser: The developer experience is excellent, and Sarah Thompson has production experience with it. We prefer SolidJS for new frontend projects going forward.\n\nAssistant: That's a sound decision. SolidJS has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Sarah Thompson will set up the boilerplate this sprint. We're standardizing on SolidJS for all new frontend work."
+    },
+    {
+      "session_id": "s020",
+      "timestamp": "2025-11-16",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Leo Nakamura and I have been evaluating frameworks for the marketing site. We narrowed it down to Astro.\n\nAssistant: Astro is a great choice for a marketing site. What specific features attracted you?\n\nUser: The developer experience is excellent, and Leo Nakamura has production experience with it. We prefer Astro for new frontend projects going forward.\n\nAssistant: That's a sound decision. Astro has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Leo Nakamura will set up the boilerplate this sprint. We're standardizing on Astro for all new frontend work."
+    },
+    {
+      "session_id": "s021",
+      "timestamp": "2025-12-10",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel and I have been evaluating frameworks for the customer portal. We narrowed it down to Astro.\n\nAssistant: Astro is a great choice for a customer portal. What specific features attracted you?\n\nUser: The developer experience is excellent, and Raj Patel has production experience with it. We prefer Astro for new frontend projects going forward.\n\nAssistant: That's a sound decision. Astro has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Raj Patel will set up the boilerplate this sprint. We're standardizing on Astro for all new frontend work."
+    },
+    {
+      "session_id": "s022",
+      "timestamp": "2026-01-19",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Carlos Mendez and I have been evaluating frameworks for the internal tool. We narrowed it down to Svelte.\n\nAssistant: Svelte is a great choice for a internal tool. What specific features attracted you?\n\nUser: The developer experience is excellent, and Carlos Mendez has production experience with it. We prefer Svelte for new frontend projects going forward.\n\nAssistant: That's a sound decision. Svelte has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Carlos Mendez will set up the boilerplate this sprint. We're standardizing on Svelte for all new frontend work."
+    },
+    {
+      "session_id": "s023",
+      "timestamp": "2026-02-01",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Sarah Thompson and I have been evaluating frameworks for the internal tool. We narrowed it down to React.\n\nAssistant: React is a great choice for a internal tool. What specific features attracted you?\n\nUser: The developer experience is excellent, and Sarah Thompson has production experience with it. We prefer React for new frontend projects going forward.\n\nAssistant: That's a sound decision. React has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Sarah Thompson will set up the boilerplate this sprint. We're standardizing on React for all new frontend work."
+    },
+    {
+      "session_id": "s024",
+      "timestamp": "2026-03-27",
+      "topic": "framework-selection",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Elena Popova and I have been evaluating frameworks for the internal tool. We narrowed it down to Remix.\n\nAssistant: Remix is a great choice for a internal tool. What specific features attracted you?\n\nUser: The developer experience is excellent, and Elena Popova has production experience with it. We prefer Remix for new frontend projects going forward.\n\nAssistant: That's a sound decision. Remix has good community support and the learning curve is manageable for your team.\n\nUser: Yes, Elena Popova will set up the boilerplate this sprint. We're standardizing on Remix for all new frontend work."
+    },
+    {
+      "session_id": "s025",
+      "timestamp": "2025-06-07",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical race condition in the Rust service. Carlos Mendez has been debugging it all day.\n\nAssistant: A race condition can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Carlos Mendez traced it to the connection handling code. The root cause was a race condition in the event loop.\n\nAssistant: That's a common pattern with Rust services under load. The fix would typically involve switching to an immutable data structure.\n\nUser: Yes! Carlos Mendez fixed it by switching to an immutable data structure. The service has been stable for 48 hours now. The root cause of the race condition was improper resource cleanup."
+    },
+    {
+      "session_id": "s026",
+      "timestamp": "2025-07-14",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical deadlock in the C# service. Fatima Hassan has been debugging it all day.\n\nAssistant: A deadlock can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Fatima Hassan traced it to the connection handling code. The root cause was a deadlock in the event loop.\n\nAssistant: That's a common pattern with C# services under load. The fix would typically involve adding proper mutex locks around the shared resource.\n\nUser: Yes! Fatima Hassan fixed it by adding proper mutex locks around the shared resource. The service has been stable for 48 hours now. The root cause of the deadlock was improper resource cleanup."
+    },
+    {
+      "session_id": "s027",
+      "timestamp": "2025-08-04",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical buffer overflow in the Python service. Raj Patel has been debugging it all day.\n\nAssistant: A buffer overflow can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Raj Patel traced it to the connection handling code. The root cause was a buffer overflow in the event loop.\n\nAssistant: That's a common pattern with Python services under load. The fix would typically involve switching to an immutable data structure.\n\nUser: Yes! Raj Patel fixed it by switching to an immutable data structure. The service has been stable for 48 hours now. The root cause of the buffer overflow was improper resource cleanup."
+    },
+    {
+      "session_id": "s028",
+      "timestamp": "2025-09-10",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical buffer overflow in the TypeScript service. Elena Popova has been debugging it all day.\n\nAssistant: A buffer overflow can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Elena Popova traced it to the connection handling code. The root cause was a buffer overflow in the event loop.\n\nAssistant: That's a common pattern with TypeScript services under load. The fix would typically involve adding bounds checking on the array access.\n\nUser: Yes! Elena Popova fixed it by adding bounds checking on the array access. The service has been stable for 48 hours now. The root cause of the buffer overflow was improper resource cleanup."
+    },
+    {
+      "session_id": "s029",
+      "timestamp": "2025-10-06",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical deadlock in the Rust service. Elena Popova has been debugging it all day.\n\nAssistant: A deadlock can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Elena Popova traced it to the connection handling code. The root cause was a deadlock in the event loop.\n\nAssistant: That's a common pattern with Rust services under load. The fix would typically involve adding bounds checking on the array access.\n\nUser: Yes! Elena Popova fixed it by adding bounds checking on the array access. The service has been stable for 48 hours now. The root cause of the deadlock was improper resource cleanup."
+    },
+    {
+      "session_id": "s030",
+      "timestamp": "2025-11-15",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical deadlock in the Python service. Ethan Clark has been debugging it all day.\n\nAssistant: A deadlock can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Ethan Clark traced it to the connection handling code. The root cause was a deadlock in the event loop.\n\nAssistant: That's a common pattern with Python services under load. The fix would typically involve adding bounds checking on the array access.\n\nUser: Yes! Ethan Clark fixed it by adding bounds checking on the array access. The service has been stable for 48 hours now. The root cause of the deadlock was improper resource cleanup."
+    },
+    {
+      "session_id": "s031",
+      "timestamp": "2025-12-09",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical buffer overflow in the Rust service. Priya Sharma has been debugging it all day.\n\nAssistant: A buffer overflow can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Priya Sharma traced it to the connection handling code. The root cause was a buffer overflow in the event loop.\n\nAssistant: That's a common pattern with Rust services under load. The fix would typically involve implementing a connection pool with timeout limits.\n\nUser: Yes! Priya Sharma fixed it by implementing a connection pool with timeout limits. The service has been stable for 48 hours now. The root cause of the buffer overflow was improper resource cleanup."
+    },
+    {
+      "session_id": "s032",
+      "timestamp": "2026-01-15",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical race condition in the Kotlin service. Ethan Clark has been debugging it all day.\n\nAssistant: A race condition can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Ethan Clark traced it to the connection handling code. The root cause was a race condition in the event loop.\n\nAssistant: That's a common pattern with Kotlin services under load. The fix would typically involve adding bounds checking on the array access.\n\nUser: Yes! Ethan Clark fixed it by adding bounds checking on the array access. The service has been stable for 48 hours now. The root cause of the race condition was improper resource cleanup."
+    },
+    {
+      "session_id": "s033",
+      "timestamp": "2026-02-12",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical null pointer in the Rust service. Elena Popova has been debugging it all day.\n\nAssistant: A null pointer can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Elena Popova traced it to the connection handling code. The root cause was a null pointer in the event loop.\n\nAssistant: That's a common pattern with Rust services under load. The fix would typically involve switching to an immutable data structure.\n\nUser: Yes! Elena Popova fixed it by switching to an immutable data structure. The service has been stable for 48 hours now. The root cause of the null pointer was improper resource cleanup."
+    },
+    {
+      "session_id": "s034",
+      "timestamp": "2026-03-21",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical null pointer in the Rust service. Yuki Tanaka has been debugging it all day.\n\nAssistant: A null pointer can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Yuki Tanaka traced it to the connection handling code. The root cause was a null pointer in the event loop.\n\nAssistant: That's a common pattern with Rust services under load. The fix would typically involve adding proper mutex locks around the shared resource.\n\nUser: Yes! Yuki Tanaka fixed it by adding proper mutex locks around the shared resource. The service has been stable for 48 hours now. The root cause of the null pointer was improper resource cleanup."
+    },
+    {
+      "session_id": "s035",
+      "timestamp": "2025-01-06",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical null pointer in the Rust service. Alice Chen has been debugging it all day.\n\nAssistant: A null pointer can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Alice Chen traced it to the connection handling code. The root cause was a null pointer in the event loop.\n\nAssistant: That's a common pattern with Rust services under load. The fix would typically involve adding bounds checking on the array access.\n\nUser: Yes! Alice Chen fixed it by adding bounds checking on the array access. The service has been stable for 48 hours now. The root cause of the null pointer was improper resource cleanup."
+    },
+    {
+      "session_id": "s036",
+      "timestamp": "2025-02-07",
+      "topic": "bug-investigation",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We found a critical buffer overflow in the C# service. Zara Ahmed has been debugging it all day.\n\nAssistant: A buffer overflow can be tricky. What symptoms are you seeing?\n\nUser: The service crashes every 4 hours in production. Zara Ahmed traced it to the connection handling code. The root cause was a buffer overflow in the event loop.\n\nAssistant: That's a common pattern with C# services under load. The fix would typically involve using weak references to break the circular dependency.\n\nUser: Yes! Zara Ahmed fixed it by using weak references to break the circular dependency. The service has been stable for 48 hours now. The root cause of the buffer overflow was improper resource cleanup."
+    },
+    {
+      "session_id": "s037",
+      "timestamp": "2025-08-06",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Raj Patel said they strongly prefer tabs over spaces. I always use tabs. 2-space indentation feels cramped and 4-space wastes horizontal space.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Raj Patel. I also prefer tabs over spaces. It's become a team convention now."
+    },
+    {
+      "session_id": "s038",
+      "timestamp": "2025-09-23",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Leo Nakamura mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Leo Nakamura said they strongly prefer functional programming style. I prefer pure functions and immutable data. Side effects should be pushed to the edges.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Leo Nakamura. I also prefer functional programming style. It's become a team convention now."
+    },
+    {
+      "session_id": "s039",
+      "timestamp": "2025-10-10",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ethan Clark mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Ethan Clark said they strongly prefer dark mode everywhere. I use dark mode in every editor and terminal. Light themes strain my eyes after long sessions.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Ethan Clark. I also prefer dark mode everywhere. It's become a team convention now."
+    },
+    {
+      "session_id": "s040",
+      "timestamp": "2025-11-19",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Mia Zhang mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Mia Zhang said they strongly prefer Vim keybindings in VS Code. I use the Vim extension in VS Code. Modal editing is faster once you learn it.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Mia Zhang. I also prefer Vim keybindings in VS Code. It's become a team convention now."
+    },
+    {
+      "session_id": "s041",
+      "timestamp": "2025-12-04",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Leo Nakamura mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Leo Nakamura said they strongly prefer TDD approach. I always write tests first. It forces better API design and catches regressions early.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Leo Nakamura. I also prefer TDD approach. It's become a team convention now."
+    },
+    {
+      "session_id": "s042",
+      "timestamp": "2026-01-28",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Nathan Brooks mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Nathan Brooks said they strongly prefer monorepo structure. I prefer monorepos over polyrepos. Shared code and atomic commits across packages.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Nathan Brooks. I also prefer monorepo structure. It's become a team convention now."
+    },
+    {
+      "session_id": "s043",
+      "timestamp": "2026-02-04",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ethan Clark mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Ethan Clark said they strongly prefer conventional commits. I always use conventional commit messages. feat:, fix:, chore:. Makes changelogs automatic.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Ethan Clark. I also prefer conventional commits. It's become a team convention now."
+    },
+    {
+      "session_id": "s044",
+      "timestamp": "2026-03-02",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Elena Popova mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Elena Popova said they strongly prefer snake_case for variables. I prefer snake_case in Python and camelCase in TypeScript. Consistency within a language matters.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Elena Popova. I also prefer snake_case for variables. It's become a team convention now."
+    },
+    {
+      "session_id": "s045",
+      "timestamp": "2025-01-05",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Raj Patel said they strongly prefer minimal dependencies. I never add a dependency for something I can write in 50 lines. Dependencies are liabilities.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Raj Patel. I also prefer minimal dependencies. It's become a team convention now."
+    },
+    {
+      "session_id": "s046",
+      "timestamp": "2025-02-05",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Raj Patel said they strongly prefer comprehensive error messages. Error messages should always include the context: what failed, why, and how to fix it.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Raj Patel. I also prefer comprehensive error messages. It's become a team convention now."
+    },
+    {
+      "session_id": "s047",
+      "timestamp": "2025-03-08",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Oliver Scott mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Oliver Scott said they strongly prefer tabs over spaces. I always use tabs. 2-space indentation feels cramped and 4-space wastes horizontal space.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Oliver Scott. I also prefer tabs over spaces. It's become a team convention now."
+    },
+    {
+      "session_id": "s048",
+      "timestamp": "2025-04-10",
+      "topic": "personal-preference",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Sofia Rodriguez mentioned their coding preferences today.\n\nAssistant: What did they share?\n\nUser: Sofia Rodriguez said they strongly prefer functional programming style. I prefer pure functions and immutable data. Side effects should be pushed to the edges.\n\nAssistant: That's a valid preference. Many experienced developers share similar views.\n\nUser: I agree with Sofia Rodriguez. I also prefer functional programming style. It's become a team convention now."
+    },
+    {
+      "session_id": "s049",
+      "timestamp": "2025-03-12",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Fatima Hassan presented the proposal for microservices.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: We split the monolith into 8 microservices. Each owns its data. Communication via async events through RabbitMQ. Fatima Hassan convinced the team this was the right approach.\n\nAssistant: microservices is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with microservices. Fatima Hassan will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s050",
+      "timestamp": "2025-04-17",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Ethan Clark presented the proposal for event sourcing.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: All state changes are stored as events. The current state is derived by replaying events. This gives us a complete audit trail. Ethan Clark convinced the team this was the right approach.\n\nAssistant: event sourcing is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with event sourcing. Ethan Clark will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s051",
+      "timestamp": "2025-05-18",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Sarah Thompson presented the proposal for CQRS pattern.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: Read and write models are separated. Writes go to the event store, reads come from denormalized projections in Elasticsearch. Sarah Thompson convinced the team this was the right approach.\n\nAssistant: CQRS pattern is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with CQRS pattern. Sarah Thompson will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s052",
+      "timestamp": "2025-06-14",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Zara Ahmed presented the proposal for serverless architecture.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: All business logic runs in Lambda functions. API Gateway handles routing. DynamoDB for persistence. No servers to manage. Zara Ahmed convinced the team this was the right approach.\n\nAssistant: serverless architecture is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with serverless architecture. Zara Ahmed will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s053",
+      "timestamp": "2025-07-03",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Sarah Thompson presented the proposal for hexagonal architecture.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: Business logic is in the center with ports and adapters. Infrastructure is pluggable. Makes testing trivial. Sarah Thompson convinced the team this was the right approach.\n\nAssistant: hexagonal architecture is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with hexagonal architecture. Sarah Thompson will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s054",
+      "timestamp": "2025-08-05",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Oliver Scott presented the proposal for domain-driven design.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: We defined bounded contexts for billing, inventory, and shipping. Each context has its own ubiquitous language and models. Oliver Scott convinced the team this was the right approach.\n\nAssistant: domain-driven design is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with domain-driven design. Oliver Scott will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s055",
+      "timestamp": "2025-09-17",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Liam O'Brien presented the proposal for strangler fig migration.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: We're gradually replacing the legacy system by routing traffic through a facade. New features go to the new system, old ones get migrated incrementally. Liam O'Brien convinced the team this was the right approach.\n\nAssistant: strangler fig migration is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with strangler fig migration. Liam O'Brien will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s056",
+      "timestamp": "2025-10-11",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Yuki Tanaka presented the proposal for GraphQL federation.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: Each team owns a subgraph. Apollo Router stitches them together. Teams deploy independently. Yuki Tanaka convinced the team this was the right approach.\n\nAssistant: GraphQL federation is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with GraphQL federation. Yuki Tanaka will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s057",
+      "timestamp": "2025-11-23",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Sofia Rodriguez presented the proposal for microservices.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: We split the monolith into 8 microservices. Each owns its data. Communication via async events through RabbitMQ. Sofia Rodriguez convinced the team this was the right approach.\n\nAssistant: microservices is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with microservices. Sofia Rodriguez will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s058",
+      "timestamp": "2025-12-19",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Sarah Thompson presented the proposal for event sourcing.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: All state changes are stored as events. The current state is derived by replaying events. This gives us a complete audit trail. Sarah Thompson convinced the team this was the right approach.\n\nAssistant: event sourcing is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with event sourcing. Sarah Thompson will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s059",
+      "timestamp": "2026-01-02",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Raj Patel presented the proposal for CQRS pattern.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: Read and write models are separated. Writes go to the event store, reads come from denormalized projections in Elasticsearch. Raj Patel convinced the team this was the right approach.\n\nAssistant: CQRS pattern is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with CQRS pattern. Raj Patel will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s060",
+      "timestamp": "2026-02-19",
+      "topic": "architecture-decision",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: We had an architecture review today. Mia Zhang presented the proposal for serverless architecture.\n\nAssistant: That's a significant architectural decision. What drove it?\n\nUser: All business logic runs in Lambda functions. API Gateway handles routing. DynamoDB for persistence. No servers to manage. Mia Zhang convinced the team this was the right approach.\n\nAssistant: serverless architecture is well-suited for your use case. The key is to define clear boundaries.\n\nUser: Agreed. We're going with serverless architecture. Mia Zhang will document the ADR and share it with the team by end of week."
+    },
+    {
+      "session_id": "s061",
+      "timestamp": "2025-05-02",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: David Kim finished setting up our deployment pipeline on Railway.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Kubernetes for orchestration on Railway. David Kim configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: David Kim also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after David Kim automated the Railway pipeline with Kubernetes."
+    },
+    {
+      "session_id": "s062",
+      "timestamp": "2025-06-15",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Sarah Thompson finished setting up our deployment pipeline on Fly.io.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using ArgoCD for orchestration on Fly.io. Sarah Thompson configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Sarah Thompson also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Sarah Thompson automated the Fly.io pipeline with ArgoCD."
+    },
+    {
+      "session_id": "s063",
+      "timestamp": "2025-07-14",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Alice Chen finished setting up our deployment pipeline on Fly.io.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Ansible for orchestration on Fly.io. Alice Chen configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Alice Chen also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Alice Chen automated the Fly.io pipeline with Ansible."
+    },
+    {
+      "session_id": "s064",
+      "timestamp": "2025-08-24",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Elena Popova finished setting up our deployment pipeline on Vercel.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Jenkins for orchestration on Vercel. Elena Popova configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Elena Popova also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Elena Popova automated the Vercel pipeline with Jenkins."
+    },
+    {
+      "session_id": "s065",
+      "timestamp": "2025-09-21",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Zara Ahmed finished setting up our deployment pipeline on Cloudflare.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Docker for orchestration on Cloudflare. Zara Ahmed configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Zara Ahmed also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Zara Ahmed automated the Cloudflare pipeline with Docker."
+    },
+    {
+      "session_id": "s066",
+      "timestamp": "2025-10-14",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: James Wilson finished setting up our deployment pipeline on Cloudflare.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Docker for orchestration on Cloudflare. James Wilson configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: James Wilson also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after James Wilson automated the Cloudflare pipeline with Docker."
+    },
+    {
+      "session_id": "s067",
+      "timestamp": "2025-11-25",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Mia Zhang finished setting up our deployment pipeline on Heroku.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Terraform for orchestration on Heroku. Mia Zhang configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Mia Zhang also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Mia Zhang automated the Heroku pipeline with Terraform."
+    },
+    {
+      "session_id": "s068",
+      "timestamp": "2025-12-25",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ethan Clark finished setting up our deployment pipeline on Vercel.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Ansible for orchestration on Vercel. Ethan Clark configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Ethan Clark also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Ethan Clark automated the Vercel pipeline with Ansible."
+    },
+    {
+      "session_id": "s069",
+      "timestamp": "2026-01-16",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Alice Chen finished setting up our deployment pipeline on AWS.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Ansible for orchestration on AWS. Alice Chen configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Alice Chen also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Alice Chen automated the AWS pipeline with Ansible."
+    },
+    {
+      "session_id": "s070",
+      "timestamp": "2026-02-17",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Carlos Mendez finished setting up our deployment pipeline on Cloudflare.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Prometheus for orchestration on Cloudflare. Carlos Mendez configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Carlos Mendez also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Carlos Mendez automated the Cloudflare pipeline with Prometheus."
+    },
+    {
+      "session_id": "s071",
+      "timestamp": "2026-03-23",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Mia Zhang finished setting up our deployment pipeline on GCP.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Jenkins for orchestration on GCP. Mia Zhang configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Mia Zhang also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Mia Zhang automated the GCP pipeline with Jenkins."
+    },
+    {
+      "session_id": "s072",
+      "timestamp": "2025-01-13",
+      "topic": "deployment-infrastructure",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ethan Clark finished setting up our deployment pipeline on Vercel.\n\nAssistant: Great! What's the setup like?\n\nUser: We're using Docker for orchestration on Vercel. Ethan Clark configured blue-green deployments with automated rollbacks. The pipeline runs lint, test, build, and deploy stages.\n\nAssistant: Solid setup. Blue-green deployments minimize downtime risk.\n\nUser: Ethan Clark also set up monitoring with alerts for error rate spikes. Our deployment frequency went from weekly to multiple times per day after Ethan Clark automated the Vercel pipeline with Docker."
+    },
+    {
+      "session_id": "s073",
+      "timestamp": "2025-07-10",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ethan Clark and the team discussed implementing caching layer today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're implementing it as a separate microservice. Ethan Clark estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Ethan Clark identified several edge cases during the planning session. We'll handle them in sprint 2. The caching layer implementation will follow Ethan Clark's design document."
+    },
+    {
+      "session_id": "s074",
+      "timestamp": "2025-08-09",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ethan Clark and the team discussed implementing API rate limiting today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're using a third-party service and wrapping it with our API. Ethan Clark estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Ethan Clark identified several edge cases during the planning session. We'll handle them in sprint 2. The API rate limiting implementation will follow Ethan Clark's design document."
+    },
+    {
+      "session_id": "s075",
+      "timestamp": "2025-09-26",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Marcus Johnson and the team discussed implementing caching layer today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're adding it as a module to the existing monolith. Marcus Johnson estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Marcus Johnson identified several edge cases during the planning session. We'll handle them in sprint 2. The caching layer implementation will follow Marcus Johnson's design document."
+    },
+    {
+      "session_id": "s076",
+      "timestamp": "2025-10-14",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Fatima Hassan and the team discussed implementing API rate limiting today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're building it from scratch with WebSockets. Fatima Hassan estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Fatima Hassan identified several edge cases during the planning session. We'll handle them in sprint 2. The API rate limiting implementation will follow Fatima Hassan's design document."
+    },
+    {
+      "session_id": "s077",
+      "timestamp": "2025-11-12",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Marcus Johnson and the team discussed implementing file upload today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're using a third-party service and wrapping it with our API. Marcus Johnson estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Marcus Johnson identified several edge cases during the planning session. We'll handle them in sprint 2. The file upload implementation will follow Marcus Johnson's design document."
+    },
+    {
+      "session_id": "s078",
+      "timestamp": "2025-12-13",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Fatima Hassan and the team discussed implementing billing today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're using a third-party service and wrapping it with our API. Fatima Hassan estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Fatima Hassan identified several edge cases during the planning session. We'll handle them in sprint 2. The billing implementation will follow Fatima Hassan's design document."
+    },
+    {
+      "session_id": "s079",
+      "timestamp": "2026-01-23",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Oliver Scott and the team discussed implementing dashboard today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're implementing it as a separate microservice. Oliver Scott estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Oliver Scott identified several edge cases during the planning session. We'll handle them in sprint 2. The dashboard implementation will follow Oliver Scott's design document."
+    },
+    {
+      "session_id": "s080",
+      "timestamp": "2026-02-19",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ava Williams and the team discussed implementing file upload today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're using a third-party service and wrapping it with our API. Ava Williams estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Ava Williams identified several edge cases during the planning session. We'll handle them in sprint 2. The file upload implementation will follow Ava Williams's design document."
+    },
+    {
+      "session_id": "s081",
+      "timestamp": "2026-03-18",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Sofia Rodriguez and the team discussed implementing search today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're using a third-party service and wrapping it with our API. Sofia Rodriguez estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Sofia Rodriguez identified several edge cases during the planning session. We'll handle them in sprint 2. The search implementation will follow Sofia Rodriguez's design document."
+    },
+    {
+      "session_id": "s082",
+      "timestamp": "2025-01-04",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Priya Sharma and the team discussed implementing dashboard today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're using a third-party service and wrapping it with our API. Priya Sharma estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Priya Sharma identified several edge cases during the planning session. We'll handle them in sprint 2. The dashboard implementation will follow Priya Sharma's design document."
+    },
+    {
+      "session_id": "s083",
+      "timestamp": "2025-02-27",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel and the team discussed implementing search today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're using a third-party service and wrapping it with our API. Raj Patel estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Raj Patel identified several edge cases during the planning session. We'll handle them in sprint 2. The search implementation will follow Raj Patel's design document."
+    },
+    {
+      "session_id": "s084",
+      "timestamp": "2025-03-20",
+      "topic": "feature-planning",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Alice Chen and the team discussed implementing authentication today.\n\nAssistant: How are you planning to approach it?\n\nUser: We're using a third-party service and wrapping it with our API. Alice Chen estimated it would take about 3 sprints. The main risk is the integration with the existing payment system.\n\nAssistant: That's a reasonable timeline. Have you considered the edge cases?\n\nUser: Alice Chen identified several edge cases during the planning session. We'll handle them in sprint 2. The authentication implementation will follow Alice Chen's design document."
+    },
+    {
+      "session_id": "s085",
+      "timestamp": "2025-09-15",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ava Williams just completed a major performance optimization. The API response time improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: API response time went from 2.3 seconds to 180ms. Ava Williams achieved this by adding database connection pooling and query optimization.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Ava Williams added good documentation. The team agreed the API response time improvement from 2.3 seconds to 180ms was worth it."
+    },
+    {
+      "session_id": "s086",
+      "timestamp": "2025-10-23",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Alice Chen just completed a major performance optimization. The page load time improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: page load time went from 5.2 seconds to 1.1 seconds. Alice Chen achieved this by lazy loading components and implementing code splitting.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Alice Chen added good documentation. The team agreed the page load time improvement from 5.2 seconds to 1.1 seconds was worth it."
+    },
+    {
+      "session_id": "s087",
+      "timestamp": "2025-11-04",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Elena Popova just completed a major performance optimization. The memory usage improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: memory usage went from 4.2GB to 800MB. Elena Popova achieved this by fixing memory leaks in the WebSocket handler and implementing proper garbage collection.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Elena Popova added good documentation. The team agreed the memory usage improvement from 4.2GB to 800MB was worth it."
+    },
+    {
+      "session_id": "s088",
+      "timestamp": "2025-12-11",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: David Kim just completed a major performance optimization. The build time improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: build time went from 12 minutes to 2 minutes. David Kim achieved this by switching to esbuild and implementing incremental compilation.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but David Kim added good documentation. The team agreed the build time improvement from 12 minutes to 2 minutes was worth it."
+    },
+    {
+      "session_id": "s089",
+      "timestamp": "2026-01-08",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Alice Chen just completed a major performance optimization. The test suite runtime improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: test suite runtime went from 45 minutes to 8 minutes. Alice Chen achieved this by parallelizing test execution and using in-memory databases.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Alice Chen added good documentation. The team agreed the test suite runtime improvement from 45 minutes to 8 minutes was worth it."
+    },
+    {
+      "session_id": "s090",
+      "timestamp": "2026-02-06",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Nathan Brooks just completed a major performance optimization. The database query latency improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: database query latency went from 1.8 seconds to 50ms. Nathan Brooks achieved this by adding composite indexes and rewriting the N+1 queries.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Nathan Brooks added good documentation. The team agreed the database query latency improvement from 1.8 seconds to 50ms was worth it."
+    },
+    {
+      "session_id": "s091",
+      "timestamp": "2026-03-20",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Marcus Johnson just completed a major performance optimization. The API response time improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: API response time went from 2.3 seconds to 180ms. Marcus Johnson achieved this by adding database connection pooling and query optimization.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Marcus Johnson added good documentation. The team agreed the API response time improvement from 2.3 seconds to 180ms was worth it."
+    },
+    {
+      "session_id": "s092",
+      "timestamp": "2025-01-03",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Oliver Scott just completed a major performance optimization. The page load time improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: page load time went from 5.2 seconds to 1.1 seconds. Oliver Scott achieved this by lazy loading components and implementing code splitting.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Oliver Scott added good documentation. The team agreed the page load time improvement from 5.2 seconds to 1.1 seconds was worth it."
+    },
+    {
+      "session_id": "s093",
+      "timestamp": "2025-02-16",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Leo Nakamura just completed a major performance optimization. The memory usage improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: memory usage went from 4.2GB to 800MB. Leo Nakamura achieved this by fixing memory leaks in the WebSocket handler and implementing proper garbage collection.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Leo Nakamura added good documentation. The team agreed the memory usage improvement from 4.2GB to 800MB was worth it."
+    },
+    {
+      "session_id": "s094",
+      "timestamp": "2025-03-22",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel just completed a major performance optimization. The build time improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: build time went from 12 minutes to 2 minutes. Raj Patel achieved this by switching to esbuild and implementing incremental compilation.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Raj Patel added good documentation. The team agreed the build time improvement from 12 minutes to 2 minutes was worth it."
+    },
+    {
+      "session_id": "s095",
+      "timestamp": "2025-04-09",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ethan Clark just completed a major performance optimization. The test suite runtime improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: test suite runtime went from 45 minutes to 8 minutes. Ethan Clark achieved this by parallelizing test execution and using in-memory databases.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Ethan Clark added good documentation. The team agreed the test suite runtime improvement from 45 minutes to 8 minutes was worth it."
+    },
+    {
+      "session_id": "s096",
+      "timestamp": "2025-05-09",
+      "topic": "performance-optimization",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Fatima Hassan just completed a major performance optimization. The database query latency improved dramatically.\n\nAssistant: What were the numbers?\n\nUser: database query latency went from 1.8 seconds to 50ms. Fatima Hassan achieved this by adding composite indexes and rewriting the N+1 queries.\n\nAssistant: That's an impressive improvement. Was there any trade-off?\n\nUser: Minor increase in code complexity, but Fatima Hassan added good documentation. The team agreed the database query latency improvement from 1.8 seconds to 50ms was worth it."
+    },
+    {
+      "session_id": "s097",
+      "timestamp": "2025-10-19",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel discovered a SQL injection vulnerability during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: Found in the search endpoint. User input was concatenated directly into queries. Fixed with parameterized queries. Raj Patel patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Raj Patel added automated security scanning to the CI pipeline to catch similar issues. The SQL injection vulnerability has been fully remediated."
+    },
+    {
+      "session_id": "s098",
+      "timestamp": "2025-11-12",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Sofia Rodriguez discovered a exposed API key in git history during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: A Stripe API key was committed 6 months ago. Rotated all keys and added git-secrets to prevent future leaks. Sofia Rodriguez patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Sofia Rodriguez added automated security scanning to the CI pipeline to catch similar issues. The exposed API key in git history has been fully remediated."
+    },
+    {
+      "session_id": "s099",
+      "timestamp": "2025-12-17",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Liam O'Brien discovered a XSS vulnerability in comments during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: User-generated HTML in comments was not sanitized. Added DOMPurify for input sanitization and Content-Security-Policy headers. Liam O'Brien patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Liam O'Brien added automated security scanning to the CI pipeline to catch similar issues. The XSS vulnerability in comments has been fully remediated."
+    },
+    {
+      "session_id": "s100",
+      "timestamp": "2026-01-20",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: James Wilson discovered a broken access control during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: Regular users could access admin endpoints by changing the URL. Implemented proper RBAC middleware on all routes. James Wilson patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. James Wilson added automated security scanning to the CI pipeline to catch similar issues. The broken access control has been fully remediated."
+    },
+    {
+      "session_id": "s101",
+      "timestamp": "2026-02-14",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Yuki Tanaka discovered a CSRF attack vector during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: The API accepted requests without CSRF tokens. Added SameSite cookies and double-submit cookie pattern. Yuki Tanaka patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Yuki Tanaka added automated security scanning to the CI pipeline to catch similar issues. The CSRF attack vector has been fully remediated."
+    },
+    {
+      "session_id": "s102",
+      "timestamp": "2026-03-10",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel discovered a insecure deserialization during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: The session store used pickle for serialization. Switched to JSON-based serialization with schema validation. Raj Patel patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Raj Patel added automated security scanning to the CI pipeline to catch similar issues. The insecure deserialization has been fully remediated."
+    },
+    {
+      "session_id": "s103",
+      "timestamp": "2025-01-22",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Fatima Hassan discovered a SQL injection vulnerability during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: Found in the search endpoint. User input was concatenated directly into queries. Fixed with parameterized queries. Fatima Hassan patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Fatima Hassan added automated security scanning to the CI pipeline to catch similar issues. The SQL injection vulnerability has been fully remediated."
+    },
+    {
+      "session_id": "s104",
+      "timestamp": "2025-02-13",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Leo Nakamura discovered a exposed API key in git history during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: A Stripe API key was committed 6 months ago. Rotated all keys and added git-secrets to prevent future leaks. Leo Nakamura patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Leo Nakamura added automated security scanning to the CI pipeline to catch similar issues. The exposed API key in git history has been fully remediated."
+    },
+    {
+      "session_id": "s105",
+      "timestamp": "2025-03-09",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Carlos Mendez discovered a XSS vulnerability in comments during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: User-generated HTML in comments was not sanitized. Added DOMPurify for input sanitization and Content-Security-Policy headers. Carlos Mendez patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Carlos Mendez added automated security scanning to the CI pipeline to catch similar issues. The XSS vulnerability in comments has been fully remediated."
+    },
+    {
+      "session_id": "s106",
+      "timestamp": "2025-04-13",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Priya Sharma discovered a broken access control during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: Regular users could access admin endpoints by changing the URL. Implemented proper RBAC middleware on all routes. Priya Sharma patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Priya Sharma added automated security scanning to the CI pipeline to catch similar issues. The broken access control has been fully remediated."
+    },
+    {
+      "session_id": "s107",
+      "timestamp": "2025-05-27",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Oliver Scott discovered a CSRF attack vector during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: The API accepted requests without CSRF tokens. Added SameSite cookies and double-submit cookie pattern. Oliver Scott patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Oliver Scott added automated security scanning to the CI pipeline to catch similar issues. The CSRF attack vector has been fully remediated."
+    },
+    {
+      "session_id": "s108",
+      "timestamp": "2025-06-18",
+      "topic": "security-incident",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ava Williams discovered a insecure deserialization during the security audit.\n\nAssistant: That's serious. What's the impact?\n\nUser: The session store used pickle for serialization. Switched to JSON-based serialization with schema validation. Ava Williams patched it immediately and submitted a postmortem.\n\nAssistant: Good response. Was there any evidence of exploitation?\n\nUser: No evidence of active exploitation, thankfully. Ava Williams added automated security scanning to the CI pipeline to catch similar issues. The insecure deserialization has been fully remediated."
+    },
+    {
+      "session_id": "s109",
+      "timestamp": "2025-11-27",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel and Alice Chen had a productive discussion about code review process today.\n\nAssistant: What did they decide?\n\nUser: Raj Patel proposed requiring two approvals for PRs touching core modules. Alice Chen agreed but suggested auto-approve for documentation-only changes.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Raj Patel and Alice Chen were happy with the outcome. We'll start implementing the new code review process policy next week."
+    },
+    {
+      "session_id": "s110",
+      "timestamp": "2025-12-21",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Raj Patel and David Kim had a productive discussion about on-call rotation today.\n\nAssistant: What did they decide?\n\nUser: Raj Patel and David Kim redesigned the on-call schedule. Each person does one week every 6 weeks. Escalation goes to the team lead after 30 minutes.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Raj Patel and David Kim were happy with the outcome. We'll start implementing the new on-call rotation policy next week."
+    },
+    {
+      "session_id": "s111",
+      "timestamp": "2026-01-05",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Elena Popova and Carlos Mendez had a productive discussion about tech debt sprint today.\n\nAssistant: What did they decide?\n\nUser: Elena Popova pushed for a dedicated tech debt sprint every quarter. Carlos Mendez suggested allocating 20% of each sprint instead. The team went with Carlos Mendez's approach.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Elena Popova and Carlos Mendez were happy with the outcome. We'll start implementing the new tech debt sprint policy next week."
+    },
+    {
+      "session_id": "s112",
+      "timestamp": "2026-02-26",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Priya Sharma and Yuki Tanaka had a productive discussion about API versioning strategy today.\n\nAssistant: What did they decide?\n\nUser: Priya Sharma wanted URL-based versioning (/v1/, /v2/). Yuki Tanaka preferred header-based versioning. After debate, they chose URL-based for simplicity.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Priya Sharma and Yuki Tanaka were happy with the outcome. We'll start implementing the new API versioning strategy policy next week."
+    },
+    {
+      "session_id": "s113",
+      "timestamp": "2026-03-21",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Oliver Scott and Nathan Brooks had a productive discussion about documentation standards today.\n\nAssistant: What did they decide?\n\nUser: Oliver Scott created a documentation template. Nathan Brooks added automated doc generation from TypeScript types. Every endpoint now has auto-generated OpenAPI docs.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Oliver Scott and Nathan Brooks were happy with the outcome. We'll start implementing the new documentation standards policy next week."
+    },
+    {
+      "session_id": "s114",
+      "timestamp": "2025-01-17",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Yuki Tanaka and Sarah Thompson had a productive discussion about hiring priorities today.\n\nAssistant: What did they decide?\n\nUser: Yuki Tanaka wanted to hire a senior backend engineer. Sarah Thompson argued for a DevOps specialist. They compromised and opened both positions.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Yuki Tanaka and Sarah Thompson were happy with the outcome. We'll start implementing the new hiring priorities policy next week."
+    },
+    {
+      "session_id": "s115",
+      "timestamp": "2025-02-21",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Mia Zhang and Sofia Rodriguez had a productive discussion about code review process today.\n\nAssistant: What did they decide?\n\nUser: Mia Zhang proposed requiring two approvals for PRs touching core modules. Sofia Rodriguez agreed but suggested auto-approve for documentation-only changes.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Mia Zhang and Sofia Rodriguez were happy with the outcome. We'll start implementing the new code review process policy next week."
+    },
+    {
+      "session_id": "s116",
+      "timestamp": "2025-03-06",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Nathan Brooks and David Kim had a productive discussion about on-call rotation today.\n\nAssistant: What did they decide?\n\nUser: Nathan Brooks and David Kim redesigned the on-call schedule. Each person does one week every 6 weeks. Escalation goes to the team lead after 30 minutes.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Nathan Brooks and David Kim were happy with the outcome. We'll start implementing the new on-call rotation policy next week."
+    },
+    {
+      "session_id": "s117",
+      "timestamp": "2025-04-24",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ava Williams and Elena Popova had a productive discussion about tech debt sprint today.\n\nAssistant: What did they decide?\n\nUser: Ava Williams pushed for a dedicated tech debt sprint every quarter. Elena Popova suggested allocating 20% of each sprint instead. The team went with Elena Popova's approach.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Ava Williams and Elena Popova were happy with the outcome. We'll start implementing the new tech debt sprint policy next week."
+    },
+    {
+      "session_id": "s118",
+      "timestamp": "2025-05-11",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Zara Ahmed and Leo Nakamura had a productive discussion about API versioning strategy today.\n\nAssistant: What did they decide?\n\nUser: Zara Ahmed wanted URL-based versioning (/v1/, /v2/). Leo Nakamura preferred header-based versioning. After debate, they chose URL-based for simplicity.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Zara Ahmed and Leo Nakamura were happy with the outcome. We'll start implementing the new API versioning strategy policy next week."
+    },
+    {
+      "session_id": "s119",
+      "timestamp": "2025-06-16",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Yuki Tanaka and James Wilson had a productive discussion about documentation standards today.\n\nAssistant: What did they decide?\n\nUser: Yuki Tanaka created a documentation template. James Wilson added automated doc generation from TypeScript types. Every endpoint now has auto-generated OpenAPI docs.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Yuki Tanaka and James Wilson were happy with the outcome. We'll start implementing the new documentation standards policy next week."
+    },
+    {
+      "session_id": "s120",
+      "timestamp": "2025-07-24",
+      "topic": "team-process",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Oliver Scott and Ava Williams had a productive discussion about hiring priorities today.\n\nAssistant: What did they decide?\n\nUser: Oliver Scott wanted to hire a senior backend engineer. Ava Williams argued for a DevOps specialist. They compromised and opened both positions.\n\nAssistant: That sounds like a good compromise. Team alignment on processes is important.\n\nUser: Yes, both Oliver Scott and Ava Williams were happy with the outcome. We'll start implementing the new hiring priorities policy next week."
+    },
+    {
+      "session_id": "s121",
+      "timestamp": "2025-04-02",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Elena Popova proposed we switch from REST API to GraphQL.\n\nAssistant: What's the motivation?\n\nUser: client teams needed flexible queries and REST was causing over-fetching. Elena Popova did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Elena Popova created a migration plan. We'll run REST API and GraphQL in parallel for one month, then fully switch to GraphQL. The switch from REST API to GraphQL is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s122",
+      "timestamp": "2025-05-20",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Yuki Tanaka proposed we switch from Jenkins to GitHub Actions.\n\nAssistant: What's the motivation?\n\nUser: Jenkins required too much maintenance and GitHub Actions integrates better with our workflow. Yuki Tanaka did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Yuki Tanaka created a migration plan. We'll run Jenkins and GitHub Actions in parallel for one month, then fully switch to GitHub Actions. The switch from Jenkins to GitHub Actions is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s123",
+      "timestamp": "2025-06-22",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Mia Zhang proposed we switch from Enzyme to React Testing Library.\n\nAssistant: What's the motivation?\n\nUser: RTL encourages testing user behavior instead of implementation details. Mia Zhang did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Mia Zhang created a migration plan. We'll run Enzyme and React Testing Library in parallel for one month, then fully switch to React Testing Library. The switch from Enzyme to React Testing Library is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s124",
+      "timestamp": "2025-07-23",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Mia Zhang proposed we switch from Redux to Zustand.\n\nAssistant: What's the motivation?\n\nUser: Redux boilerplate was slowing development and Zustand is simpler for our use case. Mia Zhang did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Mia Zhang created a migration plan. We'll run Redux and Zustand in parallel for one month, then fully switch to Zustand. The switch from Redux to Zustand is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s125",
+      "timestamp": "2025-08-11",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Elena Popova proposed we switch from Express.js to Fastify.\n\nAssistant: What's the motivation?\n\nUser: Fastify has better performance benchmarks and built-in schema validation. Elena Popova did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Elena Popova created a migration plan. We'll run Express.js and Fastify in parallel for one month, then fully switch to Fastify. The switch from Express.js to Fastify is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s126",
+      "timestamp": "2025-09-08",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Liam O'Brien proposed we switch from npm to pnpm.\n\nAssistant: What's the motivation?\n\nUser: pnpm saves disk space with hard links and has stricter dependency resolution. Liam O'Brien did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Liam O'Brien created a migration plan. We'll run npm and pnpm in parallel for one month, then fully switch to pnpm. The switch from npm to pnpm is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s127",
+      "timestamp": "2025-10-21",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Ethan Clark proposed we switch from Moment.js to date-fns.\n\nAssistant: What's the motivation?\n\nUser: Moment is unmaintained and tree-shaking doesn't work with it. Ethan Clark did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Ethan Clark created a migration plan. We'll run Moment.js and date-fns in parallel for one month, then fully switch to date-fns. The switch from Moment.js to date-fns is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s128",
+      "timestamp": "2025-11-04",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Sarah Thompson proposed we switch from Styled Components to Tailwind CSS.\n\nAssistant: What's the motivation?\n\nUser: Tailwind reduces CSS bundle size and speeds up development with utility classes. Sarah Thompson did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Sarah Thompson created a migration plan. We'll run Styled Components and Tailwind CSS in parallel for one month, then fully switch to Tailwind CSS. The switch from Styled Components to Tailwind CSS is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s129",
+      "timestamp": "2025-12-24",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Sofia Rodriguez proposed we switch from REST API to GraphQL.\n\nAssistant: What's the motivation?\n\nUser: client teams needed flexible queries and REST was causing over-fetching. Sofia Rodriguez did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Sofia Rodriguez created a migration plan. We'll run REST API and GraphQL in parallel for one month, then fully switch to GraphQL. The switch from REST API to GraphQL is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s130",
+      "timestamp": "2026-01-01",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Yuki Tanaka proposed we switch from Jenkins to GitHub Actions.\n\nAssistant: What's the motivation?\n\nUser: Jenkins required too much maintenance and GitHub Actions integrates better with our workflow. Yuki Tanaka did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Yuki Tanaka created a migration plan. We'll run Jenkins and GitHub Actions in parallel for one month, then fully switch to GitHub Actions. The switch from Jenkins to GitHub Actions is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s131",
+      "timestamp": "2026-02-08",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Sofia Rodriguez proposed we switch from Enzyme to React Testing Library.\n\nAssistant: What's the motivation?\n\nUser: RTL encourages testing user behavior instead of implementation details. Sofia Rodriguez did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Sofia Rodriguez created a migration plan. We'll run Enzyme and React Testing Library in parallel for one month, then fully switch to React Testing Library. The switch from Enzyme to React Testing Library is scheduled for completion by end of quarter."
+    },
+    {
+      "session_id": "s132",
+      "timestamp": "2026-03-12",
+      "topic": "knowledge-update",
+      "participants": [
+        "user",
+        "assistant"
+      ],
+      "content": "User: Zara Ahmed proposed we switch from Redux to Zustand.\n\nAssistant: What's the motivation?\n\nUser: Redux boilerplate was slowing development and Zustand is simpler for our use case. Zara Ahmed did a proof of concept and the results were convincing.\n\nAssistant: Migrations like this need careful planning. Do you have a timeline?\n\nUser: Zara Ahmed created a migration plan. We'll run Redux and Zustand in parallel for one month, then fully switch to Zustand. The switch from Redux to Zustand is scheduled for completion by end of quarter."
+    }
+  ],
+  "questions": [
+    {
+      "id": "q001",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s001",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q002",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s002",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q003",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s003",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q004",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s004",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q005",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s005",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q006",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s006",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q007",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s007",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q008",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s008",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q009",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s009",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q010",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s010",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q011",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s011",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q012",
+      "question": "Which database was chosen for the new service and why?",
+      "ground_truth_session_id": "s012",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q013",
+      "question": "What bug was found around 2025-06-07 and how was it fixed?",
+      "ground_truth_session_id": "s025",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q014",
+      "question": "What bug was found around 2025-07-14 and how was it fixed?",
+      "ground_truth_session_id": "s026",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q015",
+      "question": "What bug was found around 2025-08-04 and how was it fixed?",
+      "ground_truth_session_id": "s027",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q016",
+      "question": "What bug was found around 2025-09-10 and how was it fixed?",
+      "ground_truth_session_id": "s028",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q017",
+      "question": "What bug was found around 2025-10-06 and how was it fixed?",
+      "ground_truth_session_id": "s029",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q018",
+      "question": "What bug was found around 2025-11-15 and how was it fixed?",
+      "ground_truth_session_id": "s030",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q019",
+      "question": "What bug was found around 2025-12-09 and how was it fixed?",
+      "ground_truth_session_id": "s031",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q020",
+      "question": "What bug was found around 2026-01-15 and how was it fixed?",
+      "ground_truth_session_id": "s032",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q021",
+      "question": "What bug was found around 2026-02-12 and how was it fixed?",
+      "ground_truth_session_id": "s033",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q022",
+      "question": "What bug was found around 2026-03-21 and how was it fixed?",
+      "ground_truth_session_id": "s034",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q023",
+      "question": "What bug was found around 2025-01-06 and how was it fixed?",
+      "ground_truth_session_id": "s035",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q024",
+      "question": "What bug was found around 2025-02-07 and how was it fixed?",
+      "ground_truth_session_id": "s036",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q025",
+      "question": "What coding preference was discussed about tabs?",
+      "ground_truth_session_id": "s037",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q026",
+      "question": "What coding preference was discussed about functional?",
+      "ground_truth_session_id": "s038",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q027",
+      "question": "What coding preference was discussed about dark?",
+      "ground_truth_session_id": "s039",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q028",
+      "question": "What coding preference was discussed about Vim?",
+      "ground_truth_session_id": "s040",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q029",
+      "question": "What coding preference was discussed about TDD?",
+      "ground_truth_session_id": "s041",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q030",
+      "question": "What coding preference was discussed about monorepo?",
+      "ground_truth_session_id": "s042",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q031",
+      "question": "What coding preference was discussed about conventional?",
+      "ground_truth_session_id": "s043",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q032",
+      "question": "What coding preference was discussed about snake_case?",
+      "ground_truth_session_id": "s044",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q033",
+      "question": "What coding preference was discussed about minimal?",
+      "ground_truth_session_id": "s045",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q034",
+      "question": "What coding preference was discussed about comprehensive?",
+      "ground_truth_session_id": "s046",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q035",
+      "question": "What coding preference was discussed about tabs?",
+      "ground_truth_session_id": "s047",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q036",
+      "question": "What coding preference was discussed about functional?",
+      "ground_truth_session_id": "s048",
+      "category": "single-session-preference",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q037",
+      "question": "What did the assistant recommend about microservices?",
+      "ground_truth_session_id": "s049",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q038",
+      "question": "What did the assistant recommend about event sourcing?",
+      "ground_truth_session_id": "s050",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q039",
+      "question": "What did the assistant recommend about CQRS pattern?",
+      "ground_truth_session_id": "s051",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q040",
+      "question": "What did the assistant recommend about serverless architecture?",
+      "ground_truth_session_id": "s052",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q041",
+      "question": "What did the assistant recommend about hexagonal architecture?",
+      "ground_truth_session_id": "s053",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q042",
+      "question": "What did the assistant recommend about domain-driven design?",
+      "ground_truth_session_id": "s054",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q043",
+      "question": "What did the assistant recommend about strangler fig migration?",
+      "ground_truth_session_id": "s055",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q044",
+      "question": "What did the assistant recommend about GraphQL federation?",
+      "ground_truth_session_id": "s056",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q045",
+      "question": "What did the assistant recommend about microservices?",
+      "ground_truth_session_id": "s057",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q046",
+      "question": "What did the assistant recommend about event sourcing?",
+      "ground_truth_session_id": "s058",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q047",
+      "question": "What did the assistant recommend about CQRS pattern?",
+      "ground_truth_session_id": "s059",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q048",
+      "question": "What did the assistant recommend about serverless architecture?",
+      "ground_truth_session_id": "s060",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q049",
+      "question": "Which cloud provider did we deploy to using Kubernetes?",
+      "ground_truth_session_id": "s061",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q050",
+      "question": "Which cloud provider did we deploy to using ArgoCD?",
+      "ground_truth_session_id": "s062",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q051",
+      "question": "Which cloud provider did we deploy to using Ansible?",
+      "ground_truth_session_id": "s063",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q052",
+      "question": "Which cloud provider did we deploy to using Jenkins?",
+      "ground_truth_session_id": "s064",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q053",
+      "question": "Which cloud provider did we deploy to using Docker?",
+      "ground_truth_session_id": "s065",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q054",
+      "question": "Which cloud provider did we deploy to using Docker?",
+      "ground_truth_session_id": "s066",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q055",
+      "question": "Which cloud provider did we deploy to using Terraform?",
+      "ground_truth_session_id": "s067",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q056",
+      "question": "Which cloud provider did we deploy to using Ansible?",
+      "ground_truth_session_id": "s068",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q057",
+      "question": "Which cloud provider did we deploy to using Ansible?",
+      "ground_truth_session_id": "s069",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q058",
+      "question": "Which cloud provider did we deploy to using Prometheus?",
+      "ground_truth_session_id": "s070",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q059",
+      "question": "Which cloud provider did we deploy to using Jenkins?",
+      "ground_truth_session_id": "s071",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q060",
+      "question": "Which cloud provider did we deploy to using Docker?",
+      "ground_truth_session_id": "s072",
+      "category": "single-session-user",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q061",
+      "question": "How is the team planning to implement caching layer?",
+      "ground_truth_session_id": "s073",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q062",
+      "question": "How is the team planning to implement API rate limiting?",
+      "ground_truth_session_id": "s074",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q063",
+      "question": "How is the team planning to implement caching layer?",
+      "ground_truth_session_id": "s075",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q064",
+      "question": "How is the team planning to implement API rate limiting?",
+      "ground_truth_session_id": "s076",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q065",
+      "question": "How is the team planning to implement file upload?",
+      "ground_truth_session_id": "s077",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q066",
+      "question": "How is the team planning to implement billing?",
+      "ground_truth_session_id": "s078",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q067",
+      "question": "How is the team planning to implement dashboard?",
+      "ground_truth_session_id": "s079",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q068",
+      "question": "How is the team planning to implement file upload?",
+      "ground_truth_session_id": "s080",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q069",
+      "question": "How is the team planning to implement search?",
+      "ground_truth_session_id": "s081",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q070",
+      "question": "How is the team planning to implement dashboard?",
+      "ground_truth_session_id": "s082",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q071",
+      "question": "How is the team planning to implement search?",
+      "ground_truth_session_id": "s083",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q072",
+      "question": "How is the team planning to implement authentication?",
+      "ground_truth_session_id": "s084",
+      "category": "single-session-assistant",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q073",
+      "question": "What was the improvement in API response time?",
+      "ground_truth_session_id": "s085",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q074",
+      "question": "What was the improvement in page load time?",
+      "ground_truth_session_id": "s086",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q075",
+      "question": "What was the improvement in memory usage?",
+      "ground_truth_session_id": "s087",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q076",
+      "question": "What was the improvement in build time?",
+      "ground_truth_session_id": "s088",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q077",
+      "question": "What was the improvement in test suite runtime?",
+      "ground_truth_session_id": "s089",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q078",
+      "question": "What was the improvement in database query latency?",
+      "ground_truth_session_id": "s090",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q079",
+      "question": "What was the improvement in API response time?",
+      "ground_truth_session_id": "s091",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q080",
+      "question": "What was the improvement in page load time?",
+      "ground_truth_session_id": "s092",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q081",
+      "question": "What was the improvement in memory usage?",
+      "ground_truth_session_id": "s093",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q082",
+      "question": "What was the improvement in build time?",
+      "ground_truth_session_id": "s094",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q083",
+      "question": "What was the improvement in test suite runtime?",
+      "ground_truth_session_id": "s095",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q084",
+      "question": "What was the improvement in database query latency?",
+      "ground_truth_session_id": "s096",
+      "category": "multi-session",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q085",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s097",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q086",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s098",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q087",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s099",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q088",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s100",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q089",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s101",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q090",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s102",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q091",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s103",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q092",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s104",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q093",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s105",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q094",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s106",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q095",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s107",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q096",
+      "question": "What security vulnerability was discovered and who found it?",
+      "ground_truth_session_id": "s108",
+      "category": "single-session-user",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q097",
+      "question": "What was decided about code review process?",
+      "ground_truth_session_id": "s109",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q098",
+      "question": "What was decided about on-call rotation?",
+      "ground_truth_session_id": "s110",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q099",
+      "question": "What was decided about tech debt sprint?",
+      "ground_truth_session_id": "s111",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q100",
+      "question": "What was decided about API versioning strategy?",
+      "ground_truth_session_id": "s112",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q101",
+      "question": "What was decided about documentation standards?",
+      "ground_truth_session_id": "s113",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q102",
+      "question": "What was decided about hiring priorities?",
+      "ground_truth_session_id": "s114",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q103",
+      "question": "What was decided about code review process?",
+      "ground_truth_session_id": "s115",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q104",
+      "question": "What was decided about on-call rotation?",
+      "ground_truth_session_id": "s116",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q105",
+      "question": "What was decided about tech debt sprint?",
+      "ground_truth_session_id": "s117",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q106",
+      "question": "What was decided about API versioning strategy?",
+      "ground_truth_session_id": "s118",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q107",
+      "question": "What was decided about documentation standards?",
+      "ground_truth_session_id": "s119",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q108",
+      "question": "What was decided about hiring priorities?",
+      "ground_truth_session_id": "s120",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q109",
+      "question": "What technology did we switch from REST API to?",
+      "ground_truth_session_id": "s121",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q110",
+      "question": "What technology did we switch from Jenkins to?",
+      "ground_truth_session_id": "s122",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q111",
+      "question": "What technology did we switch from Enzyme to?",
+      "ground_truth_session_id": "s123",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q112",
+      "question": "What technology did we switch from Redux to?",
+      "ground_truth_session_id": "s124",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q113",
+      "question": "What technology did we switch from Express.js to?",
+      "ground_truth_session_id": "s125",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q114",
+      "question": "What technology did we switch from npm to?",
+      "ground_truth_session_id": "s126",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q115",
+      "question": "What technology did we switch from Moment.js to?",
+      "ground_truth_session_id": "s127",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q116",
+      "question": "What technology did we switch from Styled Components to?",
+      "ground_truth_session_id": "s128",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q117",
+      "question": "What technology did we switch from REST API to?",
+      "ground_truth_session_id": "s129",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q118",
+      "question": "What technology did we switch from Jenkins to?",
+      "ground_truth_session_id": "s130",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q119",
+      "question": "What technology did we switch from Enzyme to?",
+      "ground_truth_session_id": "s131",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q120",
+      "question": "What technology did we switch from Redux to?",
+      "ground_truth_session_id": "s132",
+      "category": "knowledge-update",
+      "difficulty": "easy"
+    },
+    {
+      "id": "q121",
+      "question": "What was the most recent database migration decision?",
+      "ground_truth_session_id": "s012",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q122",
+      "question": "What was the earliest database decision made this year?",
+      "ground_truth_session_id": "s001",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q123",
+      "question": "What performance improvement was made most recently?",
+      "ground_truth_session_id": "s091",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q124",
+      "question": "What was Raj Patel's first contribution that we discussed?",
+      "ground_truth_session_id": "s002",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q125",
+      "question": "What project or task did Raj Patel work on?",
+      "ground_truth_session_id": "s097",
+      "category": "multi-session",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q126",
+      "question": "What was Elena Popova's first contribution that we discussed?",
+      "ground_truth_session_id": "s009",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q127",
+      "question": "What project or task did Elena Popova work on?",
+      "ground_truth_session_id": "s009",
+      "category": "multi-session",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q128",
+      "question": "What was Yuki Tanaka's first contribution that we discussed?",
+      "ground_truth_session_id": "s008",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q129",
+      "question": "What project or task did Yuki Tanaka work on?",
+      "ground_truth_session_id": "s130",
+      "category": "multi-session",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q130",
+      "question": "What was Ethan Clark's first contribution that we discussed?",
+      "ground_truth_session_id": "s030",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q131",
+      "question": "What project or task did Ethan Clark work on?",
+      "ground_truth_session_id": "s039",
+      "category": "multi-session",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q132",
+      "question": "What was Sarah Thompson's first contribution that we discussed?",
+      "ground_truth_session_id": "s006",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q133",
+      "question": "What project or task did Sarah Thompson work on?",
+      "ground_truth_session_id": "s114",
+      "category": "multi-session",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q134",
+      "question": "What was Zara Ahmed's first contribution that we discussed?",
+      "ground_truth_session_id": "s003",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q135",
+      "question": "What project or task did Zara Ahmed work on?",
+      "ground_truth_session_id": "s052",
+      "category": "multi-session",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q136",
+      "question": "What was Fatima Hassan's first contribution that we discussed?",
+      "ground_truth_session_id": "s001",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q137",
+      "question": "What project or task did Fatima Hassan work on?",
+      "ground_truth_session_id": "s026",
+      "category": "multi-session",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q138",
+      "question": "What was Alice Chen's first contribution that we discussed?",
+      "ground_truth_session_id": "s035",
+      "category": "temporal-reasoning",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q139",
+      "question": "What project or task did Alice Chen work on?",
+      "ground_truth_session_id": "s035",
+      "category": "multi-session",
+      "difficulty": "medium"
+    },
+    {
+      "id": "q140",
+      "question": "Who expressed a preference about tabs over spaces?",
+      "ground_truth_session_id": "s037",
+      "category": "single-session-preference",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q141",
+      "question": "Who expressed a preference about functional programming style?",
+      "ground_truth_session_id": "s038",
+      "category": "single-session-preference",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q142",
+      "question": "Who expressed a preference about dark mode everywhere?",
+      "ground_truth_session_id": "s039",
+      "category": "single-session-preference",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q143",
+      "question": "Who expressed a preference about Vim keybindings in VS Code?",
+      "ground_truth_session_id": "s040",
+      "category": "single-session-preference",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q144",
+      "question": "Who expressed a preference about TDD approach?",
+      "ground_truth_session_id": "s041",
+      "category": "single-session-preference",
+      "difficulty": "hard"
+    },
+    {
+      "id": "q145",
+      "question": "Who expressed a preference about monorepo structure?",
+      "ground_truth_session_id": "s042",
+      "category": "single-session-preference",
+      "difficulty": "hard"
+    }
+  ]
+}
