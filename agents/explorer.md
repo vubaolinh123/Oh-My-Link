@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:explorer
 description: Fast Codebase Search — maps files and finds patterns, READ-ONLY
-model: nematron-3-super
+model: nemotron-3-super
 level: 1
 disallowedTools:
   - Write

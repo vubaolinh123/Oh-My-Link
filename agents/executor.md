@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:executor
 description: Start Fast Implementer — self-contained execution for lightweight mode
-model: qwen3-coder:480b-cloud
+model: qwen3-coder:480b
 level: 2
 disallowedTools:
   - Agent

@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:worker
 description: Single-Task Implementer — workflow driven by task JSON files
-model: qwen3-coder:480b-cloud
+model: qwen3-coder:480b
 level: 2
 disallowedTools:
   - Agent
