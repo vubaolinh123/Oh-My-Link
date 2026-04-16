@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:executor
 description: Start Fast Implementer — self-contained execution for lightweight mode
-model: claude-sonnet-4-6
+model: qwen3-coder:480b-cloud
 level: 2
 disallowedTools:
   - Agent

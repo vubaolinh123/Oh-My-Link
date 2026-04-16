@@ -3,6 +3,7 @@ import * as path from 'path';
 import { parseHookInput, hookOutput, promptContextOutput, readJson, writeJsonAtomic, getCwd, getQuietLevel, debugLog, logMemoryUsage } from '../helpers';
 import { loadMemory, saveMemory, addDirective } from '../project-memory';
 import { loadConfig, DEFAULT_MODELS, saveConfigField, isAlwaysOn, getModelForRole } from '../config';
+import { buildProviderAwareModelInstruction, buildModelProviderConfigSection, autoSyncModelProviders, executeProviderFallback, restorePrimaryProvider, isOnFallbackProvider, getActiveProviderId } from '../model-provider';
 import { generateFramework, formatFramework } from '../prompt-leverage';
 import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot, getDebugLogPath, projectHash } from '../state';
 import { SessionState, HookInput, AgentRole } from '../types';
@@ -34,6 +35,8 @@ const KEYWORDS: KeywordRule[] = [
   { patterns: ['update oml', 'oml update', 'upgrade oml', 'oml upgrade'], action: 'update', skill: 'oh-my-link:update-plugin' },
   { patterns: ['fetch docs', 'find docs', 'external context'], action: 'external-context', skill: 'oh-my-link:external-context' },
   { patterns: ['learn this', 'save this', 'remember this pattern'], action: 'learn', skill: 'oh-my-link:learner' },
+  { patterns: ['oml fallback', 'switch fallback', 'fallback provider', 'chuyen fallback', 'chuyển dự phòng'], action: 'fallback-provider', skill: undefined },
+  { patterns: ['oml restore', 'restore primary', 'restore ollama', 'quay lai ollama', 'quay lại ollama'], action: 'restore-provider', skill: undefined },
   // Mode invocations (checked last — broader patterns)
   { patterns: ['start fast', 'startfast', 'quick start', 'fast mode', 'light mode', 'simple mode'], action: 'invoke-light', skill: 'oh-my-link:mr-light' },
   { patterns: ['start link', 'startlink', 'full mode', 'deep mode', 'oml', 'oh-my-link'], action: 'invoke', skill: 'oh-my-link:master' },
@@ -107,6 +110,11 @@ function sanitize(text: string): string {
 
 function buildModelConfigSection(): string {
   try {
+    // First try the model-provider system
+    const providerSection = buildModelProviderConfigSection();
+    if (providerSection) return providerSection;
+
+    // Fall back to legacy model overrides
     const config = loadConfig();
     const overrides: string[] = [];
     for (const [role, model] of Object.entries(config.models)) {
@@ -123,11 +131,16 @@ function buildModelConfigSection(): string {
 
 /**
  * Build model instruction line for a specific role.
- * Returns empty string if using defaults; otherwise returns an instruction like:
- * "Use model: claude-sonnet-4-6 (configured for this role)"
+ * Uses model-provider system for provider-aware instructions when available,
+ * falling back to simple model name instructions.
  */
 function getModelInstruction(role: string, cwd?: string): string {
   try {
+    // Try provider-aware instruction first
+    const providerInstruction = buildProviderAwareModelInstruction(role, cwd);
+    if (providerInstruction) return providerInstruction;
+
+    // Fall back to simple model name
     const model = getModelForRole(role as AgentRole, cwd);
     return `\nIMPORTANT: When spawning this agent, set model to: ${model}\n`;
   } catch {
@@ -154,6 +167,15 @@ async function main(): Promise<void> {
 
   const cwd = getCwd(input as Record<string, unknown>);
   logMemoryUsage(cwd, 'keyword-detector:start');
+
+  // ── Model provider auto-sync ──
+  // Detect Ollama and other providers from env/API, mark as installed
+  try {
+    const syncedProviders = autoSyncModelProviders();
+    if (syncedProviders.length > 0) {
+      debugLog(cwd, 'keyword', `model-provider-auto-sync: ${syncedProviders.join(', ')}`);
+    }
+  } catch { /* model provider sync failure must never block user input */ }
   const promptLower = prompt.toLowerCase();
   // Sanitize prompt to avoid false-trigger from code/URLs/paths
   const cleanPrompt = sanitize(prompt).toLowerCase();
@@ -359,6 +381,50 @@ async function main(): Promise<void> {
     hookOutput('UserPromptSubmit',
       '[oh-my-link] Debug mode DISABLED.\n' +
       `Last debug log: ${debugPath}`);
+    return;
+  }
+
+  // Handle provider fallback/restore commands
+  if (match.action === 'fallback-provider') {
+    if (isOnFallbackProvider()) {
+      hookOutput('UserPromptSubmit',
+        `[oh-my-link] Already on fallback provider (${getActiveProviderId()}).\n` +
+        'Say "oml restore" to switch back to the primary Ollama API key.');
+      return;
+    }
+    const result = executeProviderFallback('user_requested', cwd);
+    if (result) {
+      hookOutput('UserPromptSubmit',
+        `[oh-my-link] Provider fallback executed!\n` +
+        `  From: ${result.fromProvider} → To: ${result.toProvider}\n` +
+        `  New base URL: ${result.toProviderConfig.base_url}\n` +
+        `  Reason: ${result.reason}\n\n` +
+        `Claude Code settings.json updated with backup Ollama API key.\n` +
+        `Restart your session for changes to take effect.\n` +
+        `Say "oml restore" to switch back to the primary API key.`);
+    } else {
+      hookOutput('UserPromptSubmit',
+        '[oh-my-link] No fallback provider available. Both Ollama keys may be exhausted.');
+    }
+    return;
+  }
+
+  if (match.action === 'restore-provider') {
+    if (!isOnFallbackProvider()) {
+      hookOutput('UserPromptSubmit',
+        '[oh-my-link] Already on primary provider (Ollama). No restore needed.');
+      return;
+    }
+    const result = restorePrimaryProvider(cwd);
+    if (result) {
+      hookOutput('UserPromptSubmit',
+        '[oh-my-link] Primary Ollama API key restored!\n' +
+        '  Now using: Ollama Primary Key (https://ollama.com/v1)\n\n' +
+        'Claude Code settings.json updated. Restart your session for changes to take effect.');
+    } else {
+      hookOutput('UserPromptSubmit',
+        '[oh-my-link] Could not restore primary API key. Already using primary Ollama key.');
+    }
     return;
   }
 

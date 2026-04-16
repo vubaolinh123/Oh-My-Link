@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:test-engineer
 description: Test Specialist — writes tests and supports TDD workflows
-model: claude-sonnet-4-6
+model: qwen3.5:397b
 level: 2
 disallowedTools:
   - Agent

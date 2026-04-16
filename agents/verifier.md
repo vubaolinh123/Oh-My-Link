@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:verifier
 description: Independent Verifier — checks implementation matches spec, READ-ONLY
-model: claude-sonnet-4-6
+model: minimax-m2.7
 level: 2
 disallowedTools:
   - Write

@@ -3,6 +3,7 @@ import * as path from 'path';
 import { AgentRole, OmlConfig } from './types';
 import { getConfigPath, normalizePath } from './state';
 import { readJson } from './helpers';
+import { getResolvedModelForRole, parseModelBinding, loadModelProviderConfig } from './model-provider';
 
 // ============================================================
 // Oh-My-Link — Configuration System
@@ -66,9 +67,23 @@ export function loadConfig(cwd?: string): OmlConfig {
 
 /**
  * Get the configured model for a given agent role.
- * Project overrides > global overrides > defaults.
+ * Resolution priority:
+ *   1. Model provider bindings (provider:model format) — highest priority
+ *   2. OmlConfig.models overrides (legacy format)
+ *   3. DEFAULT_MODELS fallback
  */
 export function getModelForRole(role: AgentRole, cwd?: string): string {
+  // Try model-provider system first (supports provider-aware routing)
+  try {
+    const providerConfig = loadModelProviderConfig(cwd);
+    const binding = providerConfig.model_bindings[role];
+    if (binding) {
+      const { modelName } = parseModelBinding(binding);
+      return modelName;
+    }
+  } catch { /* model-provider not available, fall through to legacy */ }
+
+  // Legacy resolution: OmlConfig.models > DEFAULT_MODELS
   const config = loadConfig(cwd);
   return config.models[role] || DEFAULT_MODELS[role] || DEFAULT_MODELS.worker;
 }

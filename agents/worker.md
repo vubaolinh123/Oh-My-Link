@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:worker
 description: Single-Task Implementer — workflow driven by task JSON files
-model: claude-sonnet-4-6
+model: qwen3-coder:480b-cloud
 level: 2
 disallowedTools:
   - Agent

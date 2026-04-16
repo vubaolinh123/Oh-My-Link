@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:reviewer
 description: Quality Reviewer — per-link and full-review modes, Review-focused (writes review artifacts only)
-model: claude-sonnet-4-6
+model: minimax-m2.7
 level: 2
 disallowedTools:
   - MultiEdit

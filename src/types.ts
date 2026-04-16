@@ -172,6 +172,40 @@ export type AgentRole =
   | 'security-reviewer'
   | 'test-engineer';
 
+export interface ModelProvider {
+  id: string;
+  name: string;
+  description: string;
+  base_url: string;
+  /** Environment variable name holding the API key (e.g. 'ANTHROPIC_API_KEY') */
+  api_key_env?: string;
+  /** The actual API key value (stored encrypted/prefer api_key_env) */
+  api_key?: string;
+  /** Fallback API key when primary key runs out of tokens */
+  fallback_api_key?: string;
+  /** Model to use when falling back to this provider (e.g. 'claude-sonnet-4-6') */
+  fallback_model?: string;
+  installed: boolean;
+  type: 'anthropic' | 'ollama' | 'openai-compatible';
+  /** Model family prefix this provider serves (e.g. 'claude', 'qwen', 'kimi') */
+  model_prefix?: string;
+  updated_at?: string;
+}
+
+export interface ModelProviderConfig {
+  version: 1;
+  providers: Record<string, ModelProvider>;
+  /** Per-role model assignments: role → "provider_id:model_name" */
+  model_bindings: Partial<Record<AgentRole | string, string>>;
+  /** Fallback chain: when primary provider fails, try these in order */
+  fallback_chain: string[];
+  /** Currently active provider (set by auto-fallback, persisted across sessions) */
+  active_provider_id?: string;
+  /** Timestamp of last fallback switch */
+  last_fallback_at?: string;
+  updated_at?: string;
+}
+
 export interface OmlConfig {
   models: Partial<Record<AgentRole, string>>;
   quiet_level: 0 | 1 | 2;
