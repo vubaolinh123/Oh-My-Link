@@ -6,14 +6,14 @@
   },
   "metadata": {
     "description": "Multi-agent orchestration for Claude Code. Dual-mode: Start Link (7-phase) and Start Fast (lightweight).",
-    "version": "0.11.0"
+    "version": "0.11.1"
   },
   "plugins": [
     {
       "name": "oh-my-link",
       "source": ".",
       "description": "Multi-agent orchestration with 7-phase Start Link workflow, HITL gates, review→fix loop, and Start Fast lightweight mode.",
-      "version": "0.11.0",
+      "version": "0.11.1",
       "category": "productivity",
       "tags": ["orchestration", "multi-agent", "workflow", "review", "automation"]
     }

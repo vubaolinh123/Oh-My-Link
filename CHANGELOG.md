@@ -2,6 +2,22 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.11.1] — Fix Claude Code Marketplace Schema
+
+**Patch release: makes the plugin installable via `Manage Plugins → Add Marketplace URL`.**
+
+### Fixed
+- `.claude-plugin/marketplace.json` was rejected by Claude CLI with `owner: Invalid input: expected object, received undefined`
+- Added required `owner` object (`name`, `url`)
+- Renamed plugin entry `path` → `source` to match the official schema
+- Moved description/version into `metadata` per schema
+- Synced version across `package.json`, `plugin.json`, and `marketplace.json`
+
+### Install
+Add `https://github.com/vubaolinh123/Oh-My-Link` as a marketplace URL in Claude Code (`/plugin marketplace add ...`).
+
+---
+
 ## [v0.11.0] — HITL Gates, Review→Fix Loop, Lazy Artifact Dirs
 
 **Workflow correctness fixes for Start Link mode + cleanup of accidental remote bloat.**
