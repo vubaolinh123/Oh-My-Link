@@ -2,6 +2,50 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.11.0] — HITL Gates, Review→Fix Loop, Lazy Artifact Dirs
+
+**Workflow correctness fixes for Start Link mode + cleanup of accidental remote bloat.**
+
+### Fixed: HITL Gate Transitions on Subagent Stop
+
+- Scout exploration finishing now transitions session to `gate_1_pending` with `awaiting_confirmation=true`
+- Scout synthesis (CONTEXT.md produced) advances to `phase_2_planning`
+- Architect planning (plan.md produced) → `gate_2_pending` + awaiting
+- Verifier validation done → `gate_3_pending` + awaiting
+- Resolves the spam-reinforcement loop where Master kept getting blocked at gates because `awaiting_confirmation` was never set on subagent stop
+
+### New: Review→Fix Loop Enforced at Hook Level
+
+- Reviewer `VERDICT: FAIL` at `phase_6_review` regresses session to `phase_5_execution` and increments `revision_count` so Master re-spawns Worker with feedback
+- Circuit breaker at `MAX_REVISIONS=3` sets `awaiting_confirmation=true` to escalate
+- Replaces the previous LLM-instruction-only behavior that was unreliable
+
+### Changed: Lazy Folder Creation
+
+- `ensureArtifactDirs` no longer pre-creates empty `.oh-my-link/history/` and `.oh-my-link/context/`
+- They are created on demand by the skills that actually use them
+
+### Fixed: Restored Model Tier Differentiation
+
+- `DEFAULT_MODELS` (config.ts) and `DEFAULT_MODEL_BINDINGS` (model-provider.ts) restored:
+  master/scout/architect/code-reviewer = Opus 4.7;
+  reviewer/verifier/security-reviewer/worker/executor = Sonnet 4.6;
+  fast-scout/explorer = Haiku 4.5
+- Aligns Anthropic-direct fallback with Ollama Cloud role intent
+
+### Cleanup
+
+- Removed 50 `mempalace-main/*` files accidentally committed to the remote in the previous Ollama-fix commit
+
+### Tests
+
+- 4 gate-transition tests
+- 5 review-loop tests (FAIL regress, FAIL circuit-break, PASS preserve, MINOR preserve)
+- Lazy artifact dir test
+- Full suite: **551 passed / 0 failed / 5 skipped (35/35 files)**
+
+---
+
 ## [v0.9.8] — Session Audit, Locked-Field Hardening & Debug Diagnostics
 
 **Instrumentation to track session.json corruption + raw hook payload capture for diagnosing tool_output=0.**
