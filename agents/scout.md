@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:scout
 description: Requirements Explorer — maps codebase and synthesizes decisions into CONTEXT.md
-model: kimi-k2.5:cloud
+model: claude-sonnet-4-6
 level: 3
 disallowedTools:
   - Edit

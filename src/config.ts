@@ -9,20 +9,26 @@ import { getResolvedModelForRole, parseModelBinding, loadModelProviderConfig } f
 // Oh-My-Link — Configuration System
 // ============================================================
 
-/** Default model assignments per agent role */
+/** Default model assignments per agent role (Anthropic-direct fallback).
+ *
+ * Tiers mirror the Ollama model_bindings in ~/.oh-my-link/model-provider.json:
+ * - Strongest reasoning (planning/analysis): Opus 4.7
+ * - Balanced (review/verification, fast code execution): Sonnet 4.6
+ * - Lightweight (quick lookups, scouting): Haiku 4.5
+ */
 export const DEFAULT_MODELS: Record<AgentRole, string> = {
-  master: 'claude-opus-4-6',
-  scout: 'claude-opus-4-6',
-  architect: 'claude-opus-4-6',
-  worker: 'claude-sonnet-4-6',
+  master: 'claude-opus-4-7',
+  scout: 'claude-opus-4-7',
+  architect: 'claude-opus-4-7',
+  'code-reviewer': 'claude-opus-4-7',
   reviewer: 'claude-sonnet-4-6',
-  'fast-scout': 'claude-sonnet-4-6',
-  executor: 'claude-sonnet-4-6',
-  explorer: 'claude-haiku-4-5-20251001',
   verifier: 'claude-sonnet-4-6',
-  'code-reviewer': 'claude-opus-4-6',
   'security-reviewer': 'claude-sonnet-4-6',
+  worker: 'claude-sonnet-4-6',
+  executor: 'claude-sonnet-4-6',
   'test-engineer': 'claude-sonnet-4-6',
+  'fast-scout': 'claude-haiku-4-5-20251001',
+  explorer: 'claude-haiku-4-5-20251001',
 };
 
 /** Default config values */

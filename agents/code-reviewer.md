@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:code-reviewer
 description: Deep Code Review — SOLID principles, performance, style, READ-ONLY
-model: kimi-k2.5:cloud
+model: claude-sonnet-4-6
 level: 3
 disallowedTools:
   - Write

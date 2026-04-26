@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:security-reviewer
 description: Security Specialist — OWASP, secrets detection, auth review, READ-ONLY
-model: deepseek-v3.2:cloud
+model: claude-sonnet-4-6
 level: 2
 disallowedTools:
   - Write

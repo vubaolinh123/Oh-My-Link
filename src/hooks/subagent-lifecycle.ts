@@ -40,6 +40,42 @@ const MYLIGHT_PHASE_ORDER: string[] = [
   'light_complete',
 ];
 
+// ── Review→Fix loop ──
+// When a reviewer returns FAIL, regress phase to phase_5_execution so Master
+// can re-spawn Workers with the reviewer feedback. Circuit-break after
+// MAX_REVISIONS to avoid infinite loops.
+const MAX_REVISIONS = 3;
+const REVIEW_ROLES = ['reviewer', 'code-reviewer', 'security-reviewer'];
+
+/**
+ * Read the most recently modified review artifact under .oh-my-link/reviews/
+ * and parse its `VERDICT: ...` line. Returns null if no review file or no
+ * recognizable verdict. Treats `PASS_WITH_NOTES` as PASS.
+ */
+function readLatestReviewVerdict(cwd: string): 'PASS' | 'MINOR' | 'FAIL' | null {
+  const reviewsDir = path.join(cwd, '.oh-my-link', 'reviews');
+  if (!fs.existsSync(reviewsDir)) return null;
+  let entries: { path: string; mtime: number }[];
+  try {
+    entries = fs.readdirSync(reviewsDir)
+      .filter(f => f.endsWith('.md'))
+      .map(f => {
+        const p = path.join(reviewsDir, f);
+        return { path: p, mtime: fs.statSync(p).mtimeMs };
+      })
+      .sort((a, b) => b.mtime - a.mtime);
+  } catch { return null; }
+  if (entries.length === 0) return null;
+  let content: string;
+  try { content = fs.readFileSync(entries[0].path, 'utf-8'); } catch { return null; }
+  const m = content.match(/VERDICT:\s*(PASS_WITH_NOTES|PASS|MINOR|FAIL)/i);
+  if (!m) return null;
+  const v = m[1].toUpperCase();
+  if (v === 'FAIL') return 'FAIL';
+  if (v === 'MINOR') return 'MINOR';
+  return 'PASS';
+}
+
 /**
  * Compute the target phase for an agent role based on mode + current session state.
  * Returns null if the role doesn't imply a phase transition.
@@ -399,8 +435,85 @@ async function handleStop(input: HookInput, cwd: string): Promise<void> {
         debugLog(cwd, 'agent-stop', 'fast-scout done → phase light_execution');
       }
 
+      // ── Start Link: HITL Gate transitions ──
+      // Without these, the orchestrator presents Gate questions to the user but
+      // session.awaiting_confirmation stays false, so stop-handler spins
+      // reinforcement messages instead of allowing stop. The user sees the bug as
+      // "Stop hook error: Reinforcement N/50" looping while waiting to type.
+      if (session.mode === 'mylink' && exitCode === 0) {
+        const contextMd = path.join(cwd, '.oh-my-link', 'plans', 'CONTEXT.md');
+        const planMd = path.join(cwd, '.oh-my-link', 'plans', 'plan.md');
+
+        // Scout: Exploration mode (questions asked, no CONTEXT.md yet) → Gate 1
+        if (record.role === 'scout' && session.current_phase === 'phase_1_scout'
+            && !fs.existsSync(contextMd)) {
+          session.current_phase = 'gate_1_pending';
+          session.awaiting_confirmation = true;
+          session.last_checked_at = new Date().toISOString();
+          sessionDirty = true;
+          debugLog(cwd, 'agent-stop', 'scout exploration → gate_1_pending awaiting user');
+        }
+        // Scout: Synthesis mode (CONTEXT.md produced after Gate 1) → advance to P2
+        else if (record.role === 'scout' && session.current_phase === 'gate_1_pending'
+            && fs.existsSync(contextMd)) {
+          session.current_phase = 'phase_2_planning';
+          session.awaiting_confirmation = false;
+          session.last_checked_at = new Date().toISOString();
+          sessionDirty = true;
+          debugLog(cwd, 'agent-stop', 'scout synthesis → phase_2_planning');
+        }
+
+        // Architect: planning done (plan.md produced) → Gate 2
+        if (record.role === 'architect' && session.current_phase === 'phase_2_planning'
+            && fs.existsSync(planMd)) {
+          session.current_phase = 'gate_2_pending';
+          session.awaiting_confirmation = true;
+          session.last_checked_at = new Date().toISOString();
+          sessionDirty = true;
+          debugLog(cwd, 'agent-stop', 'architect planning → gate_2_pending awaiting user');
+        }
+
+        // Verifier: validation done → Gate 3 (sequential vs parallel choice)
+        if (record.role === 'verifier' && session.current_phase === 'phase_4_validation') {
+          session.current_phase = 'gate_3_pending';
+          session.awaiting_confirmation = true;
+          session.last_checked_at = new Date().toISOString();
+          sessionDirty = true;
+          debugLog(cwd, 'agent-stop', 'verifier done → gate_3_pending awaiting user');
+        }
+      }
+
+      // ── Review→Fix loop ──
+      // Reviewer FAIL verdict at phase_6_review → regress to phase_5_execution
+      // so Master can re-spawn Workers. Circuit-break at MAX_REVISIONS.
+      // PASS / MINOR fall through to the advance-to-6.5 block below.
+      let reviewFailedHandled = false;
+      if (session.mode === 'mylink' && exitCode === 0
+          && REVIEW_ROLES.includes(record.role)
+          && session.current_phase === 'phase_6_review') {
+        const verdict = readLatestReviewVerdict(cwd);
+        if (verdict === 'FAIL') {
+          session.revision_count = (session.revision_count || 0) + 1;
+          session.last_checked_at = new Date().toISOString();
+          if (session.revision_count >= MAX_REVISIONS) {
+            // Circuit breaker: hand control back to user to decide retry vs abort.
+            session.awaiting_confirmation = true;
+            debugLog(cwd, 'agent-stop',
+              `review FAIL — revisions exhausted (${session.revision_count}/${MAX_REVISIONS}) → awaiting user`);
+          } else {
+            // Regress phase so Master sees execution state and re-spawns Worker.
+            session.current_phase = 'phase_5_execution';
+            debugLog(cwd, 'agent-stop',
+              `review FAIL — regress phase_6 → phase_5 (revision ${session.revision_count}/${MAX_REVISIONS})`);
+          }
+          sessionDirty = true;
+          reviewFailedHandled = true;
+        }
+      }
+
       // Reviewer stop at phase_6_review → advance to phase_6_5_full_review if applicable
-      if ((record.role === 'reviewer' || record.role === 'code-reviewer' || record.role === 'security-reviewer')
+      if (!reviewFailedHandled
+          && (record.role === 'reviewer' || record.role === 'code-reviewer' || record.role === 'security-reviewer')
           && session.current_phase === 'phase_6_review' && exitCode === 0) {
         // Only advance to 6.5 if all per-task reviews done (no running reviewers)
         const stillRunning = tracking.filter(a => a.status === 'running' && a.agent_id !== agentId

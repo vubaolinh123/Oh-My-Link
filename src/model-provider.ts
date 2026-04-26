@@ -54,29 +54,28 @@ export const DEFAULT_PROVIDERS: ModelProvider[] = [
 
 /**
  * Default per-role model bindings using "provider_id:model_name" format.
- * Ollama Cloud models assigned by role based on task characteristics:
  *
- * - Orchestrator/planning roles (master, architect) → glm-5:cloud (strongest all-around)
- * - Reasoning/analysis roles (scout, code-reviewer) → kimi-k2.5:cloud (strong reasoning)
- * - Implementation/code roles (worker, executor) → qwen3-coder:480b (best for code)
- * - Fast-lookup roles (fast-scout, explorer) → nemotron-3-super (fast, lightweight)
- * - Verification/review roles (reviewer, verifier) → minimax-m2.7:cloud (balanced)
- * - Security/deep-analysis (security-reviewer) → deepseek-v3.2:cloud (strong code analysis)
- * - Testing (test-engineer) → qwen3.5:397b (code understanding + speed)
+ * Tiers (mirrors src/config.ts DEFAULT_MODELS):
+ * - Strongest reasoning (planning/analysis): Opus 4.7
+ * - Balanced (review/verification, fast code execution): Sonnet 4.6
+ * - Lightweight (quick lookups, scouting): Haiku 4.5
+ *
+ * Users can override per-role via ~/.oh-my-link/model-provider.json to map
+ * roles onto Ollama Cloud models (kimi-k2.5:cloud, qwen3.5:cloud, etc).
  */
 const DEFAULT_MODEL_BINDINGS: Partial<Record<AgentRole, string>> = {
-  master: 'ollama:glm-5:cloud',
-  scout: 'ollama:kimi-k2.5:cloud',
-  architect: 'ollama:glm-5:cloud',
-  'code-reviewer': 'ollama:kimi-k2.5:cloud',
-  worker: 'ollama:qwen3-coder:480b',
-  executor: 'ollama:qwen3-coder:480b',
-  reviewer: 'ollama:minimax-m2.7:cloud',
-  verifier: 'ollama:minimax-m2.7:cloud',
-  'security-reviewer': 'ollama:deepseek-v3.2:cloud',
-  'test-engineer': 'ollama:qwen3.5:397b',
-  'fast-scout': 'ollama:nemotron-3-super',
-  explorer: 'ollama:nemotron-3-super',
+  master: 'anthropic:claude-opus-4-7',
+  scout: 'anthropic:claude-opus-4-7',
+  architect: 'anthropic:claude-opus-4-7',
+  'code-reviewer': 'anthropic:claude-opus-4-7',
+  reviewer: 'anthropic:claude-sonnet-4-6',
+  verifier: 'anthropic:claude-sonnet-4-6',
+  'security-reviewer': 'anthropic:claude-sonnet-4-6',
+  worker: 'anthropic:claude-sonnet-4-6',
+  executor: 'anthropic:claude-sonnet-4-6',
+  'test-engineer': 'anthropic:claude-sonnet-4-6',
+  'fast-scout': 'anthropic:claude-haiku-4-5-20251001',
+  explorer: 'anthropic:claude-haiku-4-5-20251001',
 };
 
 const DEFAULT_FALLBACK_CHAIN: string[] = ['ollama', 'ollama-backup'];
@@ -438,16 +437,16 @@ const FALLBACK_MODEL_MAP: Record<string, Record<string, string>> = {
     // Same provider type — models stay the same (identity mapping)
   },
   ollama_to_anthropic: {
-    'glm-5:cloud': 'claude-opus-4-6',
-    'kimi-k2.5:cloud': 'claude-opus-4-6',
+    'glm-5:cloud': 'claude-sonnet-4-6',
+    'kimi-k2.5:cloud': 'claude-sonnet-4-6',
     'qwen3-coder:480b': 'claude-sonnet-4-6',
     'qwen3.5:397b': 'claude-sonnet-4-6',
     'nemotron-3-super': 'claude-haiku-4-5-20251001',
     'minimax-m2.7:cloud': 'claude-sonnet-4-6',
-    'deepseek-v3.2:cloud': 'claude-opus-4-6',
+    'deepseek-v3.2:cloud': 'claude-sonnet-4-6',
   },
   anthropic_to_ollama: {
-    'claude-opus-4-6': 'glm-5:cloud',
+    'claude-opus-4-7': 'glm-5:cloud',
     'claude-sonnet-4-6': 'qwen3-coder:480b',
     'claude-haiku-4-5-20251001': 'nemotron-3-super',
   },

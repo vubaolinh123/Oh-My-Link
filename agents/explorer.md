@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:explorer
 description: Fast Codebase Search — maps files and finds patterns, READ-ONLY
-model: nemotron-3-super
+model: claude-haiku-4-5-20251001
 level: 1
 disallowedTools:
   - Write

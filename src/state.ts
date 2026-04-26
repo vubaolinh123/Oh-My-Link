@@ -185,14 +185,16 @@ export function ensureRuntimeDirs(cwd: string, sessionId?: string): void {
 /**
  * Ensure all project-level artifact directories exist.
  * Called by session-start hook.
+ *
+ * Only directories with active runtime consumers are created eagerly.
+ * `history/` and `context/` are referenced by some skills/agents but written
+ * lazily via Write/mkdir-p when actually used — no need to pre-create empties.
  */
 export function ensureArtifactDirs(cwd: string): void {
   ensureDir(getPlansDir(cwd));
-  ensureDir(getHistoryDir(cwd));
   ensureDir(getTasksDir(cwd));
   ensureDir(getLocksDir(cwd));
   ensureDir(getSkillsDir(cwd));
-  ensureDir(getContextDir(cwd));
 }
 
 /**

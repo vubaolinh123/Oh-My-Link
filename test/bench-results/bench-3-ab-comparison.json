@@ -10,8 +10,8 @@
       },
       "withMemory": {
         "wakeUpTokens": 174,
-        "preToolTokens": 30,
-        "totalTokens": 204,
+        "preToolTokens": 92,
+        "totalTokens": 266,
         "wakeUpChars": 524
       },
       "documentsStored": 4,
@@ -22,8 +22,8 @@
     "3B": {
       "name": "Memory Retention Test",
       "totalQueries": 10,
-      "hits": 7,
-      "retentionRate": "70.0%",
+      "hits": 10,
+      "retentionRate": "100.0%",
       "details": [
         {
           "query": "What architecture did we choose?",
@@ -34,7 +34,7 @@
             "modular"
           ],
           "topResult": "0:EXP|postgresql_acid_api|\"We decided to use a modular monolith architecture in...\"|determ|DECISION+",
-          "score": "1.233"
+          "score": "1.537"
         },
         {
           "query": "What database are we using?",
@@ -44,8 +44,8 @@
             "postgresql",
             "postgres"
           ],
-          "topResult": "(none)",
-          "score": 0
+          "topResult": "0:EXP|postgresql_acid_api|\"We decided to use a modular monolith architecture in...\"|determ|DECISION+",
+          "score": "1.537"
         },
         {
           "query": "What coding style does the user prefer?",
@@ -56,7 +56,7 @@
             "immutable"
           ],
           "topResult": "0:ALW+NEV+PLE|oop_always_never|\"I prefer functional programming patterns over OOP\"|convict+rage|CORE",
-          "score": "1.076"
+          "score": "1.610"
         },
         {
           "query": "What was the critical bug?",
@@ -68,7 +68,7 @@
             "inventory"
           ],
           "topResult": "0:ROO+FIX|postgresql_select_update|\"Found a critical bug in the order processing pipeline\"",
-          "score": "2.466"
+          "score": "3.256"
         },
         {
           "query": "How was the inventory bug fixed?",
@@ -80,7 +80,7 @@
             "select"
           ],
           "topResult": "0:ROO+FIX|postgresql_select_update|\"Found a critical bug in the order processing pipeline\"",
-          "score": "1.233"
+          "score": "6.644"
         },
         {
           "query": "What version was shipped?",
@@ -91,29 +91,29 @@
             "shipped",
             "version"
           ],
-          "topResult": "(none)",
-          "score": 0
+          "topResult": "0:KEY+SEA+ELA|websocket_shipped_key|\"Key achievements:\"|PIVOT+TECHNICAL",
+          "score": "3.298"
         },
         {
           "query": "What search technology do we use?",
           "session": 4,
-          "hit": false,
+          "hit": true,
           "expectedKeywords": [
             "elasticsearch"
           ],
-          "topResult": "(none)",
-          "score": 0
+          "topResult": "0:KEY+SEA+ELA|websocket_shipped_key|\"Key achievements:\"|PIVOT+TECHNICAL",
+          "score": "1.649"
         },
         {
           "query": "How is the app deployed?",
           "session": 4,
-          "hit": false,
+          "hit": true,
           "expectedKeywords": [
             "kubernetes",
             "rolling"
           ],
-          "topResult": "(none)",
-          "score": 0
+          "topResult": "0:KEY+SEA+ELA|websocket_shipped_key|\"Key achievements:\"|PIVOT+TECHNICAL",
+          "score": "1.649"
         },
         {
           "query": "What real-time system was built?",
@@ -123,19 +123,19 @@
             "websocket",
             "notification"
           ],
-          "topResult": "(none)",
-          "score": 0
+          "topResult": "0:KEY+SEA+ELA|websocket_shipped_key|\"Key achievements:\"|PIVOT+TECHNICAL",
+          "score": "6.596"
         },
         {
           "query": "What was the breakthrough in session 4?",
           "session": 4,
-          "hit": false,
+          "hit": true,
           "expectedKeywords": [
             "event",
             "sourcing"
           ],
-          "topResult": "(none)",
-          "score": 0
+          "topResult": "0:KEY+SEA+ELA|websocket_shipped_key|\"Key achievements:\"|PIVOT+TECHNICAL",
+          "score": "1.649"
         }
       ],
       "passed": true

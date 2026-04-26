@@ -180,12 +180,17 @@ suite('state — path functions', () => {
     assert(fs.existsSync(state.getHandoffsDir(TEMP_PROJECT)), 'handoffs should exist');
   });
 
-  test('ensureArtifactDirs creates all 6 dirs', () => {
+  test('ensureArtifactDirs creates active dirs only (history/context lazy)', () => {
     state.ensureArtifactDirs(TEMP_PROJECT);
-    const dirs = ['plans', 'history', 'tasks', 'locks', 'skills', 'context'];
-    for (const d of dirs) {
+    const eager = ['plans', 'tasks', 'locks', 'skills'];
+    for (const d of eager) {
       const p = path.join(state.getArtifactsDir(TEMP_PROJECT), d);
       assert(fs.existsSync(p), `${d} directory should exist`);
+    }
+    const lazy = ['history', 'context'];
+    for (const d of lazy) {
+      const p = path.join(state.getArtifactsDir(TEMP_PROJECT), d);
+      assert(!fs.existsSync(p), `${d} directory should NOT be pre-created (lazy)`);
     }
   });
 

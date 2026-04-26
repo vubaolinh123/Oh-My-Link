@@ -1,7 +1,7 @@
 ---
 name: oh-my-link:fast-scout
 description: Rapid Analysis — quick codebase investigation for Start Fast mode
-model: nemotron-3-super
+model: claude-sonnet-4-6
 level: 3
 disallowedTools:
   - Edit

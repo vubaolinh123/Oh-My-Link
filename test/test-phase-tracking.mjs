@@ -329,6 +329,234 @@ test("executor stop with exit_code=1 does NOT auto-complete", () => {
   assert(session.active === true, "expected session still active");
 });
 
+// ── Start Link HITL Gate transitions on SubagentStop ─
+console.log("\n--- HITL gates — SubagentStop transitions ---");
+
+test("scout stop in phase_1_scout (no CONTEXT.md) → gate_1_pending + awaiting", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_1_scout",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, awaiting_confirmation: false,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "scout-1", role: "scout", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "scout-1", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "gate_1_pending",
+    `expected gate_1_pending, got ${session.current_phase}`);
+  assert(session.awaiting_confirmation === true,
+    "expected awaiting_confirmation=true");
+});
+
+test("scout stop in gate_1_pending (CONTEXT.md exists) → phase_2_planning", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeFileSync(join(cwd, ".oh-my-link", "plans", "CONTEXT.md"), "# locked decisions\n");
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "gate_1_pending",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, awaiting_confirmation: false,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "scout-2", role: "scout", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "scout-2", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "phase_2_planning",
+    `expected phase_2_planning, got ${session.current_phase}`);
+  assert(session.awaiting_confirmation === false,
+    "expected awaiting_confirmation=false after synthesis");
+});
+
+test("architect stop in phase_2_planning (plan.md exists) → gate_2_pending + awaiting", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeFileSync(join(cwd, ".oh-my-link", "plans", "plan.md"), "# implementation plan\n");
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_2_planning",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, awaiting_confirmation: false,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "arch-1", role: "architect", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "arch-1", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "gate_2_pending",
+    `expected gate_2_pending, got ${session.current_phase}`);
+  assert(session.awaiting_confirmation === true,
+    "expected awaiting_confirmation=true");
+});
+
+test("verifier stop in phase_4_validation → gate_3_pending + awaiting", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_4_validation",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, awaiting_confirmation: false,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "ver-1", role: "verifier", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "ver-1", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "gate_3_pending",
+    `expected gate_3_pending, got ${session.current_phase}`);
+  assert(session.awaiting_confirmation === true,
+    "expected awaiting_confirmation=true");
+});
+
+test("regression: stop-handler ALLOWS stop at gate_1_pending after scout stop (no spin loop)", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_1_scout",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, awaiting_confirmation: false,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "scout-x", role: "scout", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+
+  // 1. Scout finishes Exploration mode → SubagentStop should set Gate 1 awaiting
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "scout-x", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  // 2. Master tries to stop → stop-handler should ALLOW (not block with reinforcement)
+  const result = runHook("stop-handler.js", { cwd }, { OML_HOME: omlHome });
+  assert(!result.decision || result.decision !== "block",
+    `expected allow at gate_1, got decision=${result.decision} reason="${result.reason || ''}"`);
+  assert((result.reason || "").toLowerCase().includes("waiting for"),
+    `expected gate-waiting message, got "${result.reason || ''}"`);
+});
+
+// ── Review→Fix loop ──────────────────────────────────
+console.log("\n--- review→fix loop — SubagentStop ---");
+
+function writeReview(cwd, fileName, verdict) {
+  const reviewsDir = join(cwd, ".oh-my-link", "reviews");
+  mkdirSync(reviewsDir, { recursive: true });
+  writeFileSync(join(reviewsDir, fileName),
+    `# Review for ${fileName}\n\nVERDICT: ${verdict}\n\nDetails here.\n`);
+}
+
+test("reviewer FAIL at phase_6_review → regress to phase_5 + revision_count++", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_6_review",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, awaiting_confirmation: false,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "rev-fail-1", role: "reviewer", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+  writeReview(cwd, "link-1.review.md", "FAIL");
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "rev-fail-1", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "phase_5_execution",
+    `expected phase_5_execution after FAIL, got ${session.current_phase}`);
+  assert(session.revision_count === 1,
+    `expected revision_count=1, got ${session.revision_count}`);
+  assert(session.awaiting_confirmation !== true,
+    "should NOT be awaiting on first FAIL");
+});
+
+test("reviewer FAIL on 3rd revision → circuit-break with awaiting_confirmation", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_6_review",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 2, awaiting_confirmation: false,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "rev-fail-3", role: "reviewer", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+  writeReview(cwd, "link-2.review.md", "FAIL");
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "rev-fail-3", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.revision_count === 3, `expected revision_count=3, got ${session.revision_count}`);
+  assert(session.awaiting_confirmation === true, "expected circuit-break to set awaiting=true");
+  assert(session.current_phase === "phase_6_review",
+    `expected phase to stay at phase_6_review on circuit-break, got ${session.current_phase}`);
+});
+
+test("reviewer PASS at phase_6_review → advance to phase_6_5 (existing behavior preserved)", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_6_review",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, awaiting_confirmation: false,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "rev-pass-1", role: "reviewer", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+  writeReview(cwd, "link-3.review.md", "PASS");
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "rev-pass-1", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "phase_6_5_full_review",
+    `expected phase_6_5_full_review on PASS, got ${session.current_phase}`);
+  assert(session.revision_count === 0, "PASS should not bump revision_count");
+});
+
+test("reviewer MINOR at phase_6_review → advance (treated as PASS for loop logic)", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_6_review",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, awaiting_confirmation: false,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "rev-minor-1", role: "reviewer", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+  writeReview(cwd, "link-4.review.md", "MINOR");
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "rev-minor-1", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "phase_6_5_full_review",
+    `expected phase_6_5_full_review on MINOR, got ${session.current_phase}`);
+  assert(session.revision_count === 0, "MINOR should not bump revision_count");
+});
+
 // ── Stop-handler at phase_7_summary ──────────────────
 console.log("\n--- stop-handler — phase_7_summary (near-terminal) ---");
 

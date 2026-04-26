@@ -165,7 +165,7 @@ suite('getModelForRole', () => {
     try { fs.unlinkSync(configPath); } catch { /* ignore */ }
 
     const model = config.getModelForRole('master');
-    assertEqual(model, 'claude-opus-4-6', 'master default model');
+    assertEqual(model, 'claude-opus-4-7', 'master default model');
   });
 
   test('getModelForRole returns worker fallback for unknown role', () => {
