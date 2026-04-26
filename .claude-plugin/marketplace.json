@@ -1,14 +1,21 @@
 {
   "name": "oh-my-link",
-  "title": "Oh-My-Link",
-  "description": "Multi-agent orchestration for Claude Code. Dual-mode: Start Link (7-phase) and Start Fast (lightweight). Built from Claude Code source code leak.",
-  "version": "0.9.5",
-  "category": "productivity",
+  "owner": {
+    "name": "vubaolinh123",
+    "url": "https://github.com/vubaolinh123"
+  },
+  "metadata": {
+    "description": "Multi-agent orchestration for Claude Code. Dual-mode: Start Link (7-phase) and Start Fast (lightweight).",
+    "version": "0.11.0"
+  },
   "plugins": [
     {
       "name": "oh-my-link",
-      "version": "0.9.5",
-      "path": "."
+      "source": ".",
+      "description": "Multi-agent orchestration with 7-phase Start Link workflow, HITL gates, review→fix loop, and Start Fast lightweight mode.",
+      "version": "0.11.0",
+      "category": "productivity",
+      "tags": ["orchestration", "multi-agent", "workflow", "review", "automation"]
     }
   ]
 }
