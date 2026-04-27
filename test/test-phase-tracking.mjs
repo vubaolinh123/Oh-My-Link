@@ -11,7 +11,9 @@
  */
 
 import { execFileSync } from "child_process";
-import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync } from "fs";
+import { createRequire } from "module";
+const require = createRequire(import.meta.url);
 import { join, resolve } from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
@@ -577,6 +579,155 @@ test("stop-handler allows stop at phase_7_summary and marks complete", () => {
   assert(session.current_phase === "complete",
     `expected complete after P7 stop, got ${session.current_phase}`);
   assert(session.active === false, "expected session deactivated");
+});
+
+// ── Plan auto-cleanup (archive on new Plan start) ────
+console.log("\n--- plan auto-cleanup — archive + reset ---");
+
+function setupPlanArtifacts(cwd, files) {
+  const artifactsDir = join(cwd, ".oh-my-link");
+  for (const [rel, content] of Object.entries(files)) {
+    const fullPath = join(artifactsDir, rel);
+    mkdirSync(dirname(fullPath), { recursive: true });
+    writeFileSync(fullPath, content);
+  }
+}
+
+function listArchived(cwd) {
+  const historyDir = join(cwd, ".oh-my-link", "history");
+  if (!existsSync(historyDir)) return [];
+  return readdirSync(historyDir).filter(d => !d.startsWith("."));
+}
+
+test("master P7 stop sets pending_cleanup=true", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_7_summary",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "master-1", role: "master", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "master-1", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.current_phase === "complete", "should mark complete");
+  assert(session.pending_cleanup === true, "should set pending_cleanup=true");
+});
+
+test("worker stop in light_execution sets pending_cleanup=true", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylight", current_phase: "light_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, intent: "standard",
+  });
+  writeTracking(stateRoot, [{
+    agent_id: "exec-pc", role: "executor", started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+
+  runSubagentLifecycle("stop", {
+    cwd, agent_id: "exec-pc", exit_code: 0,
+  }, { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.pending_cleanup === true, "should set pending_cleanup=true");
+});
+
+test("archivePlanArtifacts moves plans/tasks/reviews to history/{ts}-{slug}/", () => {
+  const { cwd } = setupTempEnv();
+  setupPlanArtifacts(cwd, {
+    "plans/BRIEF.md": "# brief",
+    "plans/plan.md": "# plan",
+    "tasks/link-1.json": JSON.stringify({ link_id: "link-1", status: "done" }),
+    "reviews/link-1.review.md": "VERDICT: PASS",
+  });
+
+  const state = require(join(PLUGIN_ROOT, "dist", "state.js"));
+  const result = state.archivePlanArtifacts(cwd, "auth-feature");
+  assert(result !== null, "should return archive info");
+  assert(result.filesArchived === 4, `expected 4 files archived, got ${result.filesArchived}`);
+
+  const archivedDirs = listArchived(cwd);
+  assert(archivedDirs.length === 1, `expected 1 archive dir, got ${archivedDirs.length}`);
+  assert(archivedDirs[0].endsWith("-auth-feature"),
+    `expected slug suffix, got ${archivedDirs[0]}`);
+
+  // Source dirs should be empty after archive
+  assert(readdirSync(join(cwd, ".oh-my-link", "plans")).length === 0, "plans/ should be empty");
+  assert(readdirSync(join(cwd, ".oh-my-link", "tasks")).length === 0, "tasks/ should be empty");
+});
+
+test("archivePlanArtifacts returns null when nothing to archive", () => {
+  const { cwd } = setupTempEnv();
+  const state = require(join(PLUGIN_ROOT, "dist", "state.js"));
+  const result = state.archivePlanArtifacts(cwd, "empty-feature");
+  assert(result === null, "should return null when no files");
+});
+
+test("oml clean keyword archives + deactivates session", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_5_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, feature_slug: "test-feat",
+  });
+  setupPlanArtifacts(cwd, {
+    "plans/BRIEF.md": "# brief",
+    "tasks/link-1.json": JSON.stringify({ link_id: "link-1" }),
+  });
+
+  runHook("keyword-detector.js",
+    { cwd, prompt: "oml clean" },
+    { OML_HOME: omlHome });
+
+  const session = readSession(stateRoot);
+  assert(session.active === false, "session should be deactivated");
+  assert(session.deactivated_reason === "plan_cleaned", "reason should be plan_cleaned");
+  const archivedDirs = listArchived(cwd);
+  assert(archivedDirs.length === 1, `expected 1 archive, got ${archivedDirs.length}`);
+});
+
+test("start link after pending_cleanup auto-archives previous Plan", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: false, mode: "mylink", current_phase: "complete",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, pending_cleanup: true,
+    feature_slug: "old-feat",
+  });
+  setupPlanArtifacts(cwd, {
+    "plans/plan.md": "# old plan",
+    "tasks/link-old.json": JSON.stringify({ link_id: "link-old" }),
+  });
+
+  // keyword-detector emits prompt context (not JSON) for 'invoke' action,
+  // so we only assert side effects on disk + session state.
+  execFileSync(NODE,
+    [join(PLUGIN_ROOT, "dist", "hooks", "keyword-detector.js")],
+    {
+      input: JSON.stringify({ cwd, prompt: "start link new feature please" }),
+      env: { ...process.env, OML_HOME: omlHome },
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 10000,
+    });
+
+  const archivedDirs = listArchived(cwd);
+  assert(archivedDirs.length === 1, `expected 1 archive after start link, got ${archivedDirs.length}`);
+  assert(archivedDirs[0].endsWith("-old-feat"), `expected slug suffix, got ${archivedDirs[0]}`);
+  // Source dirs cleared
+  assert(readdirSync(join(cwd, ".oh-my-link", "plans")).length === 0, "plans/ should be empty");
+  assert(readdirSync(join(cwd, ".oh-my-link", "tasks")).length === 0, "tasks/ should be empty");
+  // New session created
+  const session = readSession(stateRoot);
+  assert(session.active === true, "new session should be active");
+  assert(session.current_phase === "bootstrap", "new session at bootstrap");
 });
 
 // ── Implicit HITL gate detection (transcript-based) ──

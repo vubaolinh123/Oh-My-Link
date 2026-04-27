@@ -421,6 +421,9 @@ async function handleStop(input: HookInput, cwd: string): Promise<void> {
         session.active = false;
         session.session_ended_at = new Date().toISOString();
         session.deactivated_reason = 'completed';
+        // Flag for keyword-detector to archive plans/tasks/reviews on the
+        // next "start link" / "start fast" invocation.
+        session.pending_cleanup = true;
         sessionDirty = true;
       }
 
@@ -533,6 +536,7 @@ async function handleStop(input: HookInput, cwd: string): Promise<void> {
         session.active = false;
         session.session_ended_at = new Date().toISOString();
         session.deactivated_reason = 'completed';
+        session.pending_cleanup = true;
         sessionDirty = true;
       }
 

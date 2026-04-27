@@ -1,7 +1,7 @@
 {
   "tier": "4",
   "name": "MemPalace Comparison",
-  "timestamp": "2026-04-26T18:23:39.761Z",
+  "timestamp": "2026-04-27T12:58:46.453Z",
   "corpus": {
     "sessions": 132,
     "questions": 145,
@@ -59,8 +59,8 @@
           "ndcg10": 19.67836778214312
         }
       },
-      "ingestTimeMs": 239,
-      "queryTimeMs": 212
+      "ingestTimeMs": 206,
+      "queryTimeMs": 199
     },
     "extractedAaak": {
       "r5": 0.593103448275862,
@@ -106,8 +106,8 @@
           "ndcg10": 19.67836778214312
         }
       },
-      "ingestTimeMs": 231,
-      "queryTimeMs": 144
+      "ingestTimeMs": 266,
+      "queryTimeMs": 143
     },
     "mempalaceClaimed": {
       "raw": {

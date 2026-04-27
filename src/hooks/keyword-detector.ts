@@ -5,7 +5,7 @@ import { loadMemory, saveMemory, addDirective } from '../project-memory';
 import { loadConfig, DEFAULT_MODELS, saveConfigField, isAlwaysOn, getModelForRole } from '../config';
 import { buildProviderAwareModelInstruction, buildModelProviderConfigSection, autoSyncModelProviders, executeProviderFallback, restorePrimaryProvider, isOnFallbackProvider, getActiveProviderId } from '../model-provider';
 import { generateFramework, formatFramework } from '../prompt-leverage';
-import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot, getDebugLogPath, projectHash } from '../state';
+import { getSessionPath, ensureDir, getProjectStateRoot, normalizePath, resolvePluginRoot, getDebugLogPath, projectHash, archivePlanArtifacts } from '../state';
 import { SessionState, HookInput, AgentRole } from '../types';
 import { listTasks, updateTaskStatus, cleanExpiredLocks, failAllInProgressTasks } from '../task-engine';
 import { autoSyncMcpProviders, getMcpGuidanceForRole } from '../mcp-config';
@@ -33,6 +33,7 @@ const KEYWORDS: KeywordRule[] = [
   { patterns: ['oml on', 'always on oml', 'bat oml', 'bật oml'], action: 'always-on', skill: undefined },
   { patterns: ['oml off', 'always off oml', 'tat oml', 'tắt oml'], action: 'always-off', skill: undefined },
   { patterns: ['update oml', 'oml update', 'upgrade oml', 'oml upgrade'], action: 'update', skill: 'oh-my-link:update-plugin' },
+  { patterns: ['oml clean', 'clean oml', 'oml reset', 'reset oml', 'new plan', 'plan moi', 'plan mới', 'don plan', 'dọn plan'], action: 'clean', skill: undefined },
   { patterns: ['fetch docs', 'find docs', 'external context'], action: 'external-context', skill: 'oh-my-link:external-context' },
   { patterns: ['learn this', 'save this', 'remember this pattern'], action: 'learn', skill: 'oh-my-link:learner' },
   { patterns: ['oml fallback', 'switch fallback', 'fallback provider', 'chuyen fallback', 'chuyển dự phòng'], action: 'fallback-provider', skill: undefined },
@@ -341,6 +342,33 @@ async function main(): Promise<void> {
     return;
   }
 
+  // Handle explicit Plan cleanup — archive current plans/tasks/reviews and
+  // reset session so the next "start link/fast" begins on a clean slate.
+  if (match.action === 'clean') {
+    const session = readJson<SessionState>(getSessionPath(cwd));
+    const slug = session?.feature_slug;
+    let archived: { archivePath: string; filesArchived: number } | null = null;
+    try { archived = archivePlanArtifacts(cwd, slug); } catch { /* best effort */ }
+
+    // Mark any leftover session as cleaned-up so it doesn't pollute resume logic.
+    if (session) {
+      session.active = false;
+      session.pending_cleanup = false;
+      session.deactivated_reason = 'plan_cleaned';
+      session.session_ended_at = new Date().toISOString();
+      try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* best effort */ }
+    }
+
+    const summary = archived
+      ? `Archived ${archived.filesArchived} file(s) to ${archived.archivePath}.`
+      : 'Nothing to archive — plans/, tasks/, reviews/ already empty.';
+    hookOutput('UserPromptSubmit',
+      `[oh-my-link] Plan cleaned. ${summary}\n` +
+      'Next "start link" or "start fast" will begin fresh.');
+    debugLog(cwd, 'keyword', `clean: archived=${archived?.filesArchived || 0}`);
+    return;
+  }
+
   // Handle always-on toggle
   if (match.action === 'always-on') {
     saveConfigField('always_on', true);
@@ -493,6 +521,33 @@ async function main(): Promise<void> {
     const mode = match.action === 'invoke' ? 'mylink' : 'mylight' as const;
 
     if (!session?.active) {
+      // ── Auto-archive previous Plan ──
+      // If the previous session finished (complete / cancelled / pending_cleanup),
+      // move plans/, tasks/, reviews/ into history/ so the new Plan starts
+      // clean. Quiet by default — surface only when something was actually
+      // archived.
+      const prevDone = !!session && (
+        session.pending_cleanup === true ||
+        session.current_phase === 'complete' ||
+        session.current_phase === 'cancelled' ||
+        session.current_phase === 'light_complete' ||
+        session.deactivated_reason === 'force_reinvoke' ||
+        session.deactivated_reason === 'completed' ||
+        session.deactivated_reason === 'orphan_auto_completed' ||
+        session.deactivated_reason === 'all_tasks_completed' ||
+        session.deactivated_reason === 'completed_at_summary' ||
+        session.deactivated_reason === 'user_cancelled'
+      );
+      if (prevDone) {
+        try {
+          const archived = archivePlanArtifacts(cwd, session?.feature_slug);
+          if (archived) {
+            debugLog(cwd, 'keyword',
+              `auto-archive: ${archived.filesArchived} file(s) → ${archived.archivePath}`);
+          }
+        } catch { /* best effort — never block new Plan on archive failure */ }
+      }
+
       // For mylight, classify intent first
       if (mode === 'mylight') {
         const intent = classifyMylightIntent(prompt);

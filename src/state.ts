@@ -198,6 +198,61 @@ export function ensureArtifactDirs(cwd: string): void {
 }
 
 /**
+ * Plan cleanup: archive and clear session artifacts so the next Plan starts
+ * with a clean slate. Moves the contents of `plans/`, `tasks/`, and
+ * `reviews/` into `.oh-my-link/history/{YYYYMMDD-HHMMSS}-{slug}/` so the
+ * record is preserved (review skills + audit) but the live dirs are empty.
+ *
+ * Preserves: `priority-context.md`, `skills/`, `history/`, `locks/`,
+ * `context/`. Returns null when there is nothing to archive (no files in any
+ * of the three source dirs).
+ */
+export function archivePlanArtifacts(
+  cwd: string,
+  slug?: string,
+): { archivePath: string; filesArchived: number } | null {
+  const artifactsDir = getArtifactsDir(cwd);
+  const sourceDirs = ['plans', 'tasks', 'reviews'];
+
+  // Count meaningful files first — skip archive if there's nothing to move.
+  let total = 0;
+  for (const d of sourceDirs) {
+    const p = path.join(artifactsDir, d);
+    if (!fs.existsSync(p)) continue;
+    try {
+      total += fs.readdirSync(p).filter(f => !f.startsWith('.')).length;
+    } catch { /* ignore */ }
+  }
+  if (total === 0) return null;
+
+  const ts = new Date().toISOString().replace(/[:.]/g, '-').replace('T', '-').slice(0, 17);
+  const safeSlug = (slug || 'untitled').toString().replace(/[^a-zA-Z0-9-]+/g, '-').slice(0, 40) || 'untitled';
+  const archivePath = path.join(artifactsDir, 'history', `${ts}-${safeSlug}`);
+  fs.mkdirSync(archivePath, { recursive: true });
+
+  let filesArchived = 0;
+  for (const d of sourceDirs) {
+    const src = path.join(artifactsDir, d);
+    if (!fs.existsSync(src)) continue;
+    const dst = path.join(archivePath, d);
+    fs.mkdirSync(dst, { recursive: true });
+    let entries: string[] = [];
+    try { entries = fs.readdirSync(src); } catch { continue; }
+    for (const entry of entries) {
+      if (entry.startsWith('.')) continue;
+      try {
+        fs.renameSync(path.join(src, entry), path.join(dst, entry));
+        filesArchived++;
+      } catch {
+        // Locked or in-use — skip; will be cleaned up next archive cycle.
+      }
+    }
+  }
+
+  return { archivePath: normalizePath(archivePath), filesArchived };
+}
+
+/**
  * Normalize a path to forward slashes (Windows compatibility).
  */
 export function normalizePath(p: string): string {

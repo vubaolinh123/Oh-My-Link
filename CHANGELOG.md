@@ -2,6 +2,31 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.12.0] — Auto Plan Cleanup Between Sessions
+
+**New feature: when one Plan finishes, the next "start link" or "start fast" automatically archives the old artifacts and starts on a clean slate — no more leftover task JSONs / plan.md polluting the next Plan, even within the same Claude Code session.**
+
+### New: Auto-archive on new Plan trigger
+- When a previous session is `complete`, `cancelled`, `light_complete`, or carries `pending_cleanup=true`, the keyword-detector runs `archivePlanArtifacts(cwd, slug)` before creating the new session
+- Moves the contents of `.oh-my-link/plans/`, `tasks/`, and `reviews/` into `.oh-my-link/history/{YYYYMMDD-HHMMSS}-{slug}/`
+- Preserves `priority-context.md`, `skills/`, `history/`, `locks/`, `context/`
+
+### New: Magic keyword `oml clean` / `clean oml` / `new plan` / `plan mới`
+- Explicit cleanup trigger that archives + deactivates the current session
+- Useful mid-conversation when you want to forcibly reset before starting a new Plan
+
+### New: `pending_cleanup` flag on session.json
+- Set automatically by `subagent-lifecycle` when:
+  - Master finishes Phase 7 (`phase_7_summary` → `complete`)
+  - Worker finishes Start Fast execution (`light_execution`/`light_turbo` → `light_complete`)
+- Consumed (and reset) by the next `start link` / `start fast` invocation
+
+### Tests
+- 5 new tests in `test-phase-tracking.mjs` cover: master P7 sets flag, light_execution sets flag, archivePlanArtifacts moves files, archivePlanArtifacts returns null when empty, `oml clean` keyword, `start link` after `pending_cleanup` auto-archives
+- Full suite: **560 passed / 0 failed / 5 skipped (35/35 files)**
+
+---
+
 ## [v0.11.2] — Implicit HITL Gate Detection in Stop Handler
 
 **Fix the spam-reinforcement loop when the orchestrator asks the user a question outside the explicit gate phases (e.g. Start Fast at `light_execution` asking "Sequential or Parallel?").**

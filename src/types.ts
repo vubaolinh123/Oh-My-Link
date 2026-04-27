@@ -88,6 +88,11 @@ export interface SessionState {
   session_ended_at?: string;
   deactivated_reason?: string;
   task_engine_error?: boolean;
+  // Plan-cleanup signal: set true when a Plan finishes (master P7 stop, cancel,
+  // or session completes). The next `start link` / `start fast` keyword will
+  // archive plans/, tasks/, reviews/ to history/ and clear them so the new
+  // Plan starts with no leftover artifacts.
+  pending_cleanup?: boolean;
   // Immutable fields set at session creation — immune to LLM overwriting session.json
   // Used by inferRoleFromSession() for reliable role detection
   locked_mode?: Mode;
