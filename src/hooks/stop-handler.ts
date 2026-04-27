@@ -94,6 +94,73 @@ function detectContextPressure(transcriptPath: string | null): number | null {
 }
 
 /**
+ * Detect whether the orchestrator's last assistant message is a question
+ * directed at the user (HITL gate). Reads the tail of the transcript JSONL
+ * file, finds the most recent assistant text, and matches against
+ * question-style patterns.
+ *
+ * Returns true only when the message ends with `?` AND contains a known
+ * waiting/choice keyword — both signals reduce false positives from
+ * rhetorical questions in implementation prose.
+ */
+function detectAwaitingUserInput(transcriptPath: string | null): boolean {
+  if (!transcriptPath || !fs.existsSync(transcriptPath)) return false;
+  try {
+    const fd = fs.openSync(transcriptPath, 'r');
+    const stats = fs.fstatSync(fd);
+    const readSize = Math.min(stats.size, 32768);
+    const buffer = Buffer.alloc(readSize);
+    fs.readSync(fd, buffer, 0, readSize, stats.size - readSize);
+    fs.closeSync(fd);
+
+    const lines = buffer.toString('utf8').split('\n');
+    // Walk backwards to find the most recent assistant text content.
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      let entry: Record<string, unknown>;
+      try { entry = JSON.parse(line); } catch { continue; }
+
+      const message = entry.message as Record<string, unknown> | undefined;
+      const role = (message?.role || entry.role) as string | undefined;
+      if (role !== 'assistant') continue;
+
+      // Extract concatenated text from message.content (which may be an array
+      // of {type, text} objects or a plain string).
+      const content = message?.content ?? entry.content;
+      let text = '';
+      if (typeof content === 'string') {
+        text = content;
+      } else if (Array.isArray(content)) {
+        for (const block of content) {
+          if (block && typeof block === 'object' && (block as any).type === 'text'
+              && typeof (block as any).text === 'string') {
+            text += (block as any).text + '\n';
+          }
+        }
+      }
+      if (!text) return false;
+
+      // Use the tail of the message — questions live near the end.
+      const tail = text.slice(-1500).toLowerCase();
+      const hasQuestion = tail.includes('?');
+      const waitKeywords = [
+        'sequential or parallel', 'sequential hay parallel',
+        'type your choice', 'type your answer', 'please answer',
+        'choose execution mode', 'awaiting your', 'awaiting user',
+        'waiting for your', 'vui lòng trả lời', 'đang chờ', 'đang ở gate',
+        'hitl gate', 'hitl hard-gate', 'gate 1', 'gate 2', 'gate 3',
+        'q1:', 'q2:', 'please choose',
+      ];
+      const hasWaitKeyword = waitKeywords.some(k => tail.includes(k));
+
+      return hasQuestion && hasWaitKeyword;
+    }
+  } catch { /* best effort */ }
+  return false;
+}
+
+/**
  * Write a handoff markdown file for session resumption.
  */
 function writeHandoff(cwd: string, session: SessionState, trigger: string): void {
@@ -361,6 +428,22 @@ async function main(): Promise<void> {
       session.deactivated_reason = 'orphan_auto_completed';
       try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* best effort */ }
       stopOutput('allow', 'Session auto-completed (no agents running, no tasks pending).');
+      return;
+    }
+
+    // --- IMPLICIT HITL GATE DETECTION ---
+    // The orchestrator may pause for user input outside the explicit gate
+    // phases — e.g. Start Fast asking "Sequential or Parallel?" at
+    // light_execution, or any LLM-improvised question. When no agent is
+    // running AND the last assistant message reads as a question for the
+    // user, allow stop with a waiting message instead of spinning
+    // reinforcements. The detector requires both `?` and a known waiting
+    // keyword to keep false positives down.
+    if (runningAgents.length === 0 && detectAwaitingUserInput(transcriptPath)) {
+      debugLog(cwd, 'stop', `ALLOW: implicit-HITL detected (phase=${session.current_phase})`);
+      session.last_checked_at = new Date().toISOString();
+      try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* best effort */ }
+      stopOutput('allow', 'Orchestrator is waiting for your input.');
       return;
     }
   }

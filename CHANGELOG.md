@@ -2,6 +2,20 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.11.2] — Implicit HITL Gate Detection in Stop Handler
+
+**Fix the spam-reinforcement loop when the orchestrator asks the user a question outside the explicit gate phases (e.g. Start Fast at `light_execution` asking "Sequential or Parallel?").**
+
+### Fixed
+- Stop handler now reads the transcript tail and, when no agent is running and the last assistant message reads as a question for the user (contains `?` AND a known waiting keyword like "Sequential or Parallel", "Vui lòng trả lời", "đang chờ", "type your choice", "Gate 1/2/3"), allows stop with the message "Orchestrator is waiting for your input."
+- This catches LLM-improvised HITL pauses that the deterministic phase machine doesn't model — Start Fast Gate 3, custom decision points, etc.
+
+### Tests
+- 3 new tests in `test-phase-tracking.mjs` cover ALLOW on question, BLOCK on plain narration, and Start Link `phase_5_execution` parity
+- Full suite: **554 passed / 0 failed / 5 skipped (35/35 files)**
+
+---
+
 ## [v0.11.1] — Fix Claude Code Marketplace Schema
 
 **Patch release: makes the plugin installable via `Manage Plugins → Add Marketplace URL`.**

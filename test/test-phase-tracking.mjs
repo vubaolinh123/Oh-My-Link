@@ -579,6 +579,105 @@ test("stop-handler allows stop at phase_7_summary and marks complete", () => {
   assert(session.active === false, "expected session deactivated");
 });
 
+// ── Implicit HITL gate detection (transcript-based) ──
+console.log("\n--- stop-handler — implicit HITL detection ---");
+
+function writeTranscript(cwd, lastAssistantText) {
+  const transcriptPath = join(cwd, "transcript.jsonl");
+  const lines = [
+    JSON.stringify({ type: "user", message: { role: "user", content: "do something" } }),
+    JSON.stringify({
+      type: "assistant",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: lastAssistantText }],
+      },
+    }),
+  ];
+  writeFileSync(transcriptPath, lines.join("\n") + "\n");
+  return transcriptPath;
+}
+
+test("light_execution + orchestrator asks Sequential/Parallel + no running agent → ALLOW", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylight", current_phase: "light_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 1,
+    failure_count: 0, revision_count: 0, intent: "standard",
+  });
+  writeTracking(stateRoot, []);
+  // Pending task exists (Master prepared workers, then paused for HITL choice).
+  // Without it, orphan auto-complete fires before HITL detection.
+  const tasksDir = join(cwd, ".oh-my-link", "tasks");
+  mkdirSync(tasksDir, { recursive: true });
+  writeFileSync(join(tasksDir, "phase-1.json"), JSON.stringify({
+    link_id: "phase-1", title: "PWA-1", status: "pending",
+    acceptance_criteria: [], file_scope: [], depends_on: [],
+  }));
+  const transcriptPath = writeTranscript(cwd,
+    "Vui lòng trả lời: Sequential hay Parallel? Choose execution mode: Sequential or Parallel?");
+
+  const result = runHook("stop-handler.js",
+    { cwd, transcript_path: transcriptPath },
+    { OML_HOME: omlHome });
+
+  assert(!result.decision || result.decision !== "block",
+    `expected ALLOW for HITL question, got decision=${result.decision} reason="${result.reason || ''}"`);
+  assert((result.reason || "").toLowerCase().includes("waiting"),
+    `expected waiting message, got "${result.reason || ''}"`);
+});
+
+test("light_execution + plain narration (no question) + running agent → still BLOCKS", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylight", current_phase: "light_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, intent: "standard",
+  });
+  // Pretend an executor is still running so orphan path doesn't fire.
+  writeTracking(stateRoot, [{
+    agent_id: "exec-running",
+    role: "executor",
+    started_at: new Date().toISOString(),
+    status: "running",
+  }]);
+  const transcriptPath = writeTranscript(cwd,
+    "Implementing the change. Edited foo.ts and bar.ts. No errors.");
+
+  const result = runHook("stop-handler.js",
+    { cwd, transcript_path: transcriptPath },
+    { OML_HOME: omlHome });
+
+  assert(result.decision === "block",
+    `expected BLOCK without question pattern, got decision=${result.decision}`);
+});
+
+test("phase_5_execution Start Link + question + no running agent → ALLOW (works for mylink too)", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_5_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 2,
+    failure_count: 0, revision_count: 0,
+  });
+  writeTracking(stateRoot, []);
+  // Need at least one pending task so orphan auto-complete doesn't fire first.
+  const tasksDir = join(cwd, ".oh-my-link", "tasks");
+  mkdirSync(tasksDir, { recursive: true });
+  writeFileSync(join(tasksDir, "link-1.json"), JSON.stringify({
+    link_id: "link-1", title: "x", status: "pending",
+    acceptance_criteria: [], file_scope: [], depends_on: [],
+  }));
+  const transcriptPath = writeTranscript(cwd,
+    "⏳ Đang ở Gate 3 (HITL hard-gate). Vui lòng trả lời: Sequential hay Parallel?");
+
+  const result = runHook("stop-handler.js",
+    { cwd, transcript_path: transcriptPath },
+    { OML_HOME: omlHome });
+
+  assert(!result.decision || result.decision !== "block",
+    `expected ALLOW for HITL question, got decision=${result.decision} reason="${result.reason || ''}"`);
+});
+
 // ── Claude Code native field compatibility ───────────
 console.log("\n--- detectRole — Claude Code native agent types ---");
 
