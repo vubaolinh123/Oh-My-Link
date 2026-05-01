@@ -141,8 +141,30 @@ function detectAwaitingUserInput(transcriptPath: string | null): boolean {
       }
       if (!text) return false;
 
-      // Use the tail of the message — questions live near the end.
+      // Use the tail of the message — waiting cues live near the end.
       const tail = text.slice(-1500).toLowerCase();
+
+      // Tier 1 — explicit waiting phrases that DO NOT require a question
+      // mark. These signal "I'm idle, waiting for the human to do/say
+      // something" even when the orchestrator phrased it as a statement.
+      const strongWaitingPatterns: RegExp[] = [
+        /\bwaiting for (?:your|the user|user|you|the human)\b/,
+        /\bawait(?:ing)?\s+(?:your|the user|user|human)\b/,
+        /\bready (?:to continue |to proceed )?when you\b/,
+        /\blet me know (?:when|if|once)\b/,
+        /\bplease (?:confirm|tell me|let me know|reply|respond|advise)\b/,
+        /\bi(?:'| a)?m waiting\b/,
+        /\bi['' ]?ll wait\b/,
+        /tôi đang chờ\b/,
+        /\bđang chờ (?:user|bạn|phản hồi|reply|tín hiệu|tin)\b/,
+        /\bsẵn sàng (?:tiếp tục )?khi (?:bạn|user|được)/,
+        /\btạm (?:pause|dừng|nghỉ|hoãn)\b.*\b(?:cho đến|until|when|khi)\b/,
+        /\bchờ (?:bạn|user) (?:báo|cho biết|trả lời|hồi|tiếp)\b/,
+      ];
+      if (strongWaitingPatterns.some(re => re.test(tail))) return true;
+
+      // Tier 2 — softer signal: a `?` AND a known waiting keyword. This
+      // catches HITL-gate questions like "Sequential or Parallel?".
       const hasQuestion = tail.includes('?');
       const waitKeywords = [
         'sequential or parallel', 'sequential hay parallel',
@@ -153,7 +175,6 @@ function detectAwaitingUserInput(transcriptPath: string | null): boolean {
         'q1:', 'q2:', 'please choose',
       ];
       const hasWaitKeyword = waitKeywords.some(k => tail.includes(k));
-
       return hasQuestion && hasWaitKeyword;
     }
   } catch { /* best effort */ }

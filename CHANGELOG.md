@@ -2,6 +2,43 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.13.2] — Detect HITL Pauses That Don't Use a Question Mark
+
+**The implicit-HITL detector (introduced in v0.11.2) required both `?` and a known waiting keyword. That missed real "I'm idle, waiting for the human" statements that didn't end in `?` — like "Sẵn sàng tiếp tục khi bạn báo" or "Please let me know when you want to continue".**
+
+### Symptom from a real session
+```
+● Wave 5 tạm pause cho đến khi bạn hồi credit. Sẵn sàng tiếp tục khi bạn báo.
+● Ran 1 stop hook — Reinforcement 1/50: Continue Phase 1: Scout is clarifying...
+● Đang chờ user.
+● Ran 1 stop hook — Reinforcement 2/50: ...
+```
+
+### Fix — two-tier waiting-detection
+
+`detectAwaitingUserInput()` in stop-handler now matches in two passes:
+
+**Tier 1 — explicit waiting phrases (no `?` required):**
+- `waiting for your/the user/you/the human`
+- `awaiting your/the user`
+- `ready (to continue/proceed) when you`
+- `let me know when/if/once`
+- `please confirm/tell me/let me know/reply/respond/advise`
+- `i'm waiting`, `i'll wait`
+- `tôi đang chờ`
+- `đang chờ user/bạn/phản hồi/reply/tín hiệu/tin`
+- `sẵn sàng (tiếp tục) khi bạn/user/được`
+- `tạm pause/dừng/nghỉ/hoãn ... cho đến/until/when/khi`
+- `chờ bạn/user báo/cho biết/trả lời/hồi/tiếp`
+
+**Tier 2 — soft signal (existing):** `?` AND a known HITL keyword like "Sequential or Parallel".
+
+### Tests
+- 2 new tests cover Vietnamese ("Sẵn sàng tiếp tục khi bạn báo") and English ("Please let me know when…") forms
+- Full suite: **571 passed / 0 failed / 5 skipped (35/35 files)**
+
+---
+
 ## [v0.13.1] — Stop Reinforcement Spam While Background Subagents Are Running
 
 **Hotfix: when subagents are running in background mode, the parent orchestrator now sleeps cleanly instead of being spammed with "Continue: Executor is implementing the fix" reinforcement messages while the executor IS already running.**

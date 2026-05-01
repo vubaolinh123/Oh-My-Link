@@ -982,6 +982,58 @@ test("light_execution + orchestrator asks Sequential/Parallel + no running agent
     `expected waiting message, got "${result.reason || ''}"`);
 });
 
+test("orchestrator says 'Sẵn sàng tiếp tục khi bạn báo' (no `?`) → ALLOW", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_5_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 1,
+    failure_count: 0, revision_count: 0,
+  });
+  writeTracking(stateRoot, []);
+  // Pending task so orphan path doesn't fire — this isolates the strong-
+  // waiting-phrase branch.
+  const tasksDir = join(cwd, ".oh-my-link", "tasks");
+  mkdirSync(tasksDir, { recursive: true });
+  writeFileSync(join(tasksDir, "pending.json"), JSON.stringify({
+    link_id: "pending", title: "x", status: "pending",
+    acceptance_criteria: [], file_scope: [], depends_on: [],
+  }));
+  const transcriptPath = writeTranscript(cwd,
+    "Wave 5 tạm pause cho đến khi bạn hồi credit. Sẵn sàng tiếp tục khi bạn báo.");
+
+  const result = runHook("stop-handler.js",
+    { cwd, transcript_path: transcriptPath },
+    { OML_HOME: omlHome });
+
+  assert(!result.decision || result.decision !== "block",
+    `expected ALLOW for 'sẵn sàng tiếp tục khi bạn báo', got decision=${result.decision} reason="${result.reason || ''}"`);
+});
+
+test("orchestrator says 'I am waiting for your reply' (English, no `?`) → ALLOW", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_5_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+  writeTracking(stateRoot, []);
+  const tasksDir = join(cwd, ".oh-my-link", "tasks");
+  mkdirSync(tasksDir, { recursive: true });
+  writeFileSync(join(tasksDir, "p2.json"), JSON.stringify({
+    link_id: "p2", title: "x", status: "pending",
+    acceptance_criteria: [], file_scope: [], depends_on: [],
+  }));
+  const transcriptPath = writeTranscript(cwd,
+    "I've finished the requested features. Please let me know when you want to continue.");
+
+  const result = runHook("stop-handler.js",
+    { cwd, transcript_path: transcriptPath },
+    { OML_HOME: omlHome });
+
+  assert(!result.decision || result.decision !== "block",
+    `expected ALLOW for 'please let me know', got decision=${result.decision}`);
+});
+
 test("light_execution + running background agents → ALLOW with sleep message", () => {
   const { omlHome, cwd, stateRoot } = setupTempEnv();
   writeSession(stateRoot, {
