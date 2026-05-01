@@ -2,6 +2,23 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.12.1] — Fix Overzealous Auto-Cleanup
+
+**Hotfix for v0.12.0 — the auto-cleanup feature was too aggressive in two ways.**
+
+### Fixed
+- **Vietnamese keywords colliding with normal prose**: v0.12.0 added `new plan`, `plan mới`, `dọn plan`, `plan moi`, `don plan` as triggers for `oml clean`. These collided with regular Vietnamese conversation about plans — a user complaining about the cleanup feature would accidentally trigger cleanup. Removed all those patterns. Only OML-prefixed forms remain: `oml clean`, `clean oml`, `oml reset`, `reset oml`, `oml archive`, `archive oml`.
+- **Auto-archive on `start link/fast` was too aggressive**: previously archived whenever the prior session was complete/cancelled/orphaned, even if tasks were still pending and the user was iterating on the same Plan. Now archives only when:
+  1. `pending_cleanup=true` OR `deactivated_reason ∈ {completed, all_tasks_completed, completed_at_summary, plan_cleaned}`, AND
+  2. **All tasks** in `tasks/` are in a terminal state (`done` or `failed`).
+  Cancelled / orphaned / force-restart sessions are NEVER auto-archived — the user can revise and resume, or run `oml clean` explicitly to force-archive.
+
+### Tests
+- 3 new regression tests cover: pending tasks block auto-archive, cancelled sessions are not auto-archived, Vietnamese prose with "dọn plan" / "plan mới" does not trigger clean
+- Full suite: **563 passed / 0 failed / 5 skipped (35/35 files)**
+
+---
+
 ## [v0.12.0] — Auto Plan Cleanup Between Sessions
 
 **New feature: when one Plan finishes, the next "start link" or "start fast" automatically archives the old artifacts and starts on a clean slate — no more leftover task JSONs / plan.md polluting the next Plan, even within the same Claude Code session.**

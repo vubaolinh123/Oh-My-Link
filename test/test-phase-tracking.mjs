@@ -694,17 +694,22 @@ test("oml clean keyword archives + deactivates session", () => {
   assert(archivedDirs.length === 1, `expected 1 archive, got ${archivedDirs.length}`);
 });
 
-test("start link after pending_cleanup auto-archives previous Plan", () => {
+test("start link after pending_cleanup + all tasks done auto-archives previous Plan", () => {
   const { omlHome, cwd, stateRoot } = setupTempEnv();
   writeSession(stateRoot, {
     active: false, mode: "mylink", current_phase: "complete",
     started_at: new Date().toISOString(), reinforcement_count: 0,
     failure_count: 0, revision_count: 0, pending_cleanup: true,
+    deactivated_reason: "completed",
     feature_slug: "old-feat",
   });
   setupPlanArtifacts(cwd, {
     "plans/plan.md": "# old plan",
-    "tasks/link-old.json": JSON.stringify({ link_id: "link-old" }),
+    // All tasks must be in terminal state for auto-archive to fire.
+    "tasks/link-old.json": JSON.stringify({
+      link_id: "link-old", title: "old", status: "done",
+      acceptance_criteria: [], file_scope: [], depends_on: [],
+    }),
   });
 
   // keyword-detector emits prompt context (not JSON) for 'invoke' action,
@@ -721,13 +726,111 @@ test("start link after pending_cleanup auto-archives previous Plan", () => {
   const archivedDirs = listArchived(cwd);
   assert(archivedDirs.length === 1, `expected 1 archive after start link, got ${archivedDirs.length}`);
   assert(archivedDirs[0].endsWith("-old-feat"), `expected slug suffix, got ${archivedDirs[0]}`);
-  // Source dirs cleared
   assert(readdirSync(join(cwd, ".oh-my-link", "plans")).length === 0, "plans/ should be empty");
   assert(readdirSync(join(cwd, ".oh-my-link", "tasks")).length === 0, "tasks/ should be empty");
-  // New session created
   const session = readSession(stateRoot);
   assert(session.active === true, "new session should be active");
   assert(session.current_phase === "bootstrap", "new session at bootstrap");
+});
+
+test("regression: start link with pending tasks does NOT archive (mid-Plan revise)", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: false, mode: "mylink", current_phase: "complete",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, pending_cleanup: true,
+    deactivated_reason: "completed",
+    feature_slug: "iter-feat",
+  });
+  setupPlanArtifacts(cwd, {
+    "plans/plan.md": "# in-progress plan",
+    "tasks/link-1.json": JSON.stringify({
+      link_id: "link-1", title: "done one", status: "done",
+      acceptance_criteria: [], file_scope: [], depends_on: [],
+    }),
+    // One task still pending → user is iterating, must NOT archive.
+    "tasks/link-2.json": JSON.stringify({
+      link_id: "link-2", title: "still pending", status: "pending",
+      acceptance_criteria: [], file_scope: [], depends_on: [],
+    }),
+  });
+
+  execFileSync(NODE,
+    [join(PLUGIN_ROOT, "dist", "hooks", "keyword-detector.js")],
+    {
+      input: JSON.stringify({ cwd, prompt: "start link continue please" }),
+      env: { ...process.env, OML_HOME: omlHome },
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 10000,
+    });
+
+  assert(listArchived(cwd).length === 0,
+    "must NOT archive while a task is still pending");
+  assert(existsSync(join(cwd, ".oh-my-link", "plans", "plan.md")),
+    "plan.md must survive mid-iteration");
+  assert(existsSync(join(cwd, ".oh-my-link", "tasks", "link-2.json")),
+    "pending task must survive mid-iteration");
+});
+
+test("regression: cancelled/force_reinvoke session is NOT auto-archived", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: false, mode: "mylink", current_phase: "cancelled",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+    deactivated_reason: "user_cancelled",
+    feature_slug: "cancelled-feat",
+  });
+  setupPlanArtifacts(cwd, {
+    "plans/plan.md": "# my plan",
+    "tasks/link-1.json": JSON.stringify({
+      link_id: "link-1", title: "x", status: "done",
+      acceptance_criteria: [], file_scope: [], depends_on: [],
+    }),
+  });
+
+  execFileSync(NODE,
+    [join(PLUGIN_ROOT, "dist", "hooks", "keyword-detector.js")],
+    {
+      input: JSON.stringify({ cwd, prompt: "start link try again" }),
+      env: { ...process.env, OML_HOME: omlHome },
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 10000,
+    });
+
+  assert(listArchived(cwd).length === 0,
+    "cancelled sessions must NOT be auto-archived (user might want to resume)");
+});
+
+test("regression: Vietnamese keywords in normal prose do NOT trigger clean", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_5_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+  setupPlanArtifacts(cwd, {
+    "plans/plan.md": "# active plan",
+    "tasks/link-1.json": JSON.stringify({ link_id: "link-1", status: "in_progress" }),
+  });
+
+  // User's actual complaint message that previously triggered cleanup.
+  const userComplaint = "yêu cầu fix lại bug này để hệ thống tự động dọn plan " +
+    "nhưng phải đảm bảo khi mọi plan trong đó đã được thực hiện xong";
+
+  execFileSync(NODE,
+    [join(PLUGIN_ROOT, "dist", "hooks", "keyword-detector.js")],
+    {
+      input: JSON.stringify({ cwd, prompt: userComplaint }),
+      env: { ...process.env, OML_HOME: omlHome },
+      stdio: ["pipe", "pipe", "pipe"],
+      timeout: 10000,
+    });
+
+  assert(listArchived(cwd).length === 0,
+    "Vietnamese phrases like 'dọn plan' / 'plan mới' in prose must NOT trigger clean");
+  assert(existsSync(join(cwd, ".oh-my-link", "plans", "plan.md")),
+    "plan.md must survive — only explicit 'oml clean' should archive");
 });
 
 // ── Implicit HITL gate detection (transcript-based) ──

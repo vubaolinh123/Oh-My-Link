@@ -33,7 +33,12 @@ const KEYWORDS: KeywordRule[] = [
   { patterns: ['oml on', 'always on oml', 'bat oml', 'bật oml'], action: 'always-on', skill: undefined },
   { patterns: ['oml off', 'always off oml', 'tat oml', 'tắt oml'], action: 'always-off', skill: undefined },
   { patterns: ['update oml', 'oml update', 'upgrade oml', 'oml upgrade'], action: 'update', skill: 'oh-my-link:update-plugin' },
-  { patterns: ['oml clean', 'clean oml', 'oml reset', 'reset oml', 'new plan', 'plan moi', 'plan mới', 'don plan', 'dọn plan'], action: 'clean', skill: undefined },
+  // Plan cleanup — kept narrow to OML-prefixed patterns only. Earlier
+  // versions also matched "new plan" / "plan mới" / "dọn plan" but those
+  // collide with normal Vietnamese conversation about plans (a user
+  // complaining about cleanup would accidentally trigger cleanup), so they
+  // were removed. To clean explicitly the user must say "oml clean".
+  { patterns: ['oml clean', 'clean oml', 'oml reset', 'reset oml', 'oml archive', 'archive oml'], action: 'clean', skill: undefined },
   { patterns: ['fetch docs', 'find docs', 'external context'], action: 'external-context', skill: 'oh-my-link:external-context' },
   { patterns: ['learn this', 'save this', 'remember this pattern'], action: 'learn', skill: 'oh-my-link:learner' },
   { patterns: ['oml fallback', 'switch fallback', 'fallback provider', 'chuyen fallback', 'chuyển dự phòng'], action: 'fallback-provider', skill: undefined },
@@ -521,24 +526,34 @@ async function main(): Promise<void> {
     const mode = match.action === 'invoke' ? 'mylink' : 'mylight' as const;
 
     if (!session?.active) {
-      // ── Auto-archive previous Plan ──
-      // If the previous session finished (complete / cancelled / pending_cleanup),
-      // move plans/, tasks/, reviews/ into history/ so the new Plan starts
-      // clean. Quiet by default — surface only when something was actually
-      // archived.
-      const prevDone = !!session && (
+      // ── Auto-archive previous Plan (conservative) ──
+      // Only archive when the previous Plan is genuinely finished AND every
+      // task is in a terminal state (done/failed). This prevents wiping work
+      // mid-iteration when the user is still revising plans/tasks within the
+      // same Plan. Cancelled / orphaned / force-restart sessions are NOT
+      // auto-archived — the user can revise and resume, or run `oml clean`
+      // explicitly to force-archive.
+      const cleanCompletionReasons = new Set([
+        'completed',
+        'all_tasks_completed',
+        'completed_at_summary',
+        'plan_cleaned',
+      ]);
+      const wasCleanCompletion = !!session && (
         session.pending_cleanup === true ||
-        session.current_phase === 'complete' ||
-        session.current_phase === 'cancelled' ||
-        session.current_phase === 'light_complete' ||
-        session.deactivated_reason === 'force_reinvoke' ||
-        session.deactivated_reason === 'completed' ||
-        session.deactivated_reason === 'orphan_auto_completed' ||
-        session.deactivated_reason === 'all_tasks_completed' ||
-        session.deactivated_reason === 'completed_at_summary' ||
-        session.deactivated_reason === 'user_cancelled'
+        (session.deactivated_reason !== undefined &&
+          cleanCompletionReasons.has(session.deactivated_reason))
       );
-      if (prevDone) {
+      let allTasksTerminal = true;
+      if (wasCleanCompletion) {
+        try {
+          const allTasks = listTasks(cwd);
+          allTasksTerminal = allTasks.every(
+            t => t.status === 'done' || t.status === 'failed',
+          );
+        } catch { /* best effort — if listTasks fails, default to skipping */ }
+      }
+      if (wasCleanCompletion && allTasksTerminal) {
         try {
           const archived = archivePlanArtifacts(cwd, session?.feature_slug);
           if (archived) {
@@ -546,6 +561,9 @@ async function main(): Promise<void> {
               `auto-archive: ${archived.filesArchived} file(s) → ${archived.archivePath}`);
           }
         } catch { /* best effort — never block new Plan on archive failure */ }
+      } else if (wasCleanCompletion) {
+        debugLog(cwd, 'keyword',
+          'auto-archive skipped: previous Plan finished but tasks remain pending/in_progress');
       }
 
       // For mylight, classify intent first
