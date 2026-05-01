@@ -446,6 +446,30 @@ async function main(): Promise<void> {
       stopOutput('allow', 'Orchestrator is waiting for your input.');
       return;
     }
+
+    // --- BACKGROUND AGENTS RUNNING ---
+    // If subagents are still running, the parent reached Stop because Claude
+    // Code spawned them in background mode (foreground Task spawns block the
+    // parent until done — the parent never reaches Stop). The parent has
+    // nothing useful to do until SubagentStop fires; spamming reinforcement
+    // ("Continue: Executor is implementing the fix") while the executor is
+    // ALREADY running just wastes tokens and confuses the LLM.
+    if (runningAgents.length > 0) {
+      debugLog(cwd, 'stop',
+        `ALLOW: ${runningAgents.length} background agent(s) running`);
+      session.last_checked_at = new Date().toISOString();
+      try { writeJsonAtomic(getSessionPath(cwd), session); } catch { /* best effort */ }
+      const agentList = runningAgents
+        .map(a => {
+          const id = (a.agent_id || '').slice(0, 8);
+          return `${a.role}${id ? `(${id})` : ''}`;
+        })
+        .join(', ');
+      stopOutput('allow',
+        `${runningAgents.length} background agent(s) still running: ${agentList}. ` +
+        `Sleeping until SubagentStop.`);
+      return;
+    }
   }
 
   // --- BLOCK STOP ---

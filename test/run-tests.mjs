@@ -643,7 +643,7 @@ suite('hooks — smoke tests', () => {
     const hookPath = path.join(DIST, 'hooks', 'subagent-lifecycle.js');
     const input = JSON.stringify({
       session_id: 'test', cwd: TEMP_PROJECT,
-      subagent_id: 'agent-1', subagent_type: 'worker', description: 'test'
+      agent_id: 'agent-1', subagent_type: 'worker', description: 'test'
     });
     const cmd = process.platform === 'win32'
       ? `echo ${JSON.stringify(input)} | node "${hookPath}" start`
@@ -663,7 +663,7 @@ suite('hooks — smoke tests', () => {
     const hookPath = path.join(DIST, 'hooks', 'subagent-lifecycle.js');
     const input = JSON.stringify({
       session_id: 'test', cwd: TEMP_PROJECT,
-      subagent_id: 'agent-1', subagent_type: 'worker', result: 'success'
+      agent_id: 'agent-1', subagent_type: 'worker', exit_code: 0
     });
     const cmd = process.platform === 'win32'
       ? `echo ${JSON.stringify(input)} | node "${hookPath}" stop`
@@ -968,6 +968,9 @@ suite('stop-handler — phase continuations', () => {
       started_at: new Date().toISOString(), reinforcement_count: 0,
       failure_count: 0, revision_count: 0,
     });
+    // Reset subagent tracking — earlier suite tests may have left running agents,
+    // and v0.13.1 stop-handler ALLOWs whenever agents are running.
+    helpers.writeJsonAtomic(state.getSubagentTrackingPath(TEMP_PROJECT), []);
     ensureFakeTask();
     const hookPath = path.join(DIST, 'hooks', 'stop-handler.js');
     const inputFile = path.join(TEMP_ROOT, 'stop-phase.json');
@@ -1034,6 +1037,7 @@ suite('stop-handler — phase continuations', () => {
       started_at: new Date().toISOString(), reinforcement_count: 0,
       failure_count: 0, revision_count: 0,
     });
+    helpers.writeJsonAtomic(state.getSubagentTrackingPath(TEMP_PROJECT), []);
     ensureFakeTask();
     const hookPath = path.join(DIST, 'hooks', 'stop-handler.js');
     const inputFile = path.join(TEMP_ROOT, 'stop-fast.json');

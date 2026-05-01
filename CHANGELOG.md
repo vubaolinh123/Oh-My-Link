@@ -2,6 +2,29 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.13.1] — Stop Reinforcement Spam While Background Subagents Are Running
+
+**Hotfix: when subagents are running in background mode, the parent orchestrator now sleeps cleanly instead of being spammed with "Continue: Executor is implementing the fix" reinforcement messages while the executor IS already running.**
+
+### Symptom
+After Master spawned background workers (e.g. via `/loop` autonomous wakeups in Start Fast), the parent reached the Stop hook while child agents kept running. Stop handler had no awareness of background mode, saw "running agents + pending tasks" and BLOCKED with reinforcement 1/50, 2/50, 3/50, ... — spamming the LLM with redundant "continue" messages while it was already correctly waiting.
+
+### Fix — Background Agents Allow path
+Stop handler now checks: if any tracked subagent has `status='running'`, ALLOW stop with the message
+"N background agent(s) still running: <list>. Sleeping until SubagentStop."
+
+The parent will be woken by Claude Code's normal SubagentStop hook flow when each child completes; no need to spam reinforcement.
+
+### Test infra fix
+- Two pre-existing tests (`subagent-lifecycle stop`, `stop-handler blocks…`) leaked subagent tracking with `status='running'` between suite runs. Fixed the field-name mismatch (`subagent_id` → `agent_id`, `result: 'success'` → `exit_code: 0`) and added explicit `tracking=[]` reset to the affected stop-handler tests.
+
+### Tests
+- 2 new tests: `light_execution + 2 background workers → ALLOW`, `phase_5_execution + running worker → ALLOW`
+- Updated 1 existing test now that "running agent" no longer implies BLOCK
+- Full suite: **569 passed / 0 failed / 5 skipped (35/35 files)**
+
+---
+
 ## [v0.13.0] — Enforce Task Tracking Before Worker Spawn
 
 **Force the orchestrator to decompose plan.md into `link-*.json` task files BEFORE spawning any Worker. No more skipping Phase 3 (Decomposition) and going straight from plan to coding.**

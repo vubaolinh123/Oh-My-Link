@@ -982,20 +982,73 @@ test("light_execution + orchestrator asks Sequential/Parallel + no running agent
     `expected waiting message, got "${result.reason || ''}"`);
 });
 
-test("light_execution + plain narration (no question) + running agent → still BLOCKS", () => {
+test("light_execution + running background agents → ALLOW with sleep message", () => {
   const { omlHome, cwd, stateRoot } = setupTempEnv();
   writeSession(stateRoot, {
     active: true, mode: "mylight", current_phase: "light_execution",
     started_at: new Date().toISOString(), reinforcement_count: 0,
     failure_count: 0, revision_count: 0, intent: "standard",
   });
-  // Pretend an executor is still running so orphan path doesn't fire.
+  writeTracking(stateRoot, [
+    {
+      agent_id: "worker-link-09",
+      role: "worker",
+      started_at: new Date().toISOString(),
+      status: "running",
+    },
+    {
+      agent_id: "worker-link-22",
+      role: "worker",
+      started_at: new Date().toISOString(),
+      status: "running",
+    },
+  ]);
+
+  const result = runHook("stop-handler.js", { cwd }, { OML_HOME: omlHome });
+
+  assert(!result.decision || result.decision !== "block",
+    `expected ALLOW with running agents, got decision=${result.decision} reason="${result.reason || ''}"`);
+  const reason = (result.reason || "").toLowerCase();
+  assert(reason.includes("background") && reason.includes("running"),
+    `expected background-agents message, got "${result.reason || ''}"`);
+});
+
+test("phase_5_execution Start Link + running worker → ALLOW (no spam reinforcement)", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_5_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 5,
+    failure_count: 0, revision_count: 0,
+  });
   writeTracking(stateRoot, [{
-    agent_id: "exec-running",
-    role: "executor",
+    agent_id: "worker-1",
+    role: "worker",
     started_at: new Date().toISOString(),
     status: "running",
   }]);
+
+  const result = runHook("stop-handler.js", { cwd }, { OML_HOME: omlHome });
+
+  assert(!result.decision || result.decision !== "block",
+    `expected ALLOW with running worker, got decision=${result.decision}`);
+});
+
+test("light_execution + plain narration + no agent + pending task → still BLOCKS", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylight", current_phase: "light_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, intent: "standard",
+  });
+  // No running agent (v0.13.1 ALLOWs whenever agents are running),
+  // and one pending task so orphan auto-complete doesn't fire.
+  writeTracking(stateRoot, []);
+  const tasksDir = join(cwd, ".oh-my-link", "tasks");
+  mkdirSync(tasksDir, { recursive: true });
+  writeFileSync(join(tasksDir, "pending.json"), JSON.stringify({
+    link_id: "pending", title: "x", status: "pending",
+    acceptance_criteria: [], file_scope: [], depends_on: [],
+  }));
   const transcriptPath = writeTranscript(cwd,
     "Implementing the change. Edited foo.ts and bar.ts. No errors.");
 
@@ -1004,7 +1057,7 @@ test("light_execution + plain narration (no question) + running agent → still 
     { OML_HOME: omlHome });
 
   assert(result.decision === "block",
-    `expected BLOCK without question pattern, got decision=${result.decision}`);
+    `expected BLOCK without question pattern + parent should spawn worker, got decision=${result.decision}`);
 });
 
 test("phase_5_execution Start Link + question + no running agent → ALLOW (works for mylink too)", () => {
