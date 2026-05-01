@@ -581,6 +581,107 @@ test("stop-handler allows stop at phase_7_summary and marks complete", () => {
   assert(session.active === false, "expected session deactivated");
 });
 
+// ── Task-tracking enforcement (pre-tool-enforcer) ────
+console.log("\n--- pre-tool-enforcer — Task tracking enforcement ---");
+
+test("Start Link: Task spawn for Worker BLOCKED when tasks/ is empty", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_5_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+
+  const result = runHook("pre-tool-enforcer.js", {
+    cwd,
+    tool_name: "Task",
+    tool_input: {
+      subagent_type: "general",
+      description: "[OML:worker] Implement link-1",
+      prompt: "Build the auth module",
+    },
+  }, { OML_HOME: omlHome });
+
+  assert(result.hookSpecificOutput?.permissionDecision === "deny",
+    `expected deny, got ${result.hookSpecificOutput?.permissionDecision}`);
+  assert((result.hookSpecificOutput?.permissionDecisionReason || "")
+    .toLowerCase().includes("link-*.json"),
+    `expected reason to mention link-*.json, got "${result.hookSpecificOutput?.permissionDecisionReason || ''}"`);
+});
+
+test("Start Link: Task spawn for Worker ALLOWED when tasks/ has link-*.json", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_5_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+  setupPlanArtifacts(cwd, {
+    "tasks/link-1.json": JSON.stringify({
+      link_id: "link-1", title: "auth", status: "pending",
+      acceptance_criteria: [], file_scope: [], depends_on: [],
+    }),
+  });
+
+  const result = runHook("pre-tool-enforcer.js", {
+    cwd,
+    tool_name: "Task",
+    tool_input: {
+      subagent_type: "general",
+      description: "[OML:worker] Implement link-1",
+      prompt: "Build the auth module",
+    },
+  }, { OML_HOME: omlHome });
+
+  assert(result.hookSpecificOutput?.permissionDecision !== "deny",
+    `expected allow when tasks exist, got ${result.hookSpecificOutput?.permissionDecision}`);
+});
+
+test("Start Link: Task spawn for Architect (non-worker) is NEVER blocked", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylink", current_phase: "phase_3_decomposition",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0,
+  });
+  // tasks/ deliberately empty — Architect must be allowed to create the JSONs.
+
+  const result = runHook("pre-tool-enforcer.js", {
+    cwd,
+    tool_name: "Task",
+    tool_input: {
+      subagent_type: "general",
+      description: "[OML:architect] Decompose plan into link-*.json",
+      prompt: "Read plan.md and write tasks/link-N.json",
+    },
+  }, { OML_HOME: omlHome });
+
+  assert(result.hookSpecificOutput?.permissionDecision !== "deny",
+    `Architect spawn must NOT be blocked by tasks/ empty rule`);
+});
+
+test("Start Fast: Task spawn is NOT subject to mylink tracking rule", () => {
+  const { omlHome, cwd, stateRoot } = setupTempEnv();
+  writeSession(stateRoot, {
+    active: true, mode: "mylight", current_phase: "light_execution",
+    started_at: new Date().toISOString(), reinforcement_count: 0,
+    failure_count: 0, revision_count: 0, intent: "standard",
+  });
+
+  const result = runHook("pre-tool-enforcer.js", {
+    cwd,
+    tool_name: "Task",
+    tool_input: {
+      subagent_type: "fixer",
+      description: "[OML:executor] Implement fix from BRIEF.md",
+      prompt: "Apply the change",
+    },
+  }, { OML_HOME: omlHome });
+
+  assert(result.hookSpecificOutput?.permissionDecision !== "deny",
+    `Start Fast Executor must not be blocked by tracking rule`);
+});
+
 // ── Plan auto-cleanup (archive on new Plan start) ────
 console.log("\n--- plan auto-cleanup — archive + reset ---");
 

@@ -32,7 +32,7 @@ P1. Scout — codebase exploration and requirements clarification
 G1. HITL Gate 1 — user approves scope and open questions
 P2. Architect (Planning) — produce plan.md
 G2. HITL Gate 2 — user approves plan
-P3. Architect (Decomposition) — split plan into task JSONs under .oh-my-link/tasks/
+P3. Architect (Decomposition) — split plan into task JSONs under .oh-my-link/tasks/ — MANDATORY before any Worker spawn (pre-tool-enforcer hard-blocks Worker/Executor Task spawns when tasks/ is empty)
 P4. Validation — pre-execution checks; verify plan and task structure are sound
 G3. HITL Gate 3 — user approves validated plan before execution begins
 P5. Workers — parallel or sequential link execution

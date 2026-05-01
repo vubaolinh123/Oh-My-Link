@@ -2,7 +2,7 @@ import { parseHookInput, hookOutput, toolDenyOutput, getCwd, debugLog, logMemory
 import { getSessionPath } from '../state';
 import { readJson } from '../helpers';
 import { SessionState, HookInput } from '../types';
-import { acquireLock, releaseLock } from '../task-engine';
+import { acquireLock, releaseLock, listTasks } from '../task-engine';
 import { detectMcpTool } from '../mcp-config';
 
 // ============================================================
@@ -96,6 +96,41 @@ async function main(): Promise<void> {
     if (warned) {
       hookOutput('PreToolUse', `[oh-my-link] WARNING: Risky command detected. Proceed with caution.`);
       return;
+    }
+  }
+
+  // ── Task-tracking enforcement (Start Link only) ──
+  // In mylink mode, Workers/Executors must NOT spawn until plan.md has been
+  // decomposed into link-*.json files in .oh-my-link/tasks/. Otherwise the
+  // orchestrator tends to skip Phase 3 (Decomposition), go straight from
+  // plan.md to coding, and leave no audit trail or per-link tracking.
+  if (toolName === 'Task' && session?.active && session.mode === 'mylink') {
+    const desc = ((toolInput.description as string) || '').toLowerCase();
+    const subagentType = ((toolInput.subagent_type as string) || '').toLowerCase();
+    const promptText = ((toolInput.prompt as string) || '').toLowerCase();
+    // Detect a worker-class spawn: explicit role tag, role keyword in
+    // description, or Claude Code's `fixer` subagent type.
+    const roleTagMatch = /\[oml:(worker|executor)\]/i.test(desc) ||
+      /\[oml:(worker|executor)\]/i.test(promptText);
+    const descKeywordMatch = /\b(worker|executor)\b/i.test(desc) ||
+      /implement|fix from brief|implement.*task|build.*link/i.test(desc);
+    const subagentTypeMatch = subagentType === 'fixer';
+    const isWorkerSpawn = roleTagMatch || descKeywordMatch || subagentTypeMatch;
+
+    if (isWorkerSpawn) {
+      let taskCount = 0;
+      try { taskCount = listTasks(cwd).length; } catch { taskCount = 0; }
+      if (taskCount === 0) {
+        debugLog(cwd, 'pre-tool', `Task BLOCKED: worker spawn without tasks/`);
+        toolDenyOutput(
+          '[OML] Cannot spawn Worker/Executor: no link-*.json files in .oh-my-link/tasks/.\n\n' +
+          'In Start Link mode every Worker MUST claim a tracked task. Spawn an Architect first to decompose the plan:\n\n' +
+          '  Task tool with description: "[OML:architect] Decompose plan into link-*.json"\n' +
+          '  prompt: "Read .oh-my-link/plans/plan.md and write one link-{N}.json per task to .oh-my-link/tasks/. Each task must include link_id, title, file_scope, acceptance_criteria, depends_on (array of link_ids this task depends on), and status: \\"pending\\"."\n\n' +
+          'Once tasks/ has link-*.json files, re-spawn this Worker — SubagentStart will auto-claim a pending task by link_id.'
+        );
+        return;
+      }
     }
   }
 

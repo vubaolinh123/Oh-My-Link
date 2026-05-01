@@ -2,6 +2,24 @@
 
 All notable changes to Oh-My-Link are documented here.
 
+## [v0.13.0] — Enforce Task Tracking Before Worker Spawn
+
+**Force the orchestrator to decompose plan.md into `link-*.json` task files BEFORE spawning any Worker. No more skipping Phase 3 (Decomposition) and going straight from plan to coding.**
+
+### Problem
+In Start Link mode the LLM Master often skipped Phase 3 — wrote `plan.md` then immediately spawned Workers without writing one `link-*.json` per task to `.oh-my-link/tasks/`. Result: no per-task tracking, no audit trail, broken auto-claim, broken review→fix loop (no link_id to associate verdicts with).
+
+### Fix — pre-tool-enforcer hard-block
+When `tool_name === 'Task'` AND session is in `mylink` mode AND the spawn target is a Worker/Executor (detected via `[OML:worker]` / `[OML:executor]` tag, `worker`/`executor`/`implement` keywords in description, or Claude Code's `fixer` subagent_type) AND `.oh-my-link/tasks/` has zero `link-*.json` files → **DENY** the Task spawn with a remediation message instructing Master to spawn an Architect first to decompose the plan.
+
+Architect / Scout / Reviewer spawns are never subject to this rule. Start Fast (`mylight`) is exempt — it doesn't require decomposition by design.
+
+### Tests
+- 4 new pre-tool-enforcer tests cover: Worker spawn blocked when empty, Worker spawn allowed with link-*.json present, Architect always allowed, Start Fast Executor exempt
+- Full suite: **567 passed / 0 failed / 5 skipped (35/35 files)**
+
+---
+
 ## [v0.12.1] — Fix Overzealous Auto-Cleanup
 
 **Hotfix for v0.12.0 — the auto-cleanup feature was too aggressive in two ways.**
